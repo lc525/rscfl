@@ -1,0 +1,46 @@
+Resourceful: Support For Fine-Grained, Accurate and Attributable Resource Accounting At the POSIX Abstraction Level
+
+* Introduction
+ * The structure of modern Internet style services is comples.
+ * It is common for a single service, as perceived externally to be composed of multiple processes on multiple physical hosts, all of which communicate via RPC to provide a final result.
+ * Furthermore, the process-internal model for handling requests has also evolved.
+ * Processes are no longer composed of a single thread sequentially servicing a request lifecycle from start to finish
+ * Processes may be composed of multiple threads each of which handles a request in entirety [ref threadpool model]
+ * Or, a request may be decomposed into stages with each stage being handled by a separate thread [staged event model]
+
+ * Coupled with this, we observe that it is becoming increasingly important for developers to be able to service a single request as quickly as possible [ref]
+ * The quicker the service time; the more requests handleable per unit-time; the higher the efficiency of the system.
+ * For this reason, reducing request service times has become a primary goal of system developers
+ * To support this goal a number of systems have been created to allow developers to observe, characterize and reason about service times [ref dapper, x-trace etc].
+
+ * We contend, however, that there are fundamental shortcomings with the way in which current systems for observing, characterising and reasoning about service times operate.
+ * We observe that, current systems suffer from the following major shortcomings:
+   * on a per-request level:
+     * Measurements of resource consumption are actually proxied by measuring the wall-clock time required to carry out operations
+     * Measurements of resource consumption are limited to wall-clock time. It is difficult to relate these to actual physical resources such as CPU cycles, memory, I/O bytes transferred, disk seeks, etc.
+     * Even with wall-clock measurements, the cause for the measurement are opaque (especially when relating to kernel level actions). There is no explanation of why the measurements look like they do.
+     * There is no way to relate resources asynchronously and indirectly related to servicing a request. 
+       -e.g. write() over TCP socket only measures time required to queue data into skbuff, not that associated with moving it down the stack and doing TX
+       -e.g. no accounting for resources used to reTX data over network.
+       
+ * We advocate there is a need for a fine-grained resource accounting framework that is able to account for both direct and indirect resource-consumption at the request level.
+
+Open Questions (14.03.13)
+1. What will be the exact resources we account for? [network, disk, CPU cycles etc..]
+2. How do we present the resource consumption to the user? [aggregate, highest first? etc?]
+3. What mechanism will we use to collect these resources? 
+4. How much extension will it need?
+5. How long will resource consumption be held, at what level?
+6. How do we accurately mark and account for asynchronous and indirect resource accounting?
+7. How do we minimise the space and time overheads required to account for this resource?
+8. What are the major functional data structures to which we attach resource accounting information?
+9. How do we provide a mechanism that goes across user and kernel-level code in a uniform way?
+
+Work Goals (high level): [each point is a separate piece of work]
+1. The mechanism, application of and proof/evidence that it is able to provide an immediate benefit
+2. Extension to a dsitributed system, use of in distributed system with proof and evidence of immediate benefit.
+3. Use of tool to profile and improve kernel/user performance for some existing high-value applications? [apache, nginx, etc]
+4. Extension to hypervisors?
+
+
+

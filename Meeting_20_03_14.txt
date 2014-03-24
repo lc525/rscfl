@@ -1,0 +1,47 @@
+Resourceful meeting 20/03/14
+
+* What are the resources we account for?
+	* We may not just look at the resources of the single request, but also those of processes around it.
+	* Everything that Perf has.
+		* Can we do this with more / many metrics?
+		* Maybe just use the hardware counters.
+			* Use all of them by default.
+	* How about demuxing it?
+		* Change what's recorded per request.
+		* With enough requests we'd get everything.
+	* At least measure 1 in each category.
+	* For each request, what other requests overlapped?
+
+* How do we define what a request is?
+
+* How do we present resource consumption to the user?
+	* Tree view -> in terms of requests.
+	* As a graph?
+	* Could all be abstracted away.
+
+* Mechanisms to collect resources/
+	* CPU scheduling in Perf -> events kernel interface.
+	* Will find others. What does I/O top use?
+	* Something for TCP metrics.
+
+* How much extension would it need?
+	* We don't believe it needs a major rewrite.
+
+* How long will resource consumption be held?
+	* Would need to do some measurements. 
+
+* Async & indirect resource accounting.
+	* Still need to look at this. 
+	* We believe that it will be a mixture of total resource usage monitoring and selected other processes.
+
+* How do we minimise space and time overheads?
+	* We don't think there's much.
+
+* What re the data structures we'll use?
+	* We can decide on these later, as they may change as the design does.
+
+* Prove its use.
+	* Show that CPU use doesn't give you much.
+
+* Can we turn this around to make better use of our machines?
+	* Knowing what you can co-locate. 

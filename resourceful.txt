@@ -41,6 +41,5 @@ Work Goals (high level): [each point is a separate piece of work]
 2. Extension to a dsitributed system, use of in distributed system with proof and evidence of immediate benefit.
 3. Use of tool to profile and improve kernel/user performance for some existing high-value applications? [apache, nginx, etc]
 4. Extension to hypervisors?
-
-
-
+5. Turn the problem on its head:  Can you set quotas and throttles on resource consumption to prevent errant/malicious app from consuming an inordinate amount of resources?
+6. Use of tool to pinpoint and map inter-process interactions to explain unexplained behaviour in a process.

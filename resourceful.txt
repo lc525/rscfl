@@ -44,3 +44,4 @@ Work Goals (high level): [each point is a separate piece of work]
 5. Turn the problem on its head:  Can you set quotas and throttles on resource consumption to prevent errant/malicious app from consuming an inordinate amount of resources?
 6. Use of tool to pinpoint and map inter-process interactions to explain unexplained behaviour in a process.
 7. Where do OSes spend their time and under what conditions?  *** good one
+8. [From sa497] Is it possible to build a model of machine state/resource consumption from observing start machine state + sniffing network traffic?

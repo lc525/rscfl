@@ -15,14 +15,14 @@
 \begin{document}
 \lstdefinestyle{customc}{
   belowcaptionskip=1\baselineskip,
-  breaklines=true,
-  frame=L,
-  xleftmargin=\parindent,
+  frame=lines,
+  numbers=left,
+  breaklines=false,
   language=C,
   showstringspaces=false,
   basicstyle=\scriptsize\ttfamily,
   keywordstyle=\bfseries\color{green!40!black},
-  commentstyle=\itshape\color{purple!40!black},
+  commentstyle=\color{purple!40!black},
   identifierstyle=\color{blue},
   stringstyle=\color{orange},
 }
@@ -65,8 +65,8 @@ We envision that the library, together with the changes made to the Linux kernel
 The Resourceful library lets programmers express their interest in the measurement of resource consumption for the next syscall (the \texttt{acct\_next} function). After the next syscall returns, they can look into a \texttt{call\_cost} data structure and see the costs incurred synchronously by the syscall. When it is the case, the kernel will then fill in any asynchronous costs into the same data structure. To access those costs reliably, the user has to either call \texttt{wait\_async\_cost} passing the call\_cost structure or register a callback function (a function that will be called when the kernel detects all asynchronous effects of the syscall have been accounted for).
 When calling \texttt{acct\_next} the developer can also specify which components should be accounted for (you can limit the amount of data being collected). Below we give an example of how we see this working in practice:
 
-
-\lstset{style=customc}
+\vspace{1em}
+\lstset{style=customc, caption=Sample code using the \texttt{rsrcfl} library, captionpos=b}
 \begin{lstlisting}
  void on_cost_done(call_cost* cost, void* ctx){
   //callback; read costs and take actions (aggregate, build histograms, etc)

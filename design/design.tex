@@ -120,7 +120,7 @@ When calling \texttt{acct\_next} the developer can also specify which components
   The resourceful API is exposed through a user-library.
 
   Before performing a syscall, a programmer can express that he wants the following syscall to be accounted for by calling the function \texttt{acct\_next}.
-  \texttt{acct\_next} takes two arguments: a pointer to a \texttt{struct call\_cost} and a filter. The \texttt{call_cost} pointer is the address to which the kernel should write accounting information for the next syscall to be made.
+  \texttt{acct\_next} takes two arguments: a pointer to a \texttt{struct call\_cost} and a filter. The \texttt{call\_cost} pointer is the address to which the kernel should write accounting information for the next syscall to be made.
   The filter is a bitmap representing which subsystems the user is interested in.
 
   The \texttt{struct sys\_acct} contains an enum map that shows which subsystems were accessed by the syscall followed by a section describing the costs for each subsystem touched. The programmer will read the touched subsystems, by reading the map, and then index into the relevant sections using offsets found from the map.

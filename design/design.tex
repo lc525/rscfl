@@ -92,6 +92,13 @@ When calling \texttt{acct\_next} the developer can also specify which components
    \end{lstlisting}
   \textbf{Library design:\\}
 
+\begin{figure}
+  \includegraphics[width=\textwidth]{figures/system-design.pdf}
+  \caption{An overview of library internals}
+  \label{fig:sysDesign}
+\end{figure}
+
+
   Figure~\ref{fig:sysDesign}. We provide a library that lets programmers access a struct that describes the cost of a syscall. We require the program to specify that the next syscall should be accounted for, along with which components should be accounted for. After making the call, the user can then access a struct that specifies the synchronous cost of making that syscall, per Linux subsystem. In particular, we do not perform function-level accounting, to reduce the overhead. Instead, we encourage developers to make use of existing tools, such as ftrace.
 
   \subsection{Userspace API}

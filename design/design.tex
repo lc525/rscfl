@@ -157,11 +157,11 @@ Naturally, programmers are not restricted to using our library and can make use 
 
 {\color{blue}\texttt{int add\_to\_free\_stack(struct call\_cost *[])}} same as above, but for multiple \texttt{call\_cost} structures
 
-{\color{blue}\texttt{int stop\_async\_acct(struct call\_cost *)}} prevents further accounting of the async costs of the syscall which is associated with the given \texttt{call\_cost}. This is basically a cancellation function. Any callbacks registered on the given \texttt{call\_cost} will still run at some point after the \texttt{stop\_async\_acct} returns.
+{\color{blue}\texttt{int stop\_async\_acct(struct call\_cost *)}} prevents further accounting of the async costs of the system call which is associated with the given \texttt{call\_cost}. This is basically a cancellation function. Any callbacks registered on the given \texttt{call\_cost} will still run at some point after the \texttt{stop\_async\_acct} returns.
 
 \subsubsection{Data structures}
 
-The user will mainly interact with \texttt{call\_cost} structures, which hold the resource accounting data for a particular syscall. The interesting bits are the two accounting structures, one for synchronous costs and the other for asynchronous ones. The async costs should not be accessed if \texttt{async\_done} is false (the kernel is still updating the async costs).
+The user will mainly interact with \texttt{call\_cost} structures, which hold the resource accounting data for a particular system call. The interesting bits are the two accounting structures, one for synchronous costs and the other for asynchronous ones. The async costs should not be accessed if \texttt{async\_done} is false (the kernel is still updating the async costs).
 
 \vspace{1em}
 \begin{lstlisting}
@@ -176,7 +176,7 @@ struct call_cost {
 };
 \end{lstlisting}
 
-Each accounting structure contains a \texttt{cost\_bitmap} which is used to determine those kernel subsystems that were touched by the syscall (and hence have associated resource accounting information). The \texttt{cost\_bitmap} contains a field which is a logical OR between resource enum members (the resource enum is shown below in section~\ref{evfilt}).
+Each accounting structure contains a \texttt{cost\_bitmap} which is used to determine those kernel subsystems that were touched by the system call (and hence have associated resource accounting information). The \texttt{cost\_bitmap} contains a field which is a logical OR between resource enum members (the resource enum is shown below in section~\ref{evfilt}).
 
 One design choice for the accounting struct was to make it fixed size (which in turn means \texttt{call\_cost} has a fixed size), for easy indexing within the allocated cost page. The first three components set in the \texttt{cost\_bitmap} field (starting from the LSB) are stored directly inside the struct (they will be cheaper to access for both the kernel and the user space). If any other components have accumulated cost, they will be stored in a dynamically allocated array which is pointed by ext.
 
@@ -325,7 +325,7 @@ struct cost_bitmap {
 
   \subsection{Kernel primitives}\label{kernelprimitives}
 
-  In this section we explore the modifications that we intend to make to Linux to allow fine-grained resource accounting. Our design requires us to write a char driver, and modify some integral kernel structs.
+  In this section we describe the modifications that we intend to make to Linux to allow fine-grained resource accounting. Our design requires us to write a char driver, and modify some integral kernel structs.
 
   Figure~\ref{fig:sysDesign} shows the high-level flow of resourceful programs. Each process that requires fine-grained resource accounting issues a single \texttt{ioctl} to a char driver. The driver will allocate a 4K page, known as the \texttt{ctl\_page}, that is mapped R/W to the current process, and has its address stored in the relevant \texttt{task\_struct}. We expect the process to write the \emph{virtual} address of the location that the kernel should store accounting information into \texttt{ctl\_page.call\_cost\_addr}.
 
@@ -490,7 +490,7 @@ We propose to modify syscalls  so they look to see if a new address has been wri
 
   We propose to write the following:
   \begin{description}[style=nextline]
-  \item [Modify \texttt{task\_struct} to store \texttt{\&ctl\_page}, \texttt{syscall\_id} and \texttt{filter}.]
+  \item [Modify \texttt{task\_struct} to store \texttt{\&ctl\_page}, \texttt{&call\_cost\_addr} and \texttt{filter}.]
     2 days
   \item[Write a char driver.] 2 days
     \begin{itemize}

@@ -100,7 +100,7 @@ Below we show an example of how this mechanism works.
    // by the kernel for a while
 
    // do whatever you want with the call_cost data. you can read the sync
-   // component as soon as the syscall is done. You should not touch the async
+   // component as soon as the system call is done. You should not touch the async
    // component until the kernel has set the async_done flag to true.
    // you can either wait with
    //    wait_async_cost(call_cost*);
@@ -144,7 +144,7 @@ Naturally, programmers are not restricted to using our library and can make use 
 \item on the second implementation pass we will also consider allowing the user to express interest in more than one system call (i.e measure resource utilization from now until a \texttt{stop\_accounting} function is called). 
 \end{itemize}
 
-{\color{red}\texttt{syscall (rsrcfl library $\longleftrightarrow$ kernel)}} on any system call. On the kernel side we have to determine whether resource accounting needs to be done. We use system call interception in order to run our prologue code. This interception is achieved using the kernel's existing support for tracing. A sketch of what code we need to run before each system call is also displayed in Figure~\ref{fig:sysDesign}.
+{\color{red}\texttt{system call (rsrcfl library $\longleftrightarrow$ kernel)}} on any system call. On the kernel side we have to determine whether resource accounting needs to be done. We use system call interception in order to run our prologue code. This interception is achieved using the kernel's existing support for tracing. A sketch of what code we need to run before each system call is also displayed in Figure~\ref{fig:sysDesign}.
 \begin{itemize}
 \item We need to look into the current \texttt{task\_struct} and find the corresponding \texttt{ctl\_page} that contains both the memory address where we need to add accounting information and any filters the user might want. Those would be present if the user has set them up by calling \texttt{acct\_next}.
 \item the kernel will initialize the given \texttt{call\_cost} structure as required
@@ -157,11 +157,11 @@ Naturally, programmers are not restricted to using our library and can make use 
 
 {\color{blue}\texttt{int add\_to\_free\_stack(struct call\_cost *[])}} same as above, but for multiple \texttt{call\_cost} structures
 
-{\color{blue}\texttt{int stop\_async\_acct(struct call\_cost *)}} prevents further accounting of the async costs of the syscall which is associated with the given \texttt{call\_cost}. This is basically a cancellation function. Any callbacks registered on the given \texttt{call\_cost} will still run at some point after the \texttt{stop\_async\_acct} returns.
+{\color{blue}\texttt{int stop\_async\_acct(struct call\_cost *)}} prevents further accounting of the async costs of the system call which is associated with the given \texttt{call\_cost}. This is basically a cancellation function. Any callbacks registered on the given \texttt{call\_cost} will still run at some point after the \texttt{stop\_async\_acct} returns.
 
 \subsubsection{Data structures}
 
-The user will mainly interact with \texttt{call\_cost} structures, which hold the resource accounting data for a particular syscall. The interesting bits are the two accounting structures, one for synchronous costs and the other for asynchronous ones. The async costs should not be accessed if \texttt{async\_done} is false (the kernel is still updating the async costs).
+The user will mainly interact with \texttt{call\_cost} structures, which hold the resource accounting data for a particular system call. The interesting bits are the two accounting structures, one for synchronous costs and the other for asynchronous ones. The async costs should not be accessed if \texttt{async\_done} is false (the kernel is still updating the async costs).
 
 \vspace{1em}
 \begin{lstlisting}
@@ -176,7 +176,7 @@ struct call_cost {
 };
 \end{lstlisting}
 
-Each accounting structure contains a \texttt{cost\_bitmap} which is used to determine those kernel subsystems that were touched by the syscall (and hence have associated resource accounting information). The \texttt{cost\_bitmap} contains a field which is a logical OR between resource enum members (the resource enum is shown below in section~\ref{evfilt}).
+Each accounting structure contains a \texttt{cost\_bitmap} which is used to determine those kernel subsystems that were touched by the system call (and hence have associated resource accounting information). The \texttt{cost\_bitmap} contains a field which is a logical OR between resource enum members (the resource enum is shown below in section~\ref{evfilt}).
 
 One design choice for the accounting struct was to make it fixed size (which in turn means \texttt{call\_cost} has a fixed size), for easy indexing within the allocated cost page. The first three components set in the \texttt{cost\_bitmap} field (starting from the LSB) are stored directly inside the struct (they will be cheaper to access for both the kernel and the user space). If any other components have accumulated cost, they will be stored in a dynamically allocated array which is pointed by ext.
 
@@ -235,7 +235,7 @@ A logical OR between resource enum members is used in the \texttt{acct\_next} ca
 \vspace{1em}
 \begin{lstlisting}
 /* The resource enum, together with the cost_bitmap structure, lets the end-user
- * quickly identify those kernel modules that were touched when a syscall was made.
+ * quickly identify those kernel modules that were touched when a system call was made.
  * The corresponding acct_*** structures will be present in the accounting data
  * structure.
  *
@@ -278,37 +278,37 @@ struct cost_bitmap {
 };
 \end{lstlisting}
 
-%  We provide a library that lets programmers access a struct that describes the cost of a syscall. We require the program to specify that the next syscall should be accounted for, along with which components should be accounted for. After making the call, the user can access a struct that specifies the synchronous cost of making that syscall, per Linux subsystem. In particular, we do not perform function-level accounting, to reduce the overhead. Instead, we encourage developers to make use of existing tools, such as ftrace.
+%  We provide a library that lets programmers access a struct that describes the cost of a system call. We require the program to specify that the next syscall should be accounted for, along with which components should be accounted for. After making the call, the user can access a struct that specifies the synchronous cost of making that syscall, per Linux subsystem. In particular, we do not perform function-level accounting, to reduce the overhead. Instead, we encourage developers to make use of existing tools, such as ftrace.
 %
 %  \subsection{Userspace API}
 %  The resourceful API is exposed through a user-library.
 %
-%  Before performing a syscall, a programmer can express that he wants the following syscall to be accounted for by calling the function \texttt{acct\_next}.
-%  \texttt{acct\_next} takes two arguments: a pointer to a \texttt{struct call\_cost} and a filter. The \texttt{call\_cost} pointer is the address to which the kernel should write accounting information for the next syscall to be made.
+%  Before performing a system call, a programmer can express that he wants the following syscall to be accounted for by calling the function \texttt{acct\_next}.
+%  \texttt{acct\_next} takes two arguments: a pointer to a \texttt{struct call\_cost} and a filter. The \texttt{call\_cost} pointer is the address to which the kernel should write accounting information for the next system call to be made.
 %  The filter is a bitmap representing which subsystems the user is interested in.
 %
-%  The \texttt{struct sys\_acct} contains an enum map that shows which subsystems were accessed by the syscall followed by a section describing the costs for each subsystem touched. The programmer will read the touched subsystems, by reading the map, and then index into the relevant sections using offsets found from the map.
+%  The \texttt{struct sys\_acct} contains an enum map that shows which subsystems were accessed by the system call followed by a section describing the costs for each subsystem touched. The programmer will read the touched subsystems, by reading the map, and then index into the relevant sections using offsets found from the map.
 %
 %
 %  \subsection{Library API}
 %  Our library has the following functions:
 %  \begin{itemize}
 %  \item \texttt{int call\_cost\_addr(struct call\_cost **, filter, n)} indicates that resourceful should track the next $n$ system calls to be made. The filter parameter indicates which subsystems it should be monitored through. The library is responsible for allocating memory for the accounting data to be stored in.\\
-%design note: because the programmer expresses interest above the glibc level (where the syscalls are typically made), we might miss resource accounting for some syscalls: whenever one glibc function calls multiple syscalls the user can only account for the resource usage of the first. If on the contrary, glibc buffers some input (writes) and only calls a syscall X once every n function calls, the user will end up sometimes measuring the cost of syscall $X$ and sometimes measuring the cost of whatever syscall comes next. We consider such glibc calls ``exotic'' and we delay dealing with them to the second implementation pass (it’s doable but requires more work).
-%  \item \texttt{int add\_to\_free\_stack(struct call\_cost *)} marks that the memory used by a \texttt{struct call\_cost} can be used to account for another syscall. We anticipate this being called after \texttt{memcpy}-ing the struct, or the data are no-longer required.
+%design note: because the programmer expresses interest above the glibc level (where the system calls are typically made), we might miss resource accounting for some syscalls: whenever one glibc function calls multiple syscalls the user can only account for the resource usage of the first. If on the contrary, glibc buffers some input (writes) and only calls a syscall X once every n function calls, the user will end up sometimes measuring the cost of syscall $X$ and sometimes measuring the cost of whatever syscall comes next. We consider such glibc calls ``exotic'' and we delay dealing with them to the second implementation pass (it’s doable but requires more work).
+%  \item \texttt{int add\_to\_free\_stack(struct call\_cost *)} marks that the memory used by a \texttt{struct call\_cost} can be used to account for another system call. We anticipate this being called after \texttt{memcpy}-ing the struct, or the data are no-longer required.
 %  \item \texttt{int add\_to\_free\_stack(struct call\_cost *[])} is the same as the above, but for multiple \texttt{struct call\_cost}s. This has a lower overhead, as only one mode change is required.
 %  \item \texttt{int stop\_async\_acct(struct call\_cost *)} prevents further accounting of the asynchronous costs in call\_cost.
 %  \end{itemize}
 %
 %  This design puts responsibility for memory management on the library, rather than the kernel or the programmer. Naturally, programmers are not restricted to using our library.
 %  \begin{description}
-%  \item[On the first syscall of each thread] the library will allocate:
+%  \item[On the first system call of each thread] the library will allocate:
 %  \begin{enumerate}
-%  \item One 4K page, known as the \texttt{ctl\_page}.  This is mapped RW in userspace, and is used to indiate to the kernel: whether to account for a syscall; a pointer to where it should store accounting information; a bitmap of which subsystems we are interested in.
+%  \item One 4K page, known as the \texttt{ctl\_page}.  This is mapped RW in userspace, and is used to indiate to the kernel: whether to account for a system call; a pointer to where it should store accounting information; a bitmap of which subsystems we are interested in.
 %  \item Some huge pages. We anticipate 4MB of space. This memory will be used as a buffer to store all accounting information. We use huge pages to reduce our load on the TLB. This must be mapped RO in  userspace.
 %  \end{enumerate}
 %  Moreover, the library issues an \texttt{ioctl} to a char driver, to inform the kernel of the start address of this buffer. The ioctl checks the protection bits on the page and will fail if mapped RW.
-%  \item[On every syscall we are accounting for]:
+%  \item[On every system call we are accounting for]:
 %  \begin{itemize}
 %  \item  the library finds some free memory. A sensible implementation would be using a stack that stores pointers to slots in the buffer. This will cause reuse of the same addresses, thereby reducing the rate of trashing caches.
 %  \item Writes the address that the accounting data should be stored in to the \texttt{ctl\_page}.
@@ -317,11 +317,11 @@ struct cost_bitmap {
 %  \end{description}
 %
 %  \subsection{Data structures}
-%  The top-level data structure is \texttt{struct call\_cost}. This is a nested struct that contains the accounting cost of a syscall, broken-down by subsystem. As most subsystems interact with CPU, memory, and at-most one other component (eg disk), we include a  bitmap  in struct call\_cost to indicate those components that are touched. We leverage this to allow us to store sparse data in the struct, thereby reducing our memory footprint.
+%  The top-level data structure is \texttt{struct call\_cost}. This is a nested struct that contains the accounting cost of a system call, broken-down by subsystem. As most subsystems interact with CPU, memory, and at-most one other component (eg disk), we include a  bitmap  in struct call\_cost to indicate those components that are touched. We leverage this to allow us to store sparse data in the struct, thereby reducing our memory footprint.
 %
 %  \texttt{struct call\_costs} are expected to be stored in huge pages. We leave the management of where to store the struct within the huge pages to userspace. These huge pages must be mapped read-only by the userspace.
 %
-%  We also have a \texttt{struct ctl\_page}, which is a struct that exists for each thread and whose purpose it is to store the last address, and filters passed to \texttt{call\_cost\_addr}. Importantly we only have one value of this per thread, so each call to call\_cost\_addr will clobber the values written by the previous call. When a syscall is made  we copy, in the kernel, the values written here so that we still have a pointer to the the \texttt{struct call\_cost} after we have executed \texttt{sysexit}, since we need to attribute asynchronous costs.
+%  We also have a \texttt{struct ctl\_page}, which is a struct that exists for each thread and whose purpose it is to store the last address, and filters passed to \texttt{call\_cost\_addr}. Importantly we only have one value of this per thread, so each call to call\_cost\_addr will clobber the values written by the previous call. When a system call is made  we copy, in the kernel, the values written here so that we still have a pointer to the the \texttt{struct call\_cost} after we have executed \texttt{sysexit}, since we need to attribute asynchronous costs.
 
   \subsection{Kernel primitives}\label{kernelprimitives}
 
@@ -333,8 +333,8 @@ Throughout the kernel we use the value of \texttt{call\_cost\_addr} as the ident
 
   \subsubsection{Proposed modifications to kernel fundamentals}
 
-We propose to modify syscalls  so they look to see if a new address has been written to the \texttt{ctl\_page}, and if so performs accounting.
- We shall modify \texttt{sysenter} so it starts by checking the \texttt{ctl\_page.call\_cost\_addr} and \texttt{ctl\_page.filter} to see if the syscall should be accounted for, and which metrics are desired. Should these be set, we:
+We propose to modify system calls  so they look to see if a new address has been written to the \texttt{ctl\_page}, and if so performs accounting.
+ We shall modify \texttt{sysenter} so it starts by checking the \texttt{ctl\_page.call\_cost\_addr} and \texttt{ctl\_page.filter} to see if the system call should be accounted for, and which metrics are desired. Should these be set, we:
   \begin{enumerate}
   \item Copy the \texttt{\&call\_cost\_addr} and \texttt{filter} to new fields added to \texttt{struct task\_struct}.
   \item Check the validity of the values.
@@ -344,15 +344,15 @@ We propose to modify syscalls  so they look to see if a new address has been wri
   \item Execute the system call.
   \end{enumerate}
 
-  The syscall will then enter its synchronous phase. Each time the system call changes subsystem we propose to:
+  The system call will then enter its synchronous phase. Each time the system call changes subsystem we propose to:
   \begin{enumerate}
   \item Read all timers that we expect to be running, as specified by \texttt{filter}.
-  \item Add the costs of these to the relevant subsection of the \texttt{struct call\_cost}. We can get the address of the \texttt{struct call\_cost} by deferencing \texttt{current->call\_cost\_addr} since, during the synchronous part of the syscall, we can guarantee there will be no further syscalls made by that task.
+  \item Add the costs of these to the relevant subsection of the \texttt{struct call\_cost}. We can get the address of the \texttt{struct call\_cost} by deferencing \texttt{current->call\_cost\_addr} since, during the synchronous part of the system call, we can guarantee there will be no further syscalls made by that task.
   \end{enumerate}
 
-  Before executing \texttt{sysexit}, we clobber \texttt{task\_struct.call\_cost\_addr} so as not to associate the next syscall with the same \texttt{call\_cost\_addr} should it not be accounted for.
+  Before executing \texttt{sysexit}, we clobber \texttt{task\_struct.call\_cost\_addr} so as not to associate the next system call with the same \texttt{call\_cost\_addr} should it not be accounted for.
 
-  After executing \texttt{sysexit} the kernel may have some latent work to do as part of the asynchronous operations in the syscall. We intend to track the resources used by a syscall in both the synchronous, and asynchronous phases. As such we intend to modify the asynchronous mechanisms in Linux.  We note that Linux has a number of asynchronous mechanisms: \emph{kernel timers}, \emph{tasklets}, \emph{workqueues}, \emph{software interrupts}, and \emph{hardware interrupts}. To initialize each of these, the kernel calls a \texttt{\_\_init} function with a struct populated with relevant information. For instance to create a kernel timer, the \texttt{add\_timer} function\footnote{\texttt{kernel/timer.c}} is called with a \texttt{struct task\_struct}.
+  After executing \texttt{sysexit} the kernel may have some latent work to do as part of the asynchronous operations in the system call. We intend to track the resources used by a syscall in both the synchronous, and asynchronous phases. As such we intend to modify the asynchronous mechanisms in Linux.  We note that Linux has a number of asynchronous mechanisms: \emph{kernel timers}, \emph{tasklets}, \emph{workqueues}, \emph{software interrupts}, and \emph{hardware interrupts}. To initialize each of these, the kernel calls a \texttt{\_\_init} function with a struct populated with relevant information. For instance to create a kernel timer, the \texttt{add\_timer} function\footnote{\texttt{kernel/timer.c}} is called with a \texttt{struct task\_struct}.
 
   As there are few functions on the interface to the kernel asynchronous mechanisms, each of which have a high number of call-sites, we intend \emph{not} to modify the structs on the interface.
   Rather we propose to encapsulate the \texttt{struct task\_struct} in \texttt{kernel/timer.c}, adding to it the \texttt{call\_cost\_addr} in the current context.
@@ -362,7 +362,7 @@ We propose to modify syscalls  so they look to see if a new address has been wri
   \begin{enumerate}
   \item It is unclear where we ought to allocate memory to store the accounting costs. We would therefore have to map more kernel memory, thereby likely making less-aggressive memory re-use, thereby incurring more caches misses, and TLB misses.
   \item We would have to track every metric for every asynchronous action in the kernel.
-  \item It is no longer clear when all asynchronous actions have terminated for a given syscall.
+  \item It is no longer clear when all asynchronous actions have terminated for a given system call.
   \end{enumerate}
 
   \subsubsection{Low-overhead kernel mechanism}
@@ -373,7 +373,7 @@ We propose to modify syscalls  so they look to see if a new address has been wri
 
   \item[Minimal locking.] We aim to reduce concurrency mechanisms to limit our performance overhead. In particular, we store accounting data on a per-thread basis.
 
-  \item[Minimal mode changes.] \texttt{sysenter}/\texttt{sysexit}  add a non-trivial overhead, especially when we want to debug the performance of single syscalls. We therefore favour writing to shared-memory with atomic operations rather than making a syscall.
+  \item[Minimal mode changes.] \texttt{sysenter}/\texttt{sysexit}  add a non-trivial overhead, especially when we want to debug the performance of single system calls. We therefore favour writing to shared-memory with atomic operations rather than making a syscall.
 
   \item[Zero-copy.] To improve performance we have avoided requiring the use of \texttt{memcpy}.
 
@@ -515,7 +515,7 @@ We propose to modify syscalls  so they look to see if a new address has been wri
   \item[Interpose the \texttt{sysenter} routine to initiate accounting.]
 \end{description}
 
-\textsc{Milestone: have a working proof-of-concept that lets us measure the cost of performing the entirity of the synchronous phase of a syscall.}
+\textsc{Milestone: have a working proof-of-concept that lets us measure the cost of performing the entirity of the synchronous phase of a system call.}
 
 \begin{description}[style=nextline]
   \item[Provide a method of mapping the kernel into subsystems]
@@ -537,7 +537,7 @@ We propose to modify syscalls  so they look to see if a new address has been wri
 
 \end{description}
 
-\textsc{Milestone: be able to account for the synchronous part of a syscall on a per-subsystem basis}
+\textsc{Milestone: be able to account for the synchronous part of a system call on a per-subsystem basis}
 
 \begin{description}[style=nextline]
   \item[Extend our library to have a \texttt{cost\_callback\_async} method].
@@ -547,19 +547,19 @@ We propose to modify syscalls  so they look to see if a new address has been wri
     2 weeks
   \item[Modify the major asynchronous structs]
     2 weeks
-  \item[Modify the entry and exit points to the asynchronous mechanisms to start accounting, and associate with the correct syscall]
+  \item[Modify the entry and exit points to the asynchronous mechanisms to start accounting, and associate with the correct system call]
     2 weeks
 \end{description}
 
-\textsc{Milestone: be able to account for the asynchronous part of a syscall, and have a callback once the asynchronous part has completed}
+\textsc{Milestone: be able to account for the asynchronous part of a system call, and have a callback once the asynchronous part has completed}
 
 \subsection{Future work}
 \begin{itemize}
 \item Accounting for coallescing buffers.
-\item Allow the user to express interest in multiple syscalls being accounted for together
+\item Allow the user to express interest in multiple system calls being accounted for together
 \item System-wide accounting
 \item Exposing an interface in \texttt{/proc} to allow resourceful to be used without recompilation
-\item Allow cancelling of accounting the asynchronous part of accounting for a syscall
+\item Allow cancelling of accounting the asynchronous part of accounting for a system call
 \end{itemize}
 
 

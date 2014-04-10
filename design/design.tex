@@ -5,6 +5,7 @@
 \usepackage{xcolor}
 \usepackage{listings}
 \usepackage{hyperref}
+\usepackage{enumitem}
 \def\_{\textunderscore\-}
 
 
@@ -35,30 +36,31 @@ Furthermore, no attempts have been made to quantify delayed resource consumption
 \end{abstract}
 
 \section{Resourceful---high level overview}
-  As an answer to the above problems, we propose \emph{Resourceful}, a framework that reports syscall resource consumption aggregated per kernel functional unit \cite{kernelmap}. We report both costs that were incurred synchronously with the syscall and the ones incurred during asynchronous actions triggered by the syscall but executed after its completion (for example, the sync of a kernel buffer to disk, which may occur after the actual write syscall returned).
+  As an answer to the above problems, we propose \emph{Resourceful}, a framework that provides system call resource consumption aggregated per kernel functional unit \cite{kernelmap}. It reports both, costs that were incurred synchronously with the system call as well as those incurred during asynchronous actions triggered by the system call, but executed after its completion (for example, the flushing of a kernel buffer to disk, which may occur after the initial system call returned).
 
-Resourceful exposes a user-space library that developers can use to express interest in the resource consumption made by specific system calls. Calls to this library can be made either explicitly by the developer or inserted as part of application instrumentation. The actual resource accounting takes place in the linux kernel (which we modify to support the required functionality).
+Resourceful exposes a user-space library that developers can use to express interest in the resource consumption made by specific system calls. Calls to this library can be made either explicitly by the developer or inserted as part of application instrumentation. The resource accounting then takes place in the linux kernel which is modified to support the required functionality.
 
 
-We envision that the library, together with the changes made to the Linux kernel to support its features, provide the required primitives for implementing more complex use cases:
+We believe that the library, together with the changes made to the Linux kernel to support its features, provide the required primitives for implementing more complex use cases:
 
 \subsection{Use cases}
 \begin{enumerate}
 \item Enforcing fine-grained quotas in running applications. We envision enabling quotas per application operation (in the example of a server application, per request quotas).
 \item Tracking per-request resource consumption in a client/server setup and correlating that with variations in measured performance (end-to-end latency)
-\item Explaining performance variations in virtualized environments: for example, understanding why doing I/O on Xen is sometimes slow.
+\item Explaining performance variations in virtualized environments. For example, understanding why performing I/O operations in a Xen virtualised guest is sometimes slow.
 \end{enumerate}
 
 
 \subsection{Contributions}
 \begin{itemize}
-\item A low-overhead kernel-level mechanism for measuring per syscall resource consumption (cpu, memory, disk, network) in each functional module of the kernel (see the kernel map in \cite{kernelmap} for a list).
-\item Accounting for both synchronous and asynchronous resource consumption.
+\item A low-overhead kernel-level mechanism for measuring per system call resource consumption (cpu, memory, disk, network) in each functional module of the kernel (see the kernel map in [2] for a list).
+\item Accounting for both synchronous and asynchronous resource consumption inside the operating system Kernel.
 \end{itemize}
 
 
 \section{System design}
- In this section we detail our design to expose primitives to user applications that let them better account for the resources spent by the kernel. We aim to provide these primitives with minimal impact on performance so that they can be feasibly used in a production system.
+In this section we describe our design for Resourceful, which exposes primitives to user applications that allow them to better account for the resources consumed by the Kernel. 
+The aim is to provide these primitives with minimal impact on system performance so that they can be feasibly used in a production system.
 
 \subsection{User-space library}
 \textbf{Developer’s perspective:\\}
@@ -483,13 +485,75 @@ We propose to modify syscalls  so they look to see if a new address has been wri
   \section{Summary of work}
 
   We propose to write the following:
-  \begin{description}
-  \item[Write a char driver]
-  \item[Provide a library that allows userspace programs to access accounting data]
-  \item[Interpose the \texttt{sysenter} routine to initiate accounting]
-  \item[Modify the major asynchronous structs]
+  \begin{description}[style=nextline]
+  \item [Modify \texttt{task\_struct} to store \texttt{\&ctl\_page}, \texttt{syscall\_id} and \texttt{filter}.]
+    2 days
+  \item[Write a char driver.] 2 days
+    \begin{itemize}
+    \item Basic setup to allow it to be \texttt{insmod}-ed.\\
+      1/2 day
+    \item Create a \texttt{ioctl} that will allocate a \texttt{ctl\_page}, map as R/O to current.\\
+      1/2 day
+    \item Write the address of the \texttt{ctl\_page} into \texttt{task\_struct}.\\
+      1/2 day
+    \end{itemize}
+  \item[Provide a library that allows userspace programs to access synchronous accounting data.]
+    2 days
+    \begin{itemize}
+      \item Create a header file that can be linked into an application.
+        This should contain the \texttt{struct call\_cost} and library function declarations.\\
+        1 day
+      \item Implement \texttt{init\_resource\_acct}, which has to make the relevant ioctl.\\
+        1/2 day
+      \item Implement \texttt{call\_cost}, which has to copy its arguments into the correct memory address.\\
+        1/2 day
+    \end{itemize}
+  \item[Interpose the \texttt{sysenter} routine to initiate accounting.]
+\end{description}
+
+\textsc{Milestone: have a working proof-of-concept that lets us measure the cost of performing the entirity of the synchronous phase of a syscall.}
+
+\begin{description}[style=nextline]
   \item[Provide a method of mapping the kernel into subsystems]
-  \end{description}
+    days
+    \begin{itemize}
+      \item Find a benchmark that exercises a lot of the kernel.\\
+        1 day
+      \item Write a script that identifies subsystems from ftrace outputs.\\
+        2 weeks
+    \end{itemize}
+  \item[Build the per-subsystem data structures]
+    3 days
+  \item[Build the snapshotting costs timeline]
+    1 day
+  \item[Modify all entry points so they take readings, and add them to the timeline]
+    2 weeks
+  \item[Modify exit points so they add their code back to the relevant \texttt{struct call\_cost}]
+    2 days
+
+\end{description}
+
+\textsc{Milestone: be able to account for the synchronous part of a syscall on a per-subsystem basis}
+
+\begin{description}[style=nextline]
+  \item[Extend our library to have a \texttt{cost\_callback\_async} method].
+%    Implementation details tbc.
+%    eg how does the library know when the async costs have finished.
+%    We could look into how O_ASYNC works
+    2 weeks
+  \item[Modify the major asynchronous structs]
+    2 weeks
+  \item[Modify the entry and exit points to the asynchronous mechanisms to start accounting, and associate with the correct syscall]
+    2 weeks
+\end{description}
+
+\textsc{Milestone: be able to account for the asynchronous part of a syscall, and have a callback once the asynchronous part has completed}
+
+\subsection{Future work}
+\begin{itemize}
+\item Accounting for coallescing buffers.
+\end{itemize}
+
 
 
   \begin{thebibliography}{1}

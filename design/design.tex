@@ -172,7 +172,7 @@ struct call_cost {
 };
 \end{lstlisting}
 
-Each accounting structure contains a \texttt{cost\_bitmap} which is used to determine which kernel subsystems were touched by the syscall (and hence have associated resource accounting information). The \texttt{cost\_bitmap} contains a field which is a logical OR between resource enum members (the resource enum is shown below in section~\ref{evfilt}).
+Each accounting structure contains a \texttt{cost\_bitmap} which is used to determine those kernel subsystems that were touched by the syscall (and hence have associated resource accounting information). The \texttt{cost\_bitmap} contains a field which is a logical OR between resource enum members (the resource enum is shown below in section~\ref{evfilt}).
 
 One design choice for the accounting struct was to make it fixed size (which in turn means \texttt{call\_cost} has a fixed size), for easy indexing within the allocated cost page. The first three components set in the \texttt{cost\_bitmap} field (starting from the LSB) are stored directly inside the struct (they will be cheaper to access for both the kernel and the user space). If any other components have accumulated cost, they will be stored in a dynamically allocated array which is pointed by ext.
 

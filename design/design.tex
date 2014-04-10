@@ -5,6 +5,7 @@
 \usepackage{xcolor}
 \usepackage{listings}
 \usepackage{hyperref}
+\usepackage{enumitem}
 \def\_{\textunderscore\-}
 
 
@@ -306,13 +307,75 @@ We propose to modify syscalls  so they look to see if a new address has been wri
   \section{Summary of work}
 
   We propose to write the following:
-  \begin{description}
-  \item[Write a char driver]
-  \item[Provide a library that allows userspace programs to access accounting data]
-  \item[Interpose the \texttt{sysenter} routine to initiate accounting]
-  \item[Modify the major asynchronous structs]
+  \begin{description}[style=nextline]
+  \item [Modify \texttt{task\_struct} to store \texttt{\&ctl\_page}, \texttt{syscall\_id} and \texttt{filter}.]
+    2 days
+  \item[Write a char driver.] 2 days
+    \begin{itemize}
+    \item Basic setup to allow it to be \texttt{insmod}-ed.\\
+      1/2 day
+    \item Create a \texttt{ioctl} that will allocate a \texttt{ctl\_page}, map as R/O to current.\\
+      1/2 day
+    \item Write the address of the \texttt{ctl\_page} into \texttt{task\_struct}.\\
+      1/2 day
+    \end{itemize}
+  \item[Provide a library that allows userspace programs to access synchronous accounting data.]
+    2 days
+    \begin{itemize}
+      \item Create a header file that can be linked into an application.
+        This should contain the \texttt{struct call\_cost} and library function declarations.\\
+        1 day
+      \item Implement \texttt{init\_resource\_acct}, which has to make the relevant ioctl.\\
+        1/2 day
+      \item Implement \texttt{call\_cost}, which has to copy its arguments into the correct memory address.\\
+        1/2 day
+    \end{itemize}
+  \item[Interpose the \texttt{sysenter} routine to initiate accounting.]
+\end{description}
+
+\textsc{Milestone: have a working proof-of-concept that lets us measure the cost of performing the entirity of the synchronous phase of a syscall.}
+
+\begin{description}[style=nextline]
   \item[Provide a method of mapping the kernel into subsystems]
-  \end{description}
+    days
+    \begin{itemize}
+      \item Find a benchmark that exercises a lot of the kernel.\\
+        1 day
+      \item Write a script that identifies subsystems from ftrace outputs.\\
+        2 weeks
+    \end{itemize}
+  \item[Build the per-subsystem data structures]
+    3 days
+  \item[Build the snapshotting costs timeline]
+    1 day
+  \item[Modify all entry points so they take readings, and add them to the timeline]
+    2 weeks
+  \item[Modify exit points so they add their code back to the relevant \texttt{struct call\_cost}]
+    2 days
+
+\end{description}
+
+\textsc{Milestone: be able to account for the synchronous part of a syscall on a per-subsystem basis}
+
+\begin{description}[style=nextline]
+  \item[Extend our library to have a \texttt{cost\_callback\_async} method].
+%    Implementation details tbc.
+%    eg how does the library know when the async costs have finished.
+%    We could look into how O_ASYNC works
+    2 weeks
+  \item[Modify the major asynchronous structs]
+    2 weeks
+  \item[Modify the entry and exit points to the asynchronous mechanisms to start accounting, and associate with the correct syscall]
+    2 weeks
+\end{description}
+
+\textsc{Milestone: be able to account for the asynchronous part of a syscall, and have a callback once the asynchronous part has completed}
+
+\subsection{Future work}
+\begin{itemize}
+\item Accounting for coallescing buffers.
+\end{itemize}
+
 
 
   \begin{thebibliography}{1}

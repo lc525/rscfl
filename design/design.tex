@@ -314,7 +314,7 @@ struct cost_bitmap {
 %
 %  We also have a \texttt{struct ctl\_page}, which is a struct that exists for each thread and whose purpose it is to store the last address, and filters passed to \texttt{call\_cost\_addr}. Importantly we only have one value of this per thread, so each call to call\_cost\_addr will clobber the values written by the previous call. When a syscall is made  we copy, in the kernel, the values written here so that we still have a pointer to the the \texttt{struct call\_cost} after we have executed \texttt{sysexit}, since we need to attribute asynchronous costs.
 
-  \section{Exposing kernel primitives}
+  \subsection{Exposing kernel primitives}
 
   In this section we explore the modifications that we intend to make to Linux to allow fine-grained resource accounting. Our design requires us to write a char driver, and modify some integral kernel structs.
 
@@ -322,7 +322,7 @@ struct cost_bitmap {
 
 Throughout the kernel we use the value of \texttt{call\_cost\_addr} as the identifier of where to store the accounting data.
 
-  \subsection{Proposed modifications to kernel fundamentals}
+  \subsubsection{Proposed modifications to kernel fundamentals}
 
 We propose to modify syscalls  so they look to see if a new address has been written to the \texttt{ctl\_page}, and if so performs accounting.
  We shall modify \texttt{sysenter} so it starts by checking the \texttt{ctl\_page.call\_cost\_addr} and \texttt{ctl\_page.filter} to see if the syscall should be accounted for, and which metrics are desired. Should these be set, we:
@@ -356,7 +356,7 @@ We propose to modify syscalls  so they look to see if a new address has been wri
   \item It is no longer clear when all asynchronous actions have terminated for a given syscall.
   \end{enumerate}
 
-  \subsection{Low-overhead kernel mechanism}
+  \subsubsection{Low-overhead kernel mechanism}
   We envisage Resourceful being an always-on component that exposes fine-grained accounting to allow a richer class of application. We therefore have an emphasis on low-performance overhead. Our design has the following features to reduce overhead:
   \begin{description}
   \item[Low impact on TLB.] We use huge pages to reduce the load on the TLB.
@@ -374,7 +374,7 @@ We propose to modify syscalls  so they look to see if a new address has been wri
 
   \end{description}
 
-  \subsection{Detecting subsystem boundaries}
+  \subsubsection{Detecting subsystem boundaries}
   Resourceful accounts for resource consumption at a subsystem granularity.
   This requires us to define the functions that constitute a given subsystem and within these, the functions that act as an ingress point into it.
   Resourceful then uses these definitions to track which subsystem to credit resource consumption to.
@@ -444,7 +444,7 @@ We propose to modify syscalls  so they look to see if a new address has been wri
 
   Further more specific sub-systems can be defined by annotating the original CTags list of symbols with the finer-grained system names. The same method as described above can be used to identify the sub-system entry functions.
 
-  \subsection{Data structures required to store per-subsystem}
+  \subsubsection{Data structures required to store per-subsystem information}
   Resourceful relies on a list of per sub-system entry functions in order to instrument the kernel to achieve per sub-system resource accounting. The following data format is used to store these definitions of sub-systems:
 
   \begin{lstlisting}

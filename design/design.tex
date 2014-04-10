@@ -121,10 +121,13 @@ An overview of the operation of the library is presented in Figure 1. As a desig
 \subsubsection{Library functions}
 {\color{blue}\texttt{void init\_resource\_acct()}} Must to be called on each thread for which any resource accounting needs to be done, to initialize the library. This triggers the following actions:
 \begin{itemize}
-\item memory allocation (we anticipate needing a couple of huge pages) in user-space to hold \texttt{call\_cost} structures.
+\item memory allocation (we anticipate needing at most a couple of huge pages) in user-space to hold \texttt{call\_cost} structures.
 	\begin{itemize}
-	\item We choose to have the memory for \texttt{call\_cost} structures owned by user-space in order to enable simple memory management on task switching (if the kernel switches the currently running process, it can look in the new \texttt{task\_struct} to find the resource accounting control page and the new addresses of \texttt{call\_cost} structures).
+	\item The memory is allocated in user space by our library.
+	\item We enable simple memory management on task switching (if the kernel switches the currently running process, it can look in the new \texttt{task\_struct} to find the resource accounting control page and the addresses of \texttt{call\_cost} structures for the newly executing process).
 	\item The user does not need to do any memory mapping and can access the region normally. We use huge pages to reduce our impact on the TLB. The user-space will only read from this memory region.
+	\item Having the memory managed by the user space library also means the application can decide when to reuse some \texttt{call\_cost} structure, without synchronizing with the kernel (as long as \texttt{async\_done} is true)
+	\item A disadvantage of this is that accounting data stored for a process goes away when that process exits (normally or because of an error). We posit this is something that can be mitigated if needed (having a logging process with which each thread shares the memory containing accounting data; even if the process exits, the shared memory region will be kept as long as there is somebody referring to it). 
 	\end{itemize} 
 \item issue an ioctl to a char driver, setting up a 4K control page (\texttt{ctl\_page}) in the kernel and initializing our \texttt{task\_struct} field for the current task (\texttt{call\_cost\_ctlpg}) to point to that control page.
 \item write the base address of the user-allocated memory region into the \texttt{ctl\_page}
@@ -139,7 +142,7 @@ An overview of the operation of the library is presented in Figure 1. As a desig
 
 {\color{red}\texttt{syscall (rsrcfl library $\longleftrightarrow$ kernel)}} on any syscall, on the kernel side we have to determine whether resource accounting needs to be done. Syscall interception to run our prologue code is done using one of the available kernel tracing functionalities (see section on kernel support). A sketch of the code we shall run before each syscall is also displayed in Figure~\ref{fig:sysDesign}.
 \begin{itemize}
-\item if the current user thread has called \texttt{acct\_next}, we need to look into the current \texttt{task\_struct} and find the corresponding \texttt{ctl\_page} that contains both the memory address where we need to add accounting information and any filters the user might want.
+\item We need to look into the current \texttt{task\_struct} and find the corresponding \texttt{ctl\_page} that contains both the memory address where we need to add accounting information and any filters the user might want. Those would be present if the user has set them up by calling \texttt{acct\_next}.
 \item the kernel will initialize the given \texttt{call\_cost} structure as required
 \item it will then start the required counters / snapshot desired values - in order to do the accounting (``Kernel accounting'' in Figure~\ref{fig:sysDesign}). More details on this are available in the section discussing the design of the required kernel extensions.
 \end{itemize}
@@ -316,7 +319,7 @@ struct cost_bitmap {
 %
 %  We also have a \texttt{struct ctl\_page}, which is a struct that exists for each thread and whose purpose it is to store the last address, and filters passed to \texttt{call\_cost\_addr}. Importantly we only have one value of this per thread, so each call to call\_cost\_addr will clobber the values written by the previous call. When a syscall is made  we copy, in the kernel, the values written here so that we still have a pointer to the the \texttt{struct call\_cost} after we have executed \texttt{sysexit}, since we need to attribute asynchronous costs.
 
-  \subsection{Kernel primitives}
+  \subsection{Kernel primitives}\label{kernelprimitives}
 
   In this section we explore the modifications that we intend to make to Linux to allow fine-grained resource accounting. Our design requires us to write a char driver, and modify some integral kernel structs.
 
@@ -460,7 +463,7 @@ We propose to modify syscalls  so they look to see if a new address has been wri
 
   Each of the functions named in the list is instrumented by Resourceful as an entry point into the sub-system it is labeled with.
   
-  \subsubsection{Existing primitives and kernel interfaces}
+  \subsubsection{Existing primitives and kernel interfaces}\label{existingkernel}
   Those are elements already exposed by the kernel, and we will make use of them for (i) running additional code on particular function entry/exit points and (ii) getting the required resource consumption data.
   
   \begin{itemize}

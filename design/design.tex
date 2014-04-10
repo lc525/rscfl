@@ -36,30 +36,31 @@ Furthermore, no attempts have been made to quantify delayed resource consumption
 \end{abstract}
 
 \section{Resourceful---high level overview}
-  As an answer to the above problems, we propose \emph{Resourceful}, a framework that reports syscall resource consumption aggregated per kernel functional unit \cite{kernelmap}. We report both costs that were incurred synchronously with the syscall and the ones incurred during asynchronous actions triggered by the syscall but executed after its completion (for example, the sync of a kernel buffer to disk, which may occur after the actual write syscall returned).
+  As an answer to the above problems, we propose \emph{Resourceful}, a framework that provides system call resource consumption aggregated per kernel functional unit \cite{kernelmap}. It reports both, costs that were incurred synchronously with the system call as well as those incurred during asynchronous actions triggered by the system call, but executed after its completion (for example, the flushing of a kernel buffer to disk, which may occur after the initial system call returned).
 
-Resourceful exposes a user-space library that developers can use to express interest in the resource consumption made by specific system calls. Calls to this library can be made either explicitly by the developer or inserted as part of application instrumentation. The actual resource accounting takes place in the linux kernel (which we modify to support the required functionality).
+Resourceful exposes a user-space library that developers can use to express interest in the resource consumption made by specific system calls. Calls to this library can be made either explicitly by the developer or inserted as part of application instrumentation. The resource accounting then takes place in the linux kernel which is modified to support the required functionality.
 
 
-We envision that the library, together with the changes made to the Linux kernel to support its features, provide the required primitives for implementing more complex use cases:
+We believe that the library, together with the changes made to the Linux kernel to support its features, provide the required primitives for implementing more complex use cases:
 
 \subsection{Use cases}
 \begin{enumerate}
 \item Enforcing fine-grained quotas in running applications. We envision enabling quotas per application operation (in the example of a server application, per request quotas).
 \item Tracking per-request resource consumption in a client/server setup and correlating that with variations in measured performance (end-to-end latency)
-\item Explaining performance variations in virtualized environments: for example, understanding why doing I/O on Xen is sometimes slow.
+\item Explaining performance variations in virtualized environments. For example, understanding why performing I/O operations in a Xen virtualised guest is sometimes slow.
 \end{enumerate}
 
 
 \subsection{Contributions}
 \begin{itemize}
-\item A low-overhead kernel-level mechanism for measuring per syscall resource consumption (cpu, memory, disk, network) in each functional module of the kernel (see the kernel map in [2] for a list).
-\item Accounting for both synchronous and asynchronous resource consumption.
+\item A low-overhead kernel-level mechanism for measuring per system call resource consumption (cpu, memory, disk, network) in each functional module of the kernel (see the kernel map in [2] for a list).
+\item Accounting for both synchronous and asynchronous resource consumption inside the operating system Kernel.
 \end{itemize}
 
 
 \section{System design}
- In this section we detail our design to expose primitives to user applications that let them better account for the resources spent by the kernel. We aim to provide these primitives with minimal impact on performance so that they can be feasibly used in a production system.
+In this section we describe our design for Resourceful, which exposes primitives to user applications that allow them to better account for the resources consumed by the Kernel. 
+The aim is to provide these primitives with minimal impact on system performance so that they can be feasibly used in a production system.
 
 \subsection{User-space library}
 \textbf{Developer’s perspective:\\}

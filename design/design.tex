@@ -36,7 +36,7 @@ Furthermore, no attempts have been made to quantify delayed resource consumption
 \end{abstract}
 
 \section{Resourceful---high level overview}
-  As an answer to the above problems, we propose \emph{Resourceful}, a framework that provides system call resource consumption aggregated per kernel functional unit \cite{kernelmap}. It reports both, costs that were incurred synchronously with the system call as well as those incurred during asynchronous actions triggered by the system call, but executed after its completion (for example, the flushing of a kernel buffer to disk, which may occur after the initial system call returned).
+  As an answer to the above problems, we propose \emph{Resourceful}, a framework that provides system call resource consumption aggregated per kernel functional unit \cite{kernelmap}. It reports both costs that were incurred synchronously with the system call as well as those incurred during asynchronous actions triggered by the system call, but executed after its completion (for example, the flushing of a kernel buffer to disk, which may occur after the initial system call returned).
 
 Resourceful exposes a user-space library that developers can use to express interest in the resource consumption made by specific system calls. Calls to this library can be made either explicitly by the developer or inserted as part of application instrumentation. The resource accounting then takes place in the linux kernel which is modified to support the required functionality.
 
@@ -53,21 +53,21 @@ We believe that the library, together with the changes made to the Linux kernel 
 
 \subsection{Contributions}
 \begin{itemize}
-\item A low-overhead kernel-level mechanism for measuring per system call resource consumption (cpu, memory, disk, network) in each functional module of the kernel (see the kernel map in [2] for a list).
+\item A low-overhead kernel-level mechanism for measuring per system call resource consumption (cpu, memory, disk, network) in each functional module of the kernel (see the kernel map in \cite{kernelmap} for a list).
 \item Accounting for both synchronous and asynchronous resource consumption inside the operating system kernel.
 \end{itemize}
 
 
 \section{System design}
-In this section we describe our design for Resourceful, which exposes primitives to user applications that allow them to better account for the resources consumed by the Kernel. 
+In this section we describe our design for Resourceful, which exposes primitives to user applications that allow them to better account for the resources consumed by the kernel. 
 The aim is to provide these primitives with minimal impact on system performance, so that Resourceful can be feasibly used in a production system.
 
 \subsection{User-space library}
 \textbf{Developer’s perspective:\\}
 The Resourceful library allows programmers to express their interest in the resource consumption of the next system call, with use of the \texttt{acct\_next} function. After the next system call returns, they can inspect a \texttt{call\_cost} data structure and observe the resource costs it incurred synchronously. 
-If the system call incurs any asynchronous costs, the kernel will then account these to the same \texttt{Call\_cost} data structure. To access those costs reliably, the user has to either call \texttt{wait\_async\_cost} passing the \texttt{call\_cost} structure or register a callback function (a function that will be called when the kernel detects all asynchronous effects of the system call have been accounted for).
+If the system call incurs any asynchronous costs, the kernel will then account these to the same \texttt{call\_cost} data structure. To access those costs reliably, the user has to either call \texttt{wait\_async\_cost} passing the \texttt{call\_cost} structure or register a callback function (a function that will be called when the kernel detects all asynchronous effects of the system call have been accounted for).
 
-When calling \texttt{acct\_next} the developer can also specify which components should be accounted for, allowing them to limit the amount of data being collected.
+When calling \texttt{acct\_next} developers can also specify which components should be accounted for, which allows them to limit the amount of data being collected.
 Below we show an example of how this mechanism works.
 
 \vspace{1em}
@@ -123,14 +123,14 @@ Naturally, programmers are not restricted to using our library and can make use 
 \end{figure}
 
 \subsubsection{Library functions}
-{\color{blue}\texttt{void init\_resource\_acct()}} This initialises the library and must be called by each thread that intends to record any resource consumption. This triggers the following actions:
+{\color{blue}\texttt{void init\_resource\_acct()}} initialises the library and must be called by each thread that intends to record any resource consumption. This triggers the following actions:
 \begin{itemize}
 \item memory allocation in user-space to hold \texttt{call\_cost} structures.
 	\begin{itemize}
 	\item The memory is allocated in user space by our library.
 	\item We enable simple memory management on task switching (if the kernel switches the currently running process, it can look in the new \texttt{task\_struct} to find the resource accounting control page and the addresses of \texttt{call\_cost} structures for the newly executing process).
 	\item The user does not need to do any memory mapping and can access the region normally. We use huge pages to reduce our impact on the TLB. The user-space will only read from this memory region.
-	\item Having the memory managed by the user space library also means the application can decide when to reuse some \texttt{call\_cost} structure, without synchronizing with the kernel (as long as \texttt{async\_done} is true)
+	\item Having the memory managed by the user space library also means the application can decide when to reuse some \texttt{call\_cost} structures, without synchronizing with the kernel (as long as \texttt{async\_done} is true)
 	\item A disadvantage of this is that accounting data stored for a process goes away when that process exits (normally or because of an error). We posit this is something that can be mitigated if needed (having a logging process with which each thread shares the memory containing accounting data; even if the process exits, the shared memory region will be kept as long as there is somebody referring to it). 
 	\end{itemize} 
 \item issue an ioctl to a char driver, setting up a 4K control page (\texttt{ctl\_page}) in the kernel and initializing our \texttt{task\_struct} field for the current task (\texttt{call\_cost\_ctlpg}) to point to that control page.
@@ -144,7 +144,7 @@ Naturally, programmers are not restricted to using our library and can make use 
 \item on the second implementation pass we will also consider allowing the user to express interest in more than one system call (i.e measure resource utilization from now until a \texttt{stop\_accounting} function is called). 
 \end{itemize}
 
-{\color{red}\texttt{system call (rsrcfl library $\longleftrightarrow$ kernel)}} on any system call. On the kernel side we have to determine whether resource accounting needs to be done. We use system call interception in order to run our prologue code. This interception is achieved using the kernel's existing support for tracing. A sketch of what code we need to run before each system call is also displayed in Figure~\ref{fig:sysDesign}.
+{\color{red}\texttt{system call (rsrcfl library $\longleftrightarrow$ kernel)}} on any system call, on the kernel side we have to determine whether resource accounting needs to be done. We use system call interception in order to run our prologue code. This interception is achieved using the kernel's existing support for tracing. A sketch of what code we need to run before each system call is also displayed in Figure~\ref{fig:sysDesign}.
 \begin{itemize}
 \item We need to look into the current \texttt{task\_struct} and find the corresponding \texttt{ctl\_page} that contains both the memory address where we need to add accounting information and any filters the user might want. Those would be present if the user has set them up by calling \texttt{acct\_next}.
 \item the kernel will initialize the given \texttt{call\_cost} structure as required
@@ -275,6 +275,10 @@ enum resource {
 
 struct cost_bitmap {
   u32 primary; // logical OR between multiple resource elements
+  
+  #ifdef EXTENDED_ACCT_BITMAP // not used atm
+  u64 ext;
+  #endif
 };
 \end{lstlisting}
 

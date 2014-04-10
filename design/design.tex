@@ -314,7 +314,7 @@ struct cost_bitmap {
 %
 %  We also have a \texttt{struct ctl\_page}, which is a struct that exists for each thread and whose purpose it is to store the last address, and filters passed to \texttt{call\_cost\_addr}. Importantly we only have one value of this per thread, so each call to call\_cost\_addr will clobber the values written by the previous call. When a syscall is made  we copy, in the kernel, the values written here so that we still have a pointer to the the \texttt{struct call\_cost} after we have executed \texttt{sysexit}, since we need to attribute asynchronous costs.
 
-  \subsection{Exposing kernel primitives}
+  \subsection{Kernel primitives}
 
   In this section we explore the modifications that we intend to make to Linux to allow fine-grained resource accounting. Our design requires us to write a char driver, and modify some integral kernel structs.
 
@@ -457,6 +457,25 @@ We propose to modify syscalls  so they look to see if a new address has been wri
   \end{lstlisting}
 
   Each of the functions named in the list is instrumented by Resourceful as an entry point into the sub-system it is labeled with.
+  
+  \subsubsection{Existing primitives and kernel interfaces}
+  Those are elements already exposed by the kernel, and we will make use of them for (i) running additional code on particular function entry/exit points and (ii) getting the required resource consumption data.
+  
+  \begin{itemize}
+  \item Kernel tracing
+  	\begin{itemize}
+  	\item ftrace kernel interface / mcount - requires root access
+  	\item tracepoints - a few tools (perf \& SystemTap) already use these and they are fairly well adopted in the codebase
+  	\end{itemize}
+  \item Existing accounting mechanisms - when possible, we will use those instead of modifying the kernel data structures ourselves.
+  	\begin{itemize}
+  	\item perf\_events interface (software events use tracepoints, hardware events use the PMU)
+  	\item taskstats \cite{taskstats} - provides a socket-based interface for accounting at task-level
+  	\item latencytop \cite{latencytop}
+  	\item getsockopt() - for TCP socket statistics
+  	\item vmstat - Exported symbols allow loaded modules to gather information on the current VM status, including information such as page faults.
+  	\end{itemize}
+  \end{itemize}
 
   \section{Summary of work}
 
@@ -474,7 +493,8 @@ We propose to modify syscalls  so they look to see if a new address has been wri
 
   \bibitem{kernelscale} \url{http://people.csail.mit.edu/nickolai/papers/boyd-wickizer-scaling.pdf}
   \bibitem{kernelmap} \url{http://www.makelinux.net/kernel_map/}
-
+  \bibitem{taskstats} \url{https://www.kernel.org/doc/Documentation/accounting/taskstats.txt}
+  \bibitem{latencytop} \url{http://lxr.free-electrons.com/source/kernel/latencytop.c}
   \end{thebibliography}
 
 

@@ -59,14 +59,16 @@ We believe that the library, together with the changes made to the Linux kernel 
 
 
 \section{System design}
-In this section we describe our design for Resourceful, which exposes primitives to user applications that allow them to better account for the resources consumed by the kernel.
-The aim is to provide these primitives with minimal impact on system performance so that they can be feasibly used in a production system.
+In this section we describe our design for Resourceful, which exposes primitives to user applications that allow them to better account for the resources consumed by the Kernel. 
+The aim is to provide these primitives with minimal impact on system performance, so that Resourceful can be feasibly used in a production system.
 
 \subsection{User-space library}
 \textbf{Developer’s perspective:\\}
-The Resourceful library lets programmers express their interest in the measurement of resource consumption for the next syscall (the \texttt{acct\_next} function). After the next syscall returns, they can look into a \texttt{call\_cost} data structure and see the costs incurred synchronously by the syscall. When it is the case, the kernel will then fill in any asynchronous costs into the same data structure. To access those costs reliably, the user has to either call \texttt{wait\_async\_cost} passing the \texttt{call\_cost} structure or register a callback function (a function that will be called when the kernel detects all asynchronous effects of the syscall have been accounted for).
+The Resourceful library allows programmers to express their interest in the resource consumption of the next system call, with use of the \texttt{acct\_next} function. After the next system call returns, they can inspect a \texttt{call\_cost} data structure and observe the resource costs it incurred synchronously. 
+If the system call incurs any asynchronous costs, the kernel will then account these to the same \texttt{Call\_cost} data structure. To access those costs reliably, the user has to either call \texttt{wait\_async\_cost} passing the \texttt{call\_cost} structure or register a callback function (a function that will be called when the kernel detects all asynchronous effects of the system call have been accounted for).
 
-When calling \texttt{acct\_next} the developer can also specify which components should be accounted for (you can limit the amount of data being collected). Below we give an example of how we see this working in practice:
+When calling \texttt{acct\_next} the developer can also specify which components should be accounted for, allowing them to limit the amount of data being collected.
+Below we show an example of how this mechanism works.
 
 \vspace{1em}
 \lstset{style=customc, captionpos=b}
@@ -109,19 +111,21 @@ When calling \texttt{acct\_next} the developer can also specify which components
  }
  \end{lstlisting}
  
-\pagebreak 
 \noindent\textbf{Library design:\\}
-An overview of the operation of the library is presented in Figure 1. As a design principle, we have tried to minimize the memory regions that require synchronization. The only shared region where both the user and the kernel have write permissions is a control page (\texttt{ctl\_page}), but that is allocated per thread to avoid contention. The design also puts most of the responsibility for memory management on the library, rather than the kernel or the programmer. Naturally, programmers are not restricted to using our library and could make use of the added kernel infrastructure independently.
+Figure 1 presents an overview of the library's operation. As a design principle, we have tried to minimize the memory regions that require synchronization. The only shared region where both the user and the kernel have write permissions is a control page (\texttt{ctl\_page}), which is allocated per thread to avoid possible contention.
+The design also shifts the responsibility for memory management away from the kernel or programmer and leaves this up to the library.
+Naturally, programmers are not restricted to using our library and can make use of the added kernel infrastructure independently.
 
 \begin{figure}[ht!]
   \includegraphics[width=\textwidth]{figures/system-design.pdf}
   \caption{An overview of library internals}
   \label{fig:sysDesign}
-\end{figure}  
+\end{figure}
+
 \subsubsection{Library functions}
-{\color{blue}\texttt{void init\_resource\_acct()}} Must to be called on each thread for which any resource accounting needs to be done, to initialize the library. This triggers the following actions:
+{\color{blue}\texttt{void init\_resource\_acct()}} This initialises the library and must be called by each thread that intends to record any resource consumption. This triggers the following actions:
 \begin{itemize}
-\item memory allocation (we anticipate needing at most a couple of huge pages) in user-space to hold \texttt{call\_cost} structures.
+\item memory allocation in user-space to hold \texttt{call\_cost} structures.
 	\begin{itemize}
 	\item The memory is allocated in user space by our library.
 	\item We enable simple memory management on task switching (if the kernel switches the currently running process, it can look in the new \texttt{task\_struct} to find the resource accounting control page and the addresses of \texttt{call\_cost} structures for the newly executing process).
@@ -133,14 +137,14 @@ An overview of the operation of the library is presented in Figure 1. As a desig
 \item write the base address of the user-allocated memory region into the \texttt{ctl\_page}
 \end{itemize}
 
-{\color{blue}\texttt{int acct\_next(struct call\_cost**, u64 filter)}} indicates that the resource consumption of the next syscall should be measured. The filter parameter is a logical \textsc{OR} between enum resource members (see section~\ref{evfilt} below).
+{\color{blue}\texttt{int acct\_next(struct call\_cost**, u64 filter)}} indicates that the resource consumption of the next system call should be measured. The filter parameter is a logical \textsc{OR} between enum resource members (see section~\ref{evfilt} below).
 \begin{itemize}
-\item when called, the library looks for an available \texttt{call\_cost} entry in the memory region allocated for the current thread. It then writes the start address of this entry into the \texttt{ctl\_page}, together with the given filter. This data will be found and processed by the kernel on the next syscall. 
-\item because the programmer expresses interest above the glibc level (where the syscalls are typically made), we might miss resource accounting for some syscalls: whenever one glibc function calls multiple syscalls the user can only account for the resource usage of the first. If on the contrary, glibc buffers some input (writes) and only calls a syscall $X$ once every $n$ function calls, the user will end up sometimes measuring the cost of syscall $X$ and sometimes measuring the cost of whatever syscall comes next. We consider such glibc calls ``exotic'' and we delay dealing with them to the second implementation pass (it’s doable but requires more work).
-\item on the second implementation pass we’ll also consider allowing the user to express interest in more than one syscall (i.e measure resource utilization from now until a \texttt{stop\_accounting} function is called). 
+\item when called, the library looks for an available \texttt{call\_cost} entry in the memory region allocated for the current thread. It then writes the start address of this entry into the \texttt{ctl\_page}, together with the given filter. This data will be found and processed by the kernel on the next system call. 
+\item because the programmer expresses interest above the glibc level (where system call are typically made), we might miss resource accounting for some system call: whenever one glibc function calls multiple system call the user can only account for the resource usage of the first. If on the contrary, glibc buffers some input (writes) and only calls a system call X once every n function calls, the user will end up sometimes measuring the cost of system call X and sometimes measuring the cost of whatever system call comes next. We consider such glibc calls “exotic” and we delay dealing with them to the second implementation pass.
+\item on the second implementation pass we will also consider allowing the user to express interest in more than one system call (i.e measure resource utilization from now until a \texttt{stop\_accounting} function is called). 
 \end{itemize}
 
-{\color{red}\texttt{syscall (rsrcfl library $\longleftrightarrow$ kernel)}} on any syscall, on the kernel side we have to determine whether resource accounting needs to be done. Syscall interception to run our prologue code is done using one of the available kernel tracing functionalities (see section on kernel support). A sketch of the code we shall run before each syscall is also displayed in Figure~\ref{fig:sysDesign}.
+{\color{red}\texttt{syscall (rsrcfl library $\longleftrightarrow$ kernel)}} on any system call. On the kernel side we have to determine whether resource accounting needs to be done. We use system call interception in order to run our prologue code. This interception is achieved using the kernel's existing support for tracing. A sketch of what code we need to run before each system call is also displayed in Figure~\ref{fig:sysDesign}.
 \begin{itemize}
 \item We need to look into the current \texttt{task\_struct} and find the corresponding \texttt{ctl\_page} that contains both the memory address where we need to add accounting information and any filters the user might want. Those would be present if the user has set them up by calling \texttt{acct\_next}.
 \item the kernel will initialize the given \texttt{call\_cost} structure as required
@@ -149,7 +153,7 @@ An overview of the operation of the library is presented in Figure 1. As a desig
 
 {\color{blue}\texttt{void cost\_callback\_async(struct call\_cost*, void (*cbk)(call\_cost*, void*), void*)}} registers a callback to be called when the asynchronous part of resource accounting has been completed. The second argument is the callback function pointer, which gets forwarded the actual \texttt{call\_cost} region containing the data and a \texttt{void*} context pointer.
 
-{\color{blue}\texttt{int add\_to\_free\_stack(struct call\_cost *)}} marks that the memory used by a struct \texttt{call\_cost} can be used to account for another syscall. It is the responsibility of our library to decide how such regions should be reused (passed to the kernel for resource accounting) We anticipate this being called after the user has memcpy-ed the struct, done some form of user-space aggregation or when the accounting data are no-longer required.
+{\color{blue}\texttt{int add\_to\_free\_stack(struct call\_cost *)}} indicates that the memory used by a struct \texttt{call\_cost} can be used to account for another system call. It is the responsibility of our library to decide how such regions should be reused (passed to the kernel for resource accounting) We anticipate this being called after the user has memcpy-ed the struct, performed some form of user-space aggregation or when the accounting data are no-longer required.
 
 {\color{blue}\texttt{int add\_to\_free\_stack(struct call\_cost *[])}} same as above, but for multiple \texttt{call\_cost} structures
 

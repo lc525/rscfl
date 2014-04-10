@@ -140,11 +140,11 @@ An overview of the operation of the library is presented in Figure 1. As a desig
 \item on the second implementation pass we’ll also consider allowing the user to express interest in more than one syscall (i.e measure resource utilization from now until a \texttt{stop\_accounting} function is called). 
 \end{itemize}
 
-{\color{red}\texttt{syscall (rsrcfl library $\longleftrightarrow$ kernel)}} on any syscall, on the kernel side we have to determine whether resource accounting needs to be done. Syscall interception to run our prologue code is done using one of the available kernel tracing functionalities (see section on kernel support). A sketch of what code we need to run before each syscall is also displayed in Figure~\ref{fig:sysDesign}.
+{\color{red}\texttt{syscall (rsrcfl library $\longleftrightarrow$ kernel)}} on any syscall, on the kernel side we have to determine whether resource accounting needs to be done. Syscall interception to run our prologue code is done using one of the available kernel tracing functionalities (see section on kernel support). A sketch of the code we shall run before each syscall is also displayed in Figure~\ref{fig:sysDesign}.
 \begin{itemize}
 \item We need to look into the current \texttt{task\_struct} and find the corresponding \texttt{ctl\_page} that contains both the memory address where we need to add accounting information and any filters the user might want. Those would be present if the user has set them up by calling \texttt{acct\_next}.
 \item the kernel will initialize the given \texttt{call\_cost} structure as required
-\item it will then start the required counters / snapshot desired values - in order to do the accounting (“Instrumentation Foo” in Figure~\ref{fig:sysDesign}). More details on this are available in section \ref{kernelprimitives}.
+\item it will then start the required counters / snapshot desired values - in order to do the accounting (``Kernel accounting'' in Figure~\ref{fig:sysDesign}). More details on this are available in the section discussing the design of the required kernel extensions.
 \end{itemize}
 
 {\color{blue}\texttt{void cost\_callback\_async(struct call\_cost*, void (*cbk)(call\_cost*, void*), void*)}} registers a callback to be called when the asynchronous part of resource accounting has been completed. The second argument is the callback function pointer, which gets forwarded the actual \texttt{call\_cost} region containing the data and a void* context pointer.
@@ -552,6 +552,9 @@ We propose to modify syscalls  so they look to see if a new address has been wri
 \subsection{Future work}
 \begin{itemize}
 \item Accounting for coallescing buffers.
+\item Allow the user to express interest in multiple syscalls being accounted for together
+\item System-wide accounting
+\item Exposing an interface in \texttt{/proc} to allow resourceful to be used without recompilation
 \end{itemize}
 
 

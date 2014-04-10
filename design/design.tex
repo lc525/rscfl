@@ -144,7 +144,7 @@ An overview of the operation of the library is presented in Figure 1. As a desig
 \item it will then start the required counters / snapshot desired values - in order to do the accounting (``Kernel accounting'' in Figure~\ref{fig:sysDesign}). More details on this are available in the section discussing the design of the required kernel extensions.
 \end{itemize}
 
-{\color{blue}\texttt{void cost\_callback\_async(struct call\_cost*, void (*cbk)(call\_cost*, void*), void*)}} registers a callback to be called when the asynchronous part of resource accounting has been completed. The second argument is the callback function pointer, which gets forwarded the actual \texttt{call\_cost} region containing the data and a void* context pointer.
+{\color{blue}\texttt{void cost\_callback\_async(struct call\_cost*, void (*cbk)(call\_cost*, void*), void*)}} registers a callback to be called when the asynchronous part of resource accounting has been completed. The second argument is the callback function pointer, which gets forwarded the actual \texttt{call\_cost} region containing the data and a \texttt{void*} context pointer.
 
 {\color{blue}\texttt{int add\_to\_free\_stack(struct call\_cost *)}} marks that the memory used by a struct \texttt{call\_cost} can be used to account for another syscall. It is the responsibility of our library to decide how such regions should be reused (passed to the kernel for resource accounting) We anticipate this being called after the user has memcpy-ed the struct, done some form of user-space aggregation or when the accounting data are no-longer required.
 

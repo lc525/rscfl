@@ -351,7 +351,7 @@ We propose to modify system calls  so they look to see if a new address has been
   The system call will then enter its synchronous phase. Each time the system call changes subsystem we propose to:
   \begin{enumerate}
   \item Read all timers that we expect to be running, as specified by \texttt{filter}.
-  \item Add the costs of these to the relevant subsection of the \texttt{struct call\_cost}. We can get the address of the \texttt{struct call\_cost} by deferencing \texttt{current->call\_cost\_addr} since, during the synchronous part of the system call, we can guarantee there will be no further syscalls made by that task.
+  \item Add the costs of these to the relevant subsection of the \texttt{struct call\_cost}. We can get the address of the \texttt{struct call\_cost} by deferencing \texttt{current->call\_cost\_addr} since, during the synchronous part of the system call, we can guarantee there will be no further system calls made by that task.
   \end{enumerate}
 
   Before executing \texttt{sysexit}, we clobber \texttt{task\_struct.call\_cost\_addr} so as not to associate the next system call with the same \texttt{call\_cost\_addr} should it not be accounted for.
@@ -359,7 +359,7 @@ We propose to modify system calls  so they look to see if a new address has been
   After executing \texttt{sysexit} the kernel may have some latent work to do as part of the asynchronous operations in the system call. We intend to track the resources used by a syscall in both the synchronous, and asynchronous phases. As such we intend to modify the asynchronous mechanisms in Linux.  We note that Linux has a number of asynchronous mechanisms: \emph{kernel timers}, \emph{tasklets}, \emph{workqueues}, \emph{software interrupts}, and \emph{hardware interrupts}. To initialize each of these, the kernel calls a \texttt{\_\_init} function with a struct populated with relevant information. For instance to create a kernel timer, the \texttt{add\_timer} function\footnote{\texttt{kernel/timer.c}} is called with a \texttt{struct timer\_list}.
 
   As there are few functions on the interface to the kernel asynchronous mechanisms, each of which have a high number of call-sites, we intend \emph{not} to modify the structs passed to the interface as that might involve modifying all call-sites. 
-  Rather, we propose to encapsulate the \texttt{struct timer\_list} in \texttt{kernel/timer.c}, adding to it the \texttt{call\_cost\_addr} in the current context.
+  Rather we propose to encapsulate the \texttt{struct timer\_list} in \texttt{kernel/timer.c}, adding to it the \texttt{call\_cost\_addr} in the current context.
   This mechanism allows us to append the address to which we shall store accounting information in asynchronous behaviour without breaking the interface. {\color{red}\texttt{[lc525:]} this is under review, we can probably modify structs like \texttt{timer\_list} directly without breaking the interface}.
 
   We believe that tracking the \texttt{call\_cost\_addr} associated with asynchronous actions in the kernel is necessary, as without doing so:

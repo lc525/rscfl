@@ -329,11 +329,11 @@ struct cost_bitmap {
 
   \subsection{Kernel primitives}\label{kernelprimitives}
 
-  In this section we describe the modifications that we intend to make to Linux to allow fine-grained resource accounting. Our design requires us to write a char driver, and modify some integral kernel structs.
+  In this section we describe the modifications that we intend to make to Linux to allow fine-grained resource accounting. Our design requires us to write a char driver, and modify some internal kernel structs.
 
   Figure~\ref{fig:sysDesign} shows the high-level flow of resourceful programs. Each process that requires fine-grained resource accounting issues a single \texttt{ioctl} to a char driver. The driver will allocate a 4K page, known as the \texttt{ctl\_page}, that is mapped R/W to the current process, and has its address stored in the relevant \texttt{task\_struct}. We expect the process to write the \emph{virtual} address of the location that the kernel should store accounting information into \texttt{ctl\_page.call\_cost\_addr}.
 
-Throughout the kernel we use the value of \texttt{call\_cost\_addr} as the identifier of where to store the accounting data.
+Throughout the kernel we use the value of \texttt{call\_cost\_addr} as the identifier of where to store the accounting data for ongoing operations.
 
   \subsubsection{Proposed modifications to kernel fundamentals}
 
@@ -342,8 +342,8 @@ We propose to modify system calls  so they look to see if a new address has been
   \begin{enumerate}
   \item Copy the \texttt{\&call\_cost\_addr} and \texttt{filter} to new fields added to \texttt{struct task\_struct}.
   \item Check the validity of the values.
-  \item Convert the virtual address of \texttt{\&call\_cost\_addr} to the kernel-virtual address. We do this so the kernel can write to the address without having to walk page tables.
-  \item Initialise \texttt{async\_ref\_cnt = 0}.
+  \item Convert the virtual address of \texttt{\&call\_cost\_addr} to a kernel-virtual address. We do this so the kernel can write to the address without having to walk page tables.
+  \item Initialise \texttt{async\_ref\_cnt = 0}. We increase this counter on each asynchronous operation queued because of the current syscall; We decrement it when that asynchronous operation ends; We know the kernel has accounted for everything when the counter value goes back to 0 again.
   \item Start relevant timers.
   \item Execute the system call.
   \end{enumerate}
@@ -356,11 +356,11 @@ We propose to modify system calls  so they look to see if a new address has been
 
   Before executing \texttt{sysexit}, we clobber \texttt{task\_struct.call\_cost\_addr} so as not to associate the next system call with the same \texttt{call\_cost\_addr} should it not be accounted for.
 
-  After executing \texttt{sysexit} the kernel may have some latent work to do as part of the asynchronous operations in the system call. We intend to track the resources used by a syscall in both the synchronous, and asynchronous phases. As such we intend to modify the asynchronous mechanisms in Linux.  We note that Linux has a number of asynchronous mechanisms: \emph{kernel timers}, \emph{tasklets}, \emph{workqueues}, \emph{software interrupts}, and \emph{hardware interrupts}. To initialize each of these, the kernel calls a \texttt{\_\_init} function with a struct populated with relevant information. For instance to create a kernel timer, the \texttt{add\_timer} function\footnote{\texttt{kernel/timer.c}} is called with a \texttt{struct task\_struct}.
+  After executing \texttt{sysexit} the kernel may have some latent work to do as part of the asynchronous operations in the system call. We intend to track the resources used by a syscall in both the synchronous, and asynchronous phases. As such we intend to modify the asynchronous mechanisms in Linux.  We note that Linux has a number of asynchronous mechanisms: \emph{kernel timers}, \emph{tasklets}, \emph{workqueues}, \emph{software interrupts}, and \emph{hardware interrupts}. To initialize each of these, the kernel calls a \texttt{\_\_init} function with a struct populated with relevant information. For instance to create a kernel timer, the \texttt{add\_timer} function\footnote{\texttt{kernel/timer.c}} is called with a \texttt{struct timer\_list}.
 
-  As there are few functions on the interface to the kernel asynchronous mechanisms, each of which have a high number of call-sites, we intend \emph{not} to modify the structs on the interface.
-  Rather we propose to encapsulate the \texttt{struct task\_struct} in \texttt{kernel/timer.c}, adding to it the \texttt{call\_cost\_addr} in the current context.
-  This mechanism allows us to append the address to which we shall store accounting information in asynchronous behaviour without breaking the interface.
+  As there are few functions on the interface to the kernel asynchronous mechanisms, each of which have a high number of call-sites, we intend \emph{not} to modify the structs passed to the interface as that might involve modifying all call-sites. 
+  Rather, we propose to encapsulate the \texttt{struct timer\_list} in \texttt{kernel/timer.c}, adding to it the \texttt{call\_cost\_addr} in the current context.
+  This mechanism allows us to append the address to which we shall store accounting information in asynchronous behaviour without breaking the interface. {\color{red}\texttt{[lc525:]} this is under review, we can probably modify structs like \texttt{timer\_list} directly without breaking the interface}.
 
   We believe that tracking the \texttt{call\_cost\_addr} associated with asynchronous actions in the kernel is necessary, as without doing so:
   \begin{enumerate}
@@ -368,24 +368,8 @@ We propose to modify system calls  so they look to see if a new address has been
   \item We would have to track every metric for every asynchronous action in the kernel.
   \item It is no longer clear when all asynchronous actions have terminated for a given system call.
   \end{enumerate}
-
-  \subsubsection{Low-overhead kernel mechanism}
-  We envisage Resourceful being an always-on component that exposes fine-grained accounting to allow a richer class of application. We therefore have an emphasis on low-performance overhead. Our design has the following features to reduce overhead:
-  \begin{description}
-  \item[Low impact on TLB.] We use huge pages to reduce the load on the TLB.
-  We anticipate ~4MB of continuous memory being required per process. Using 4K pages, this might use one quarter of the TLB. By using huge pages we reduce this to two entries (assuming 2MB pages).
-
-  \item[Minimal locking.] We aim to reduce concurrency mechanisms to limit our performance overhead. In particular, we store accounting data on a per-thread basis.
-
-  \item[Minimal mode changes.] \texttt{sysenter}/\texttt{sysexit}  add a non-trivial overhead, especially when we want to debug the performance of single system calls. We therefore favour writing to shared-memory with atomic operations rather than making a syscall.
-
-  \item[Zero-copy.] To improve performance we have avoided requiring the use of \texttt{memcpy}.
-
-  \item[Shared memory strategy.] To reduce the number of mode switches, we make maximal use of shared memory. As a design choice we minimise pages being mapped RW to both userspace, and the kernel.
-
-  The huge-pages that store \texttt{struct sys\_costs} are kernel pages that are mapped read-only into the user space application. Our design of sys\_costs includes pointers, and offsets that we follow in the kernel. To avoid trashing the kernel (and associated security issues) we prevent userspace from accessing these pages.
-
-  \end{description}
+  
+  A remaining discussion point is what to do when the cost of some asynchronous action should be split between multiple system calls (the case of flushing a buffer) In the first implementation, we propose keeping a list of \texttt{call\_cost\_addr} referring to the accounting structures of all the system calls involved. Those structures would be augmented to contain a scaling factor written during the synchronous part of the call (for example, the number of pending bytes that will be flushed asynchronously). Later, the user reading the \texttt{call\_cost} data will be able to scale the reported cost according to the fraction each call contributed to the cost.
 
   \subsubsection{Detecting subsystem boundaries}
   Resourceful accounts for resource consumption at a subsystem granularity.
@@ -489,6 +473,23 @@ We propose to modify system calls  so they look to see if a new address has been
   	\item vmstat - Exported symbols allow loaded modules to gather information on the current VM status, including information such as page faults.
   	\end{itemize}
   \end{itemize}
+  
+    \subsubsection{Minimising overhead}
+    We envisage Resourceful being an always-on component that exposes fine-grained accounting to allow a richer class of application. We therefore have an emphasis on low-performance overhead. Our design has the following features to reduce overhead:
+    \begin{description}
+    \item[Low impact on TLB.] We use huge pages to reduce the load on the TLB.
+    We anticipate ~4MB of continuous memory being required per process. Using 4K pages, this might use one quarter of the TLB. By using huge pages we reduce this to two entries (assuming 2MB pages).
+  
+    \item[Minimal locking.] We aim to reduce concurrency mechanisms to limit our performance overhead. In particular, we store accounting data on a per-thread basis.
+  
+    \item[Minimal mode changes.] \texttt{sysenter}/\texttt{sysexit}  add a non-trivial overhead, especially when we want to debug the performance of single system calls. We therefore favour writing to shared-memory with atomic operations rather than making a syscall.
+  
+    \item[Zero-copy.] To improve performance we have avoided requiring the use of \texttt{memcpy}.
+  
+    \item[Shared memory strategy.] To reduce the number of mode switches, we make maximal use of shared memory. As a design choice we minimise pages being mapped RW to both userspace, and the kernel.
+  
+    \end{description}
+  
 
   \section{Summary of work}
 

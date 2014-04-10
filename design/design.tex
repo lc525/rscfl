@@ -54,12 +54,12 @@ We believe that the library, together with the changes made to the Linux kernel 
 \subsection{Contributions}
 \begin{itemize}
 \item A low-overhead kernel-level mechanism for measuring per system call resource consumption (cpu, memory, disk, network) in each functional module of the kernel (see the kernel map in [2] for a list).
-\item Accounting for both synchronous and asynchronous resource consumption inside the operating system Kernel.
+\item Accounting for both synchronous and asynchronous resource consumption inside the operating system kernel.
 \end{itemize}
 
 
 \section{System design}
-In this section we describe our design for Resourceful, which exposes primitives to user applications that allow them to better account for the resources consumed by the Kernel. 
+In this section we describe our design for Resourceful, which exposes primitives to user applications that allow them to better account for the resources consumed by the kernel.
 The aim is to provide these primitives with minimal impact on system performance so that they can be feasibly used in a production system.
 
 \subsection{User-space library}
@@ -137,7 +137,7 @@ An overview of the operation of the library is presented in Figure 1. As a desig
 \item on the second implementation pass we’ll also consider allowing the user to express interest in more than one syscall (i.e measure resource utilization from now until a \texttt{stop\_accounting} function is called). 
 \end{itemize}
 
-{\color{red}\texttt{syscall (rsrcfl library $\longleftrightarrow$ kernel)}} on any syscall, on the kernel side we have to determine whether resource accounting needs to be done. Syscall interception to run our prologue code is done using one of the available kernel tracing functionalities (see section on Kernel support). A sketch of what code we need to run before each syscall is also displayed in Figure~\ref{fig:sysDesign}.
+{\color{red}\texttt{syscall (rsrcfl library $\longleftrightarrow$ kernel)}} on any syscall, on the kernel side we have to determine whether resource accounting needs to be done. Syscall interception to run our prologue code is done using one of the available kernel tracing functionalities (see section on kernel support). A sketch of what code we need to run before each syscall is also displayed in Figure~\ref{fig:sysDesign}.
 \begin{itemize}
 \item if the current user thread has called \texttt{acct\_next}, we need to look into the current \texttt{task\_struct} and find the corresponding \texttt{ctl\_page} that contains both the memory address where we need to add accounting information and any filters the user might want.
 \item the kernel will initialize the given \texttt{call\_cost} structure as required
@@ -380,7 +380,7 @@ We propose to modify syscalls  so they look to see if a new address has been wri
   Resourceful accounts for resource consumption at a subsystem granularity.
   This requires us to define the functions that constitute a given subsystem and within these, the functions that act as an ingress point into it.
   Resourceful then uses these definitions to track which subsystem to credit resource consumption to.
-  We employ a top-down approach when defining these systems by first observing the Linux Kernel source directory structure, which provides a list of 5 subsystems. Within each of these there are then further layers of abstraction that need to be accounted for. These further layers are manually defined with the aid of the Linux Kernel map.
+  We employ a top-down approach when defining these systems by first observing the Linux kernel source directory structure, which provides a list of 5 subsystems. Within each of these there are then further layers of abstraction that need to be accounted for. These further layers are manually defined with the aid of the Linux kernel map.
 
   \begin{itemize}
       \item Storage (fs/)

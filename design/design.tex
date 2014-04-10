@@ -62,7 +62,7 @@ We envision that the library, together with the changes made to the Linux kernel
 
 \subsection{User-space library}
 \textbf{Developer’s perspective:\\}
-The Resourceful library lets programmers express their interest in the measurement of resource consumption for the next syscall (the \texttt{acct\_next} function). After the next syscall returns, they can look into a \texttt{call\_cost} data structure and see the costs incurred synchronously by the syscall. When it is the case, the kernel will then fill in any asynchronous costs into the same data structure. To access those costs reliably, the user has to either call \texttt{wait\_async\_cost} passing the call\_cost structure or register a callback function (a function that will be called when the kernel detects all asynchronous effects of the syscall have been accounted for).
+The Resourceful library lets programmers express their interest in the measurement of resource consumption for the next syscall (the \texttt{acct\_next} function). After the next syscall returns, they can look into a \texttt{call\_cost} data structure and see the costs incurred synchronously by the syscall. When it is the case, the kernel will then fill in any asynchronous costs into the same data structure. To access those costs reliably, the user has to either call \texttt{wait\_async\_cost} passing the \texttt{call\_cost} structure or register a callback function (a function that will be called when the kernel detects all asynchronous effects of the syscall have been accounted for).
 
 When calling \texttt{acct\_next} the developer can also specify which components should be accounted for (you can limit the amount of data being collected). Below we give an example of how we see this working in practice:
 
@@ -92,8 +92,8 @@ When calling \texttt{acct\_next} the developer can also specify which components
    cost_callback_async(cost_w, on_cost_done, 0);
    int res = write(fd, &buf, BUF_SIZE);     // measured syscall (cost_w)
 
-   // if the write is asynchronous, cost_w will keep being updated by the
-   // kernel for a while
+   // if the write has asynchronous effects, cost_w will keep being updated 
+   // by the kernel for a while
 
    // do whatever you want with the call_cost data. you can read the sync
    // component as soon as the syscall is done. You should not touch the async
@@ -130,9 +130,9 @@ An overview of the operation of the library is presented in Figure 1. As a desig
 
 {\color{blue}\texttt{int acct\_next(struct call\_cost**, u64 filter)}} indicates that the resource consumption of the next syscall should be measured. The filter parameter is a logical \textsc{OR} between enum resource members (see section~\ref{evfilt} below).
 \begin{itemize}
-\item when called, the library looks for an available texttt{call\_cost} entry in the memory region allocated for the current thread. It then writes the start address of this entry into the \texttt{ctl\_page}, together with the given filter. This data will be found and processed by the kernel on the next syscall. 
+\item when called, the library looks for an available \texttt{call\_cost} entry in the memory region allocated for the current thread. It then writes the start address of this entry into the \texttt{ctl\_page}, together with the given filter. This data will be found and processed by the kernel on the next syscall. 
 \item because the programmer expresses interest above the glibc level (where the syscalls are typically made), we might miss resource accounting for some syscalls: whenever one glibc function calls multiple syscalls the user can only account for the resource usage of the first. If on the contrary, glibc buffers some input (writes) and only calls a syscall X once every n function calls, the user will end up sometimes measuring the cost of syscall X and sometimes measuring the cost of whatever syscall comes next. We consider such glibc calls “exotic” and we delay dealing with them to the second implementation pass (it’s doable but requires more work).
-\item on the second implementation pass we’ll also consider allowing the user to express interest in more than one syscall (i.e measure resource utilization from now until I tell you to stop). 
+\item on the second implementation pass we’ll also consider allowing the user to express interest in more than one syscall (i.e measure resource utilization from now until a \texttt{stop\_accounting} function is called). 
 \end{itemize}
 
 {\color{red}\texttt{syscall (rsrcfl library $\longleftrightarrow$ kernel)}} on any syscall, on the kernel side we have to determine whether resource accounting needs to be done. Syscall interception to run our prologue code is done using one of the available kernel tracing functionalities (see section on Kernel support). A sketch of what code we need to run before each syscall is also displayed in Figure~\ref{fig:sysDesign}.
@@ -167,9 +167,9 @@ struct call_cost {
 };
 \end{lstlisting}
 
-Each accounting structure contains a \texttt{cost\_bitmap} which is used to determine which kernel subsystems were touched by the syscall (and hence have associated resource accounting information). The \texttt{cost\_bitmap} contains a field which is a logical OR between resource enum members (the resource enum is shown below in the Event filtering section).
+Each accounting structure contains a \texttt{cost\_bitmap} which is used to determine which kernel subsystems were touched by the syscall (and hence have associated resource accounting information). The \texttt{cost\_bitmap} contains a field which is a logical OR between resource enum members (the resource enum is shown below in section~\ref{evfilt}).
 
-One design choice for the accounting struct was to make it fixed size (which in turn means \texttt{call\_cost} has a fixed size), for easy indexing within the allocated cost page. Thus, the first three components set in the \texttt{cost\_bitmap} field (starting from the LSB) are stored inside the struct (they will be cheaper to access for both the kernel and the user space). If any other components have accumulated cost, they will be stored in a dynamically allocated array which is pointed by ext.
+One design choice for the accounting struct was to make it fixed size (which in turn means \texttt{call\_cost} has a fixed size), for easy indexing within the allocated cost page. The first three components set in the \texttt{cost\_bitmap} field (starting from the LSB) are stored directly inside the struct (they will be cheaper to access for both the kernel and the user space). If any other components have accumulated cost, they will be stored in a dynamically allocated array which is pointed by ext.
 
 \vspace{1em}
 \begin{lstlisting}
@@ -221,8 +221,53 @@ struct acct_Net {
 
 
 \subsubsection{Event filtering}\label{evfilt}
+A logical OR between resource enum members is used in the \texttt{acct\_next} call to let Resourceful know what it should track. A logical OR is also set by the kernel in the struct accounting \texttt{cost\_bitmap} when returning incurred costs to let the user know which parts of the kernel were touched (and hence have resource consumption data within a \texttt{call\_cost} structure)
 
+\vspace{1em}
+\begin{lstlisting}
+/* The resource enum, together with the cost_bitmap structure, lets the end-user
+ * quickly identify what kernel modules were touched when a syscall was made.
+ * The corresponding acct_*** structures will be present in the accounting data
+ * structure.
+ *
+ * A logical OR of resource members can also be explicitly passed by the user
+ * when registering interest in system call resource accounting, as a filter.
+ */
+enum resource {
+  SYS              = BIT(0),  // System functionality
+  SYS_DEV          = BIT(1),  //  -- Device Model
+  SYS_HW           = BIT(2),  //  -- Hardware Access
+  SYS_IO           = BIT(3),  //  -- Device IO (USB, PCI, etc)
 
+  PROC             = BIT(4),  // Processing functionality
+  PROC_THR         = BIT(5),  //  -- Threading
+  PROC_SYNC        = BIT(6),  //  -- Synchronization (locks)
+  PROC_SCHED       = BIT(7),  //  -- Scheduler
+  PROC_IRQ         = BIT(8),  //  -- Interrupts
+
+  MEM              = BIT(9),  // Memory subsystem
+  MEM_VIRT         = BIT(10), //  -- Virtual Memory
+  MEM_MAP          = BIT(11), //  -- Memory Mapping
+  MEM_PAGE         = BIT(12), //  -- Paging
+
+  STORAGE          = BIT(13), // Storage subsystem
+  STORAGE_VFS      = BIT(14), //  -- Virtual Filesystem
+  STORAGE_CACHE    = BIT(15), //  -- Caching
+  STORAGE_FS       = BIT(16), //  -- Filesystems
+  STORAGE_HW       = BIT(17), //  -- Block Devices & Disk Controllers
+
+  NET              = BIT(18), // Network subsystem
+  NET_SOCK         = BIT(19), //  -- Sockets
+  NET_PROTO        = BIT(20), //  -- Protocols
+  NET_HW           = BIT(21), //  -- Hardware NIC Interface
+
+  ALL              = ALL_BITS(21)
+};
+
+struct cost_bitmap {
+  u32 primary; // logical OR between multiple resource elements
+};
+\end{lstlisting}
 
 %  We provide a library that lets programmers access a struct that describes the cost of a syscall. We require the program to specify that the next syscall should be accounted for, along with which components should be accounted for. After making the call, the user can access a struct that specifies the synchronous cost of making that syscall, per Linux subsystem. In particular, we do not perform function-level accounting, to reduce the overhead. Instead, we encourage developers to make use of existing tools, such as ftrace.
 %

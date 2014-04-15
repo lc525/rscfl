@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Sample usage:
-# $> sudo ./ftrace_cmd -c "ping -t 10 www.google.com" -o ping.tr
+# $> sudo ./ftrace_cmd -c "ping -c 10 www.google.com" -o ping.tr
 #
 # This will run the ping process with ftrace enabled for its pid, and output
 # the trace in ping.tr

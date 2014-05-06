@@ -6,6 +6,7 @@
 \usepackage{listings}
 \usepackage{hyperref}
 \usepackage{enumitem}
+\usepackage{longtable}
 \def\_{\textunderscore\-}
 
 
@@ -567,7 +568,32 @@ We propose to modify system calls  so they look to see if a new address has been
 \item Allow cancelling of accounting the asynchronous part of accounting for a system call
 \end{itemize}
 
+\subsection{Systemtap - implementation primitives}
 
+\setlength\LTleft{-2.5cm}
+\begin{longtable}{|p{9cm}|p{9cm}|}
+\caption[]{The primitives required by the design together with Systemtap implementation solutions} \label{systemtap_impl} \\
+\hline \multicolumn{1}{|c|}{\textbf{Required primitive}} & \multicolumn{1}{c|}{\textbf{Systemtap implementation}} \\ \hline
+\endfirsthead
+
+\multicolumn{2}{c}%
+{{\bfseries \tablename\ \thetable{} -- continued from previous page}} \\
+\hline \multicolumn{1}{|c|}{\textbf{Required primitive}} & \multicolumn{1}{c|}{\textbf{Systemtap implementation}} \\ \hline
+\endhead
+
+\hline \multicolumn{2}{|r|}{{Continued on next page}} \\ \hline
+\endfoot
+
+\hline \hline
+\endlastfoot
+\parbox{9cm}{transferring resource accounting data between kernel space and user space} & \parbox{9cm}{\vspace{2mm}- systemtap ring buffers (implicit), \\ - relayfs (per-cpu ring buffers that can be mmap-ed into user space)} \vspace{2mm}\\ \hline
+\parbox{9cm}{per process/thread/syscall resource accounting selectors} & \parbox{9cm}{\vspace{2mm}- stap command line arguments -x (for tid, pid) or stap -c (for pid), probe filtering using the target() function. \\- per syscall invocation filtering is more involved (and requires cooperation from user space) } \vspace{2mm}\\ \hline
+\parbox{9cm}{measuring resource consumption} & \parbox{9cm}{\vspace{2mm}- start/stop timer probes on particular kernel functions (manual or semi-automatic determination of functions that need probing) } \vspace{2mm}\\ \hline
+\parbox{9cm}{attributing async resource consumption to initial triggers (sync calls) } & \parbox{9cm}{\vspace{2mm}- data gathering probes: at sync function call, probe functions that write into shared datastructures (buffers, queues, hash tables). get addresses of shared data structures \\- when measuring resource consumption of async-running task (kworker, swapper, sw/hw interrupts , kernel timers, workqueues, tasklets) determine which shared data structures (addresses) are touched and attribute resource consumption to the functions that created them} \vspace{2mm}\\ \hline
+\parbox{9cm}{per-kernel-subsystem reporting of resource consumption} & \parbox{9cm}{\vspace{2mm}- from systemtap's perspective this is fully manual. in practice, we might be able to automatically or semi-automatically identify subsystem boundaries and generate the relevant bits of the systemtap script} \vspace{2mm}\\ \hline
+\parbox{9cm}{dynamically turning measurements on/off for subsystems of interest} & \parbox{9cm}{\vspace{2mm}- TBD; the slowest option would be to re-insmod the stap kernel module each time} \vspace{2mm}\\ \hline
+\parbox{9cm}{determine actual time spent executing a call (for explaining perf. variations)} & \parbox{9cm}{\vspace{2mm}- probe all scheduler actions + interrupts} \vspace{2mm}\\ \hline
+\end{longtable}
 
   \begin{thebibliography}{1}
 

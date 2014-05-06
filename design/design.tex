@@ -328,40 +328,38 @@ struct cost_bitmap {
 %
 %  We also have a \texttt{struct ctl\_page}, which is a struct that exists for each thread and whose purpose it is to store the last address, and filters passed to \texttt{call\_cost\_addr}. Importantly we only have one value of this per thread, so each call to call\_cost\_addr will clobber the values written by the previous call. When a system call is made  we copy, in the kernel, the values written here so that we still have a pointer to the the \texttt{struct call\_cost} after we have executed \texttt{sysexit}, since we need to attribute asynchronous costs.
 
-  \subsection{Kernel primitives}\label{kernelprimitives}
+  \subsection{Kernel implementation}\label{kernelprimitives}
 
-  In this section we describe the modifications that we intend to make to Linux to allow fine-grained resource accounting. Our design requires us to write a char driver, and modify some internal kernel structs.
+  In this section we describe our proposed use of \texttt{SystemTap} to allow fine-grained resource accounting.
 
   Figure~\ref{fig:sysDesign} shows the high-level flow of resourceful programs. Each process that requires fine-grained resource accounting issues a single \texttt{ioctl} to a char driver. The driver will allocate a 4K page, known as the \texttt{ctl\_page}, that is mapped R/W to the current process, and has its address stored in the relevant \texttt{task\_struct}. We expect the process to write the \emph{virtual} address of the location that the kernel should store accounting information into \texttt{ctl\_page.call\_cost\_addr}.
 
 Throughout the kernel we use the value of \texttt{call\_cost\_addr} as the identifier of where to store the accounting data for ongoing operations.
 
-  \subsubsection{Proposed modifications to kernel fundamentals}
+  \subsubsection{Use of \texttt{SystemTap}}
 
-We propose to modify system calls  so they look to see if a new address has been written to the \texttt{ctl\_page}, and if so performs accounting.
- We shall modify \texttt{sysenter} so it starts by checking the \texttt{ctl\_page.call\_cost\_addr} and \texttt{ctl\_page.filter} to see if the system call should be accounted for, and which metrics are desired. Should these be set, we:
+We propose to use \texttt{SystemTap} to measure the resources used by system calls.
+Our intended script will look to see if a new address has been written to the \texttt{ctl\_page}, and if so performs accounting.
+ We add a probe to \texttt{sysenter} so it starts by checking the \texttt{ctl\_page.call\_cost\_addr} and \texttt{ctl\_page.filter} to see if the system call should be accounted for, and which metrics are desired.
+Should these be set, we:
   \begin{enumerate}
-  \item Copy the \texttt{\&call\_cost\_addr} and \texttt{filter} to new fields added to \texttt{struct task\_struct}.
+  \item Copy the \texttt{\&call\_cost\_addr} and \texttt{filter} to a \texttt{SystemTap} variable.
   \item Check the validity of the values.
-  \item Convert the virtual address of \texttt{\&call\_cost\_addr} to a kernel-virtual address. We do this so the kernel can write to the address without having to walk page tables.
   \item Initialise \texttt{async\_ref\_cnt = 0}. We increase this counter on each asynchronous operation queued because of the current syscall; We decrement it when that asynchronous operation ends; We know the kernel has accounted for everything when the counter value goes back to 0 again.
-  \item Start relevant timers.
-  \item Execute the system call.
   \end{enumerate}
 
-  The system call will then enter its synchronous phase. Each time the system call changes subsystem we propose to:
+  The system call will then enter its synchronous phase. We add probes to each boundary between kernel subsystem that:
   \begin{enumerate}
   \item Read all timers that we expect to be running, as specified by \texttt{filter}.
   \item Add the costs of these to the relevant subsection of the \texttt{struct call\_cost}. We can get the address of the \texttt{struct call\_cost} by deferencing \texttt{current->call\_cost\_addr} since, during the synchronous part of the system call, we can guarantee there will be no further system calls made by that task.
   \end{enumerate}
 
-  Before executing \texttt{sysexit}, we clobber \texttt{task\_struct.call\_cost\_addr} so as not to associate the next system call with the same \texttt{call\_cost\_addr} should it not be accounted for.
+  We shall probe \texttt{sysexit}, with a function that will clobber \texttt{task\_struct.call\_cost\_addr} so as not to associate the next system call with the same \texttt{call\_cost\_addr} should it not be accounted for.
 
   After executing \texttt{sysexit} the kernel may have some latent work to do as part of the asynchronous operations in the system call. We intend to track the resources used by a syscall in both the synchronous, and asynchronous phases. As such we intend to modify the asynchronous mechanisms in Linux.  We note that Linux has a number of asynchronous mechanisms: \emph{kernel timers}, \emph{tasklets}, \emph{workqueues}, \emph{software interrupts}, and \emph{hardware interrupts}. To initialize each of these, the kernel calls a \texttt{\_\_init} function with a struct populated with relevant information. For instance to create a kernel timer, the \texttt{add\_timer} function\footnote{\texttt{kernel/timer.c}} is called with a \texttt{struct timer\_list}.
 
-  As there are few functions on the interface to the kernel asynchronous mechanisms, each of which have a high number of call-sites, we intend \emph{not} to modify the structs passed to the interface as that might involve modifying all call-sites. 
-  Rather we propose to encapsulate the \texttt{struct timer\_list} in \texttt{kernel/timer.c}, adding to it the \texttt{call\_cost\_addr} in the current context.
-  This mechanism allows us to append the address to which we shall store accounting information in asynchronous behaviour without breaking the interface. {\color{red}\texttt{[lc525:]} this is under review, we can probably modify structs like \texttt{timer\_list} directly without breaking the interface}.
+  As there are few functions on the interface to the kernel asynchronous mechanisms, each of which have a high number of call-sites.
+  We propose to insert probes at functions that insert into \texttt{struct timer\_list} in \texttt{kernel/timer.c}, adding to it the \texttt{call\_cost\_addr} in the current context.
 
   We believe that tracking the \texttt{call\_cost\_addr} associated with asynchronous actions in the kernel is necessary, as without doing so:
   \begin{enumerate}

@@ -39,10 +39,13 @@ Furthermore, no attempts have been made to quantify delayed resource consumption
 \section{Resourceful---high level overview}
   As an answer to the above problems, we propose \emph{Resourceful}, a framework that provides system call resource consumption aggregated per kernel functional unit \cite{kernelmap}. It reports both costs that were incurred synchronously with the system call as well as those incurred during asynchronous actions triggered by the system call, but executed after its completion (for example, the flushing of a kernel buffer to disk, which may occur after the initial system call returned).
 
-Resourceful exposes a user-space library that developers can use to express interest in the resource consumption made by specific system calls. Calls to this library can be made either explicitly by the developer or inserted as part of application instrumentation. The resource accounting then takes place in the linux kernel which is modified to support the required functionality.
+Resourceful exposes a user-space library that developers can use to express interest in the resource consumption made by specific system calls. Calls to this library can be made either explicitly by the developer or inserted as part of application instrumentation. 
+%The resource accounting then takes place in the linux kernel which is modified to support the required functionality.
+The resource accounting then takes place in the Linux Kernel using probes inserted by the  SystemTap tracing framework.
 
 
-We believe that the library, together with the changes made to the Linux kernel to support its features, provide the required primitives for implementing more complex use cases:
+%We believe that the library, together with the changes made to the Linux kernel to support its features, provide the required primitives for implementing more complex use cases:
+We believe that the Resourceful library, together with the SystemTap framework, provide the required primitives for implementing more complex use cases:
 
 \subsection{Use cases}
 \begin{enumerate}
@@ -54,7 +57,7 @@ We believe that the library, together with the changes made to the Linux kernel 
 
 \subsection{Contributions}
 \begin{itemize}
-\item A low-overhead kernel-level mechanism for measuring per system call resource consumption (cpu, memory, disk, network) in each functional module of the kernel (see the kernel map in \cite{kernelmap} for a list).
+%\item A low-overhead kernel-level mechanism for measuring per system call resource consumption (cpu, memory, disk, network) in each functional module of the kernel (see the kernel map in \cite{kernelmap} for a list).
 \item Accounting for both synchronous and asynchronous resource consumption inside the operating system kernel.
 \end{itemize}
 
@@ -566,17 +569,17 @@ Should these be set, we:
 \item Allow cancelling of accounting the asynchronous part of accounting for a system call
 \end{itemize}
 
-\subsection{Systemtap - implementation primitives}
+\subsection{SystemTap - implementation primitives}
 
 \setlength\LTleft{-2.5cm}
 \begin{longtable}{|p{9cm}|p{9cm}|}
-\caption[]{The primitives required by the design together with Systemtap implementation solutions} \label{systemtap_impl} \\
-\hline \multicolumn{1}{|c|}{\textbf{Required primitive}} & \multicolumn{1}{c|}{\textbf{Systemtap implementation}} \\ \hline
+\caption[]{The primitives required by the design together with SystemTap implementation solutions} \label{systemtap_impl} \\
+\hline \multicolumn{1}{|c|}{\textbf{Required primitive}} & \multicolumn{1}{c|}{\textbf{SystemTap implementation}} \\ \hline
 \endfirsthead
 
 \multicolumn{2}{c}%
 {{\bfseries \tablename\ \thetable{} -- continued from previous page}} \\
-\hline \multicolumn{1}{|c|}{\textbf{Required primitive}} & \multicolumn{1}{c|}{\textbf{Systemtap implementation}} \\ \hline
+\hline \multicolumn{1}{|c|}{\textbf{Required primitive}} & \multicolumn{1}{c|}{\textbf{SystemTap implementation}} \\ \hline
 \endhead
 
 \hline \multicolumn{2}{|r|}{{Continued on next page}} \\ \hline

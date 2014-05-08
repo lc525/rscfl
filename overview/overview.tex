@@ -1,0 +1,61 @@
+]\documentclass{article}
+\usepackage{savetrees}
+
+\title{Resourceful: Fine grained resource accounting}
+\author{Oliver Chick \and Lucian Carata \and James Snee}
+
+\begin{document}
+\maketitle{}
+
+
+
+\section{Idea}
+
+Understanding the resources used by an operating system kernel is challenging: much of the work is performed asynchronously, so controlling performance counters in userspace cannot account for the latent effect of a syscall.
+As hardware becomes increasingly multicore, the time spent in the kernel is growing.
+Moreover, further primitives are being added to Linux to increase use of asynchronous behaviour, to mitigate performance bottlenecks.
+Therefore, accurate understanding of the resources used by asynchronous behaviour within the Linux kernel will become more essential.
+
+We propose \emph{Resourceful}, a SystemTap script that provides system call resource consumption aggregated per kernel functional unit.
+With Resourceful, developers can access, with low-overhead, the resources consumed by the synchronous, and asynchronous parts of each logical-unit of the kernel.
+Access to these costs will enable developers to write more better-performing code: our script will provide accounting data that existing profilers are unable to account for; and we envisage developers using our primitives within their applications.
+An example is ?
+
+The Linux kernel has  a modular design, whereby each system call passes through typically five subsystems, for instance writes pass through \emph{files and directories}; \emph{VFS}; \emph{logical filesystem}; \emph{block devices}; and \emph{drivers}.
+For each of these subsystems, our SystemTap script will report the resources used by any system call in each of the subsystems.
+Examples of these resources are cache misses, buffer contention, write-coallescing.
+Therefore, with Resourceful, programmers can take a \texttt{write}, and query when the associated buffers were \texttt{sync}ed to disk, how many page faults occurred in the \emph{VFS}, and how many other \texttt{write}s were coallesced with it.
+To the best of our knowledge there is no existing system that provides these data without substantial bespoke coding.
+
+\section{Engineering}
+
+Our design has two components:
+
+\begin{description}
+\item[Semi-automation of subsystem discovery.]
+  We propose building a script that uses \texttt{ctags} to build a database of all functions along with the files they're implemented in.
+  Using this we shall tag each function with the top-level subsystem it belongs to (e.g. Networking || Processing).
+  Further more specific sub-systems can be defined by annotating the original CTags list of symbols with the finer-grained system names.
+  The same method as described above can be used to identify the sub-system entry functions.
+
+
+\item[SystemTap script for asynchronous behaviour]
+
+  We propose to implement Resourceful as a SystemTap script.
+SystemTap provides a scripting language that allows probes to be inserted at any kernel function that can access performance counters.
+
+Our preliminary work shows that SystemTap can be used to write a low-overhead instrumentation scheme: probing the twenty-five most commonly called kernel functions, and measuring the CPU cycles has a overhead of 20\%.
+We will therefore build a SystemTap script that has function probes at the entry and exit to each subsystem that collect and aggregate accounting data.
+To measure the asynchronous cost of syscalls, we shall use SystemTap's associative arrays to map the addition of tasks into the key kernel datastructures associated with asynchronous behaviour, and their removal by the worker thread.
+By associating each addition with a key, we can attribute the asynchronous costs to the syscall that initiated the action.
+Further to syscalls, we shall also account for interrupts, and signals that cause time to be spent in the kernel. 
+
+
+\end{description}
+
+\section{Evaluation}
+
+We aim to show that low-overhead, per-kernel-subsystem resource accounting can be performed on production systems in data-centres.
+As a proof-of-concept, we shall evaluate the performance of \texttt{nginx}, under high load using \texttt{ab}.
+
+\end{document}

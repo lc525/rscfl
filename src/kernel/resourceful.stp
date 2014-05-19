@@ -1,0 +1,88 @@
+#!/usr/bin/stap -g
+
+%{
+
+#include "/home/oc243/resourceful/costs.h"
+#include "/home/oc243/resourceful/resourceful_top.c"
+
+
+%}
+
+global files_dir=0, vfs=0, lfs=0, blk=0
+global files_dir_e=0, vfs_e=0, lfs_e=0, blk_e=0
+
+probe begin
+{
+	create_shared_mem();
+}
+
+function create_shared_mem()
+%{
+	_create_shared_mem();
+%}
+
+function should_acct(pid:long)
+%{
+	return _should_acct(STAP_ARG_pid);
+%}
+
+
+function fill_struct(vfs:long)
+%{
+	_fill_struct();
+%}
+
+function update_relay()
+%{
+	_update_relay();
+%}
+
+probe kernel.function("sys_read").return
+{	
+	fill_struct(vfs);
+	// Seg faults :-(
+	// Update_relay();
+}
+
+probe kernel.function("sys_read").call
+{
+	files_dir = 0;
+	vfs = 0;
+ 	lfs = 0;
+	blk = 0;
+	files_dir_e = get_cycles();
+}
+	
+probe kernel.function("vfs_read").call
+{
+	vfs_e = get_cycles();
+}
+
+probe kernel.function("vfs_read").return
+{
+	vfs += get_cycles() - vfs_e;
+}
+
+probe kernel.function("ext4_readpages").call
+{
+	lfs_e = get_cycles();
+	blk = 0;
+}
+
+probe kernel.function("ext4_readpages").return
+{
+	lfs += get_cycles() - lfs_e;
+
+}
+
+probe kernel.function("blk_finish_plug").call
+{
+	blk_e = get_cycles();
+}
+
+probe kernel.function("blk_finish_plug").return
+{
+	blk += get_cycles() - blk_e;
+}
+
+ 

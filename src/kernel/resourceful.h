@@ -1,5 +1,5 @@
-#ifndef _RESOURCEFUL_TOP_H_
-#define _RESOURCEFUL_TOP_H_
+#ifndef _RESOURCEFUL_H_
+#define _RESOURCEFUL_H_
 
 #include <linux/slab.h>
 #include <linux/relay.h>

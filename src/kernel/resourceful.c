@@ -1,10 +1,9 @@
 #include "/home/oc243/resourceful/src/kernel/resourceful.h"
-#define MAX_NO_PIDS 10
 
 
 static struct rchan *chan;
 static struct accounting *acct;
-static int pids_acctd[MAX_NO_PIDS] = {0};
+static int tid_acct;
 
 static struct dentry *create_buf_file_handler(const char *, struct dentry *,
 					      umode_t, struct rchan_buf *,
@@ -70,23 +69,12 @@ int _update_relay(void)
 	return 0;
 }
 
-int _should_acct(int pid)
+int _should_acct(int tid)
 {
-	int *p = pids_acctd;
-	while (!*p && (p - pids_acctd >= MAX_NO_PIDS)) {
-		if (*p == pid)
-			return 1;
-	}
-	return 0;
+	return ((tid == tid_acct) && acct_next);
 }
 
-int _add_pid(int pid)
+int _set_tid(int tid)
 {
-	int *p = pids_acctd;
-	while (!*p)
-		p++;
-	if (p - pids_acctd >= MAX_NO_PIDS)
-		return -1;
-	*p = pid;
-	return 0;
+	tid_acct = tid;
 }

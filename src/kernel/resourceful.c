@@ -2,15 +2,15 @@
 #define MAX_NO_PIDS 10
 
 
-struct rchan *chan;
-struct accounting *acct;
-int pids_acctd[MAX_NO_PIDS] = {0};
+static struct rchan *chan;
+static struct accounting *acct;
+static int pids_acctd[MAX_NO_PIDS] = {0};
 
 static struct dentry *create_buf_file_handler(const char *, struct dentry *,
 					      umode_t, struct rchan_buf *,
 					      int *);
 
-static int remove_buf_file_handler(struct dentry *);
+static int remove_buf_file_handler(struct dentry *dentry);
 
 static struct rchan_callbacks relay_callbacks =
 {
@@ -90,22 +90,3 @@ int _add_pid(int pid)
 	*p = pid;
 	return 0;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

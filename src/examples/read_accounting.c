@@ -1,11 +1,11 @@
 #define BIT(x) 1U << x
 #include "costs.h"
-#include <sys/mman.h>
-#include <stdio.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <sys/types.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #define RESOURCEFUL_FILE "/mnt/resourceful0"
 

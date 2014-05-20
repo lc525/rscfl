@@ -1,4 +1,4 @@
-#include <kernel/resourceful.h>
+#include "resourceful.h"
 
 
 static struct rchan *chan;
@@ -7,8 +7,8 @@ static int tid_acct;
 static int acct_next_call;
 
 static struct dentry *create_buf_file_handler(const char *, struct dentry *,
-					      umode_t, struct rchan_buf *,
-					      int *);
+                umode_t, struct rchan_buf *,
+                int *);
 
 static int remove_buf_file_handler(struct dentry *dentry);
 
@@ -19,13 +19,13 @@ static struct rchan_callbacks relay_callbacks =
 };
 
 static struct dentry *create_buf_file_handler(const char *filename,
-					      struct dentry *parent,
-					      umode_t mode,
-					      struct rchan_buf *buf,
-					      int *is_global)
+                struct dentry *parent,
+                umode_t mode,
+                struct rchan_buf *buf,
+                int *is_global)
 {
         return debugfs_create_file(filename, mode, parent, buf,
-				   &relay_file_operations);
+           &relay_file_operations);
 }
 
 static int remove_buf_file_handler(struct dentry *dentry)
@@ -39,23 +39,23 @@ static int remove_buf_file_handler(struct dentry *dentry)
 
 int _create_shared_mem(void)
 {
-	if ( !(acct = ((struct accounting*) kmalloc(sizeof(struct accounting),
-						    GFP_KERNEL))) ) {
-		printk("Error doing a kmalloc\n");
-		goto error;
-	}
+  if ( !(acct = ((struct accounting*) kmalloc(sizeof(struct accounting),
+                GFP_KERNEL))) ) {
+    printk("Error doing a kmalloc\n");
+    goto error;
+  }
 
-	if ( !(chan = relay_open(PROJNAME, NULL, SUBBUF_SIZE,
-				 N_SUBBUFS, &relay_callbacks, NULL)) ) {
-		kfree(acct);
-		printk("Error doing a relay_open\n");
-		goto error;
-	}
-	return 0;
+  if ( !(chan = relay_open(PROJECT_NAME, NULL, SUBBUF_SIZE,
+         N_SUBBUFS, &relay_callbacks, NULL)) ) {
+    kfree(acct);
+    printk("Error doing a relay_open\n");
+    goto error;
+  }
+  return 0;
 
 error:
-	printk("Error creating shared memory\n");
-	return -1;
+  printk("Error creating shared memory\n");
+  return -1;
 }
 
 int _clean_debugfs(void)
@@ -66,8 +66,8 @@ int _clean_debugfs(void)
 
 int _fill_struct(long cycles)
 {
-	acct->cpu.cycles = 0;
-	return 0;
+  acct->cpu.cycles = 0;
+  return 0;
 }
 
 int _update_relay(void)

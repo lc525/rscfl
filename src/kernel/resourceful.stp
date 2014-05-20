@@ -2,8 +2,8 @@
 
 %{
 
-#include <include/costs.h>
-#include <kernel/resourceful.c>
+#include "costs.h"
+#include "resourceful.c"
 
 
 %}
@@ -52,7 +52,7 @@ function fill_struct(vfs:long)
 
 function update_relay()
 %{
-	_update_relay();
+  _update_relay();
 %}
 
 probe kernel.function("sys_read").return
@@ -73,7 +73,7 @@ probe kernel.function("sys_read").call
 		files_dir_e = get_cycles();
 	}
 }
-	
+
 probe kernel.function("vfs_read").call
 {
 	if (should_acct()) {
@@ -118,4 +118,4 @@ probe kernel.function("blk_finish_plug").return
 	}
 }
 
- 
+

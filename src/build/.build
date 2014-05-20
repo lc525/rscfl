@@ -6,8 +6,25 @@ JOPT=2
 INSTALL=""
 TARGETS=""
 
-while getopts ":rdcvit:j:" opt; do
+function print_usage {
+  echo "./.build [OPTIONS]"
+  echo "OPTIONS:"
+  echo "  -r : build release version"
+  echo "  -d : build debug version"
+  echo "  -c : clean before build"
+  echo "  -v : verbose build"
+  echo "  -i : run make install after build"
+  echo "  -t <TARGETS> : only build the specified targets"
+  echo "  -j <NUM> : pass -j<NUM> to make"
+  echo "  -h : prints this help message"
+}
+
+while getopts ":hrdcvit:j:" opt; do
   case $opt in
+    h)
+      print_usage
+      exit 0
+      ;;
     r)
       TYPE="release"
       ;;
@@ -31,6 +48,12 @@ while getopts ":rdcvit:j:" opt; do
       ;;
     \?)
       echo "Invalid option -$OPTARG" >&2
+      print_usage
+      exit 1
+      ;;
+    :)
+      echo "Option -$OPTARG requires an argument"
+      print_usage
       exit 1
       ;;
   esac

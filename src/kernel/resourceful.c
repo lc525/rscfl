@@ -65,6 +65,7 @@ int _fill_struct()
 
 int _update_relay(void)
 {
+	relay_reset(chan);
 	relay_write(chan, acct, sizeof(struct accounting));
 	return 0;
 }

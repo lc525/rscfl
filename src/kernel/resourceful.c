@@ -1,4 +1,4 @@
-#include "/home/oc243/resourceful/src/kernel/resourceful.h"
+#include <kernel/resourceful.h>
 
 
 static struct rchan *chan;

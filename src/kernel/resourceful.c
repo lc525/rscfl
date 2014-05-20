@@ -57,7 +57,13 @@ error:
 	return -1;
 }
 
-int _fill_struct()
+int _clean_debugfs(void)
+{
+	relay_close(chan);
+	return 0;
+}
+
+int _fill_struct(long cycles)
 {
 	acct->cpu.cycles = 0;
 	return 0;

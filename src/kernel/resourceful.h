@@ -11,7 +11,7 @@
 
 int _create_shared_mem(void);
 
-int _fill_struct(void);
+int _fill_struct(long);
 
 int _update_relay(void);
 

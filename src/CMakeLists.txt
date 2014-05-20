@@ -17,7 +17,7 @@ cmake_minimum_required(VERSION 2.8)
 set(PNAME resourceful)
 
 # General cmake project definition follows. Customize as necessary
-project(${PNAME})
+project(${PNAME} C)
 
 # variable definitions for generating configuration headers
 set(PROJECT_MAJOR_VERSION 0)

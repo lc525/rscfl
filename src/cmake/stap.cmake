@@ -33,7 +33,6 @@ function(STAP_BUILD MOD_NAME INCLUDE_FILES OUT_DIR)
   add_custom_target(stap ALL)
   JOIN("${_stap_include_path}" ":" _stap_includes)
   foreach(FIL ${ARGN})
-    message("SII: ${_stap_includes}")
     get_filename_component(ABS_FIL ${FIL} ABSOLUTE)
 
     add_custom_command(

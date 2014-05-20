@@ -45,7 +45,7 @@ int _create_shared_mem(void)
     goto error;
   }
 
-  if ( !(chan = relay_open(PROJECT_NAME, NULL, SUBBUF_SIZE,
+  if ( !(chan = relay_open(PROJNAME, NULL, SUBBUF_SIZE,
          N_SUBBUFS, &relay_callbacks, NULL)) ) {
     kfree(acct);
     printk("Error doing a relay_open\n");

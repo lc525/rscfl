@@ -13,8 +13,10 @@ global files_dir_e=0, vfs_e=0, lfs_e=0, blk_e=0
 
 probe begin
 {
-	if (create_shared_mem())
+	if (create_shared_mem()) {
+		printf("Unable to create debugfs entry\n");
 		exit();
+	}
 }
 
 probe end

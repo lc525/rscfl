@@ -4,7 +4,7 @@
 static struct rchan *chan;
 static struct accounting *acct;
 static int tid_acct;
-static int acct_next;
+static int acct_next_call;
 
 static struct dentry *create_buf_file_handler(const char *, struct dentry *,
 					      umode_t, struct rchan_buf *,
@@ -87,3 +87,9 @@ int _set_tid(int tid)
 	tid_acct = tid;
 	return 0;
 }
+
+int acct_next(void)
+{
+	acct_next_call = 1;
+}
+EXPORT_SYMBOL(acct_next);

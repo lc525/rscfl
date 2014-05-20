@@ -15,4 +15,6 @@ int _fill_struct(long);
 
 int _update_relay(void);
 
+int acct_next(void);
+
 #endif

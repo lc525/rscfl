@@ -34,7 +34,7 @@ function create_shared_mem:long()
 
 function should_acct_:long(pid:long)
 %{
-	return _should_acct(STAP_ARG_pid);
+	STAP_RETVALUE = _should_acct(STAP_ARG_pid);
 %}
 
 function should_acct()

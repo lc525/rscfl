@@ -2,8 +2,8 @@
 
 %{
 
-#include "/home/oc243/resourceful/src/include/costs.h"
-#include "/home/oc243/resourceful/src/kernel/resourceful.c"
+#include <include/costs.h>
+#include <kernel/resourceful.c>
 
 
 %}

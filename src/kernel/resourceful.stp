@@ -16,9 +16,17 @@ probe begin
 	if (create_shared_mem())
 		exit();
 }
+
+probe end
+{
+	clean_debugfs();
 }
 
-function create_shared_mem()
+function clean_debugfs()
+%{
+	_clean_debugfs();
+%}
+
 %{
 	_create_shared_mem();
 %}

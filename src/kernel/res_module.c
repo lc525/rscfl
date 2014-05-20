@@ -2,10 +2,10 @@
 #include <net/sock.h>
 #include <linux/netlink.h>
 #include <linux/skbuff.h>
-#include <kernel/resourceful.h>
 
 #define NETLINK_USER 31
 
+extern int acct_next(void);
 
 struct sock *nl_sk = NULL;
 

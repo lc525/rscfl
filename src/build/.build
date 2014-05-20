@@ -1,0 +1,52 @@
+#!/bin/bash
+CLEAN=0
+TYPE="release"
+VBOSE=0
+JOPT=2
+INSTALL=""
+TARGETS=""
+
+while getopts ":rdcvit:j:" opt; do
+  case $opt in
+    r)
+      TYPE="release"
+      ;;
+    d)
+      TYPE="debug"
+      ;;
+    c)
+      CLEAN=1
+      ;;
+    v)
+      VBOSE=1
+      ;;
+    i)
+      INSTALL="install"
+      ;;
+    t)
+      TARGETS=$OPTARG
+      ;;
+    j)
+      JOPT=$OPTARG
+      ;;
+    \?)
+      echo "Invalid option -$OPTARG" >&2
+      exit 1
+      ;;
+  esac
+done
+
+if [ $CLEAN -eq 1 ]
+then
+  ./.clean
+fi
+
+cmake -DCMAKE_BUILD_TYPE=$TYPE ..
+
+if [ $VBOSE -eq 1 ]
+then
+  make VERBOSE=1 -j $JOPT $TARGETS $INSTALL
+else
+  make -j $JOPT $TARGETS $INSTALL
+fi
+

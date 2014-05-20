@@ -4,6 +4,7 @@
 static struct rchan *chan;
 static struct accounting *acct;
 static int tid_acct;
+static int acct_next;
 
 static struct dentry *create_buf_file_handler(const char *, struct dentry *,
 					      umode_t, struct rchan_buf *,

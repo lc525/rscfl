@@ -84,4 +84,5 @@ int _should_acct(int tid)
 int _set_tid(int tid)
 {
 	tid_acct = tid;
+	return 0;
 }

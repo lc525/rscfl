@@ -13,23 +13,39 @@ global files_dir_e=0, vfs_e=0, lfs_e=0, blk_e=0
 
 probe begin
 {
-  create_shared_mem();
+	if (create_shared_mem())
+		exit();
 }
 
-function create_shared_mem()
+probe end
+{
+	clean_debugfs();
+}
+
+function clean_debugfs()
 %{
-  _create_shared_mem();
+	_clean_debugfs();
 %}
 
-function should_acct(pid:long)
+function create_shared_mem:long()
 %{
-  return _should_acct(STAP_ARG_pid);
+	STAP_RETVALUE = _create_shared_mem();
 %}
+
+function should_acct_:long(pid:long)
+%{
+	STAP_RETVALUE = _should_acct(STAP_ARG_pid);
+%}
+
+function should_acct()
+{
+	return should_acct_(pid());
+}
 
 
 function fill_struct(vfs:long)
 %{
-  _fill_struct();
+	_fill_struct(STAP_ARG_vfs);
 %}
 
 function update_relay()
@@ -38,51 +54,66 @@ function update_relay()
 %}
 
 probe kernel.function("sys_read").return
-{
-  fill_struct(vfs);
-  // Seg faults :-(
-  // Update_relay();
+{	
+	if (should_acct()) {
+		fill_struct(vfs);
+		update_relay();
+	}
 }
 
 probe kernel.function("sys_read").call
 {
-  files_dir = 0;
-  vfs = 0;
-  lfs = 0;
-  blk = 0;
-  files_dir_e = get_cycles();
+	if (should_acct()) {
+		files_dir = 0;
+		vfs = 0;
+		lfs = 0;
+		blk = 0;
+		files_dir_e = get_cycles();
+	}
 }
 
 probe kernel.function("vfs_read").call
 {
-  vfs_e = get_cycles();
+	if (should_acct()) {
+		vfs_e = get_cycles();
+	}
 }
 
 probe kernel.function("vfs_read").return
 {
-  vfs += get_cycles() - vfs_e;
+	if (should_acct) {
+		vfs += get_cycles() - vfs_e;
+	}
 }
 
-#probe kernel.function("ext4_readpages").call
-#{
-#  lfs_e = get_cycles();
-#  blk = 0;
-#}
+probe kernel.function("ext4_readpages").call
+{
+	if (should_acct()) {
+		lfs_e = get_cycles();
+		blk = 0;
+	}
+}
 
-#probe kernel.function("ext4_readpages").return
-#{
-#  lfs += get_cycles() - lfs_e;
-#
-#}
+probe kernel.function("ext4_readpages").return
+{
+	if (should_acct()) {
+		lfs += get_cycles() - lfs_e;
+	}
+
+}
 
 probe kernel.function("blk_finish_plug").call
 {
-  blk_e = get_cycles();
+	if (should_acct()) {
+		blk_e = get_cycles();
+	}
 }
 
 probe kernel.function("blk_finish_plug").return
 {
-  blk += get_cycles() - blk_e;
+	if (should_acct()) {
+		blk += get_cycles() - blk_e;
+	}
 }
 
 

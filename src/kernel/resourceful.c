@@ -1,16 +1,16 @@
 #include "resourceful.h"
-#define MAX_NO_PIDS 10
 
 
-struct rchan *chan;
-struct accounting *acct;
-int pids_acctd[MAX_NO_PIDS] = {0};
+static struct rchan *chan;
+static struct accounting *acct;
+static int tid_acct;
+static int acct_next;
 
 static struct dentry *create_buf_file_handler(const char *, struct dentry *,
                 umode_t, struct rchan_buf *,
                 int *);
 
-static int remove_buf_file_handler(struct dentry *);
+static int remove_buf_file_handler(struct dentry *dentry);
 
 static struct rchan_callbacks relay_callbacks =
 {
@@ -58,7 +58,13 @@ error:
   return -1;
 }
 
-int _fill_struct()
+int _clean_debugfs(void)
+{
+	relay_close(chan);
+	return 0;
+}
+
+int _fill_struct(long cycles)
 {
   acct->cpu.cycles = 0;
   return 0;
@@ -66,46 +72,18 @@ int _fill_struct()
 
 int _update_relay(void)
 {
-  relay_write(chan, acct, sizeof(struct accounting));
-  return 0;
+	relay_reset(chan);
+	relay_write(chan, acct, sizeof(struct accounting));
+	return 0;
 }
 
-int _should_acct(int pid)
+int _should_acct(int tid)
 {
-  int *p = pids_acctd;
-  while (!*p && (p - pids_acctd >= MAX_NO_PIDS)) {
-    if (*p == pid)
-      return 1;
-  }
-  return 0;
+	return ((tid == tid_acct) && acct_next);
 }
 
-int _add_pid(int pid)
+int _set_tid(int tid)
 {
-  int *p = pids_acctd;
-  while (!*p)
-    p++;
-  if (p - pids_acctd >= MAX_NO_PIDS)
-    return -1;
-  *p = pid;
-  return 0;
+	tid_acct = tid;
+	return 0;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

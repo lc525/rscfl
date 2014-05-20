@@ -75,7 +75,7 @@ static int netlink_setup(void)
 static int __init res_init(void)
 {
 	int rc = 0;
-	if (rc = netlink_setup()) {
+	if ( (rc = netlink_setup()) ) {
 		goto error;
 	}
 	

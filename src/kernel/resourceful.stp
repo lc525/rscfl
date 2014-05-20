@@ -13,7 +13,9 @@ global files_dir_e=0, vfs_e=0, lfs_e=0, blk_e=0
 
 probe begin
 {
-	create_shared_mem();
+	if (create_shared_mem())
+		exit();
+}
 }
 
 function create_shared_mem()

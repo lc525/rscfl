@@ -27,8 +27,9 @@ function clean_debugfs()
 	_clean_debugfs();
 %}
 
+function create_shared_mem:long()
 %{
-	_create_shared_mem();
+	STAP_RETVALUE = _create_shared_mem();
 %}
 
 function should_acct_:long(pid:long)

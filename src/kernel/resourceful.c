@@ -45,7 +45,7 @@ int _create_shared_mem(void)
     goto error;
   }
 
-  if ( !(chan = relay_open(PROJECT_NAME, NULL, SUBBUF_SIZE,
+  if ( !(chan = relay_open(PROJNAME, NULL, SUBBUF_SIZE,
          N_SUBBUFS, &relay_callbacks, NULL)) ) {
     kfree(acct);
     printk("Error doing a relay_open\n");
@@ -79,7 +79,7 @@ int _update_relay(void)
 
 int _should_acct(int tid)
 {
-	return ((tid == tid_acct) && acct_next);
+	return ((tid == tid_acct) && acct_next_call);
 }
 
 int _set_tid(int tid)

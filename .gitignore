@@ -3,3 +3,11 @@
 *.out
 *.pdf
 *.synctex.gz
+*.ko
+*.mod.c
+*.mod.o
+*.o
+*.cmd
+.tmp_versions/
+*.order
+*.symvers

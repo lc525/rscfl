@@ -78,7 +78,7 @@ probe kernel.function("sys_read").return
 {
   if (should_acct()) {
     clear_acct_next();
-    fill_struct(vfs);
+    fill_struct(get_cycles());
     update_relay();
   }
 }

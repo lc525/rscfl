@@ -138,7 +138,7 @@ Set( KBUILD_CMD ${CMAKE_MAKE_PROGRAM}
 
 Add_Custom_Command( OUTPUT  ${PROJECT_BINARY_DIR}/${MODULE_BIN_FILE}
                             ${MODULE_OUTPUT_FILES}
-                    COMMAND cp -f ${PROJECT_SOURCE_DIR}/{${_msf}} ${res_comm_OUT_DIR}
+                    COMMAND /bin/bash -c "cp -f ${PROJECT_SOURCE_DIR}/{${_msf}} ${res_comm_OUT_DIR}"
                     COMMAND ${KBUILD_CMD}
                     COMMAND cp -f ${res_comm_OUT_DIR}/${MODULE_FILE} ${MODULE_BIN_FILE}
                     VERBATIM )

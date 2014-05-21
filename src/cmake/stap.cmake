@@ -14,14 +14,8 @@ function(JOIN VALUES GLUE OUTPUT)
   set (${OUTPUT} "${_TMP_STR}" PARENT_SCOPE)
 endfunction()
 
-function(STAP_BUILD MOD_NAME INCLUDE_FILES OUT_DIR)
-  if(NOT ARGN)
-    message(SEND_ERROR "Error: STAP_BUILD() called without any .stp files")
-    return()
-  endif(NOT ARGN)
-
+function(STAP_BUILD MOD_NAME INCLUDE_FILES OUT_DIR STP)
   # Create an include path for each file specified
-
   foreach(FIL ${INCLUDE_FILES})
     get_filename_component(ABS_FIL ${FIL} ABSOLUTE)
     list(FIND _stap_include_path ${ABS_FIL} _contains_already)
@@ -30,19 +24,18 @@ function(STAP_BUILD MOD_NAME INCLUDE_FILES OUT_DIR)
     endif()
   endforeach()
 
-  add_custom_target(stap ALL)
   JOIN("${_stap_include_path}" ":" _stap_includes)
-  foreach(FIL ${ARGN})
-    get_filename_component(ABS_FIL ${FIL} ABSOLUTE)
 
-    add_custom_command(
-      TARGET stap
-      COMMAND stap
-      ARGS -g -p 4 -k -B C_INCLUDE_PATH="${_stap_includes}" --tmpdir=${OUT_DIR} -m ${MOD_NAME} ${ABS_FIL}
-      DEPENDS ${ABS_FIL}
-      COMMENT "Building stap kernel module ${MOD_NAME} from ${FIL}"
-      )
-  endforeach()
-
+  get_filename_component(ABS_FIL ${STP} ABSOLUTE)
+  get_filename_component(NM_FIL ${STP} NAME)
+  message("${STP}")
+  add_custom_command(
+    OUTPUT ${OUT_DIR}/${MOD_NAME}.ko
+    COMMAND stap
+    ARGS -g -p 4 -k -B C_INCLUDE_PATH="${_stap_includes}" --tmpdir=${OUT_DIR} -m ${MOD_NAME} ${ABS_FIL}
+    DEPENDS ${STP} ${ARGN}
+    COMMENT "Building stap kernel module ${MOD_NAME} from ${NM_FIL}"
+  )
+  add_custom_target(stap_gen ALL DEPENDS ${OUT_DIR}/${MOD_NAME}.ko)
 
 endfunction()

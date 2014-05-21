@@ -16,6 +16,7 @@ probe begin
     printf("Unable to create debugfs entry\n");
     exit();
   }
+  print("running");
 }
 
 probe end

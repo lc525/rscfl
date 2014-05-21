@@ -91,5 +91,6 @@ int _set_tid(int tid)
 int acct_next(void)
 {
   acct_next_call = 1;
+  return 0;
 }
 EXPORT_SYMBOL(acct_next);

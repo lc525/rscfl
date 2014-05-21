@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <sys/socket.h>
+#include <res_user/res_api.h>
 
 int main(int argc, char *argv[])
 {
@@ -17,6 +18,7 @@ int main(int argc, char *argv[])
 
 	// Open 3 sockets
 	socfd_1 = socket(sock_domain, sock_type, sock_proto);
+	acct_next();
 	socfd_2 = socket(sock_domain, sock_type, sock_proto);
 	socfd_3 = socket(sock_domain, sock_type, sock_proto);
 

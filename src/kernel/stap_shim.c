@@ -79,7 +79,7 @@ int _update_relay(void)
 
 int _should_acct(int tid)
 {
-  return ((tid == tid_acct) && acct_next_call);
+  return (acct_next_call);
 }
 
 int _set_tid(int tid)

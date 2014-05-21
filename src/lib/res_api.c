@@ -1,11 +1,14 @@
 #include "res_user/res_api.h"
 
+#define BIT(x) 1U << x
+
 #include <linux/netlink.h>
 #include <stddef.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <costs.h>
 
 #define NETLINK_USER 31
 #define MAX_PAYLOAD 1024 /* maximum payload size*/
@@ -60,3 +63,24 @@ int acct_next(void)
   return 0;
 }
 
+int read_acct(void)
+{
+	int relay_f;
+	char buff[sizeof(struct accounting)];
+	struct accounting *acct;
+
+	relay_f = open("/mnt/resourceful0", O_RDONLY);
+	if (relay_f == -1) {
+		printf("Problem opening fd to relay file.\n");
+		return 1;
+	}
+
+	read(relay_f, buff, sizeof(struct accounting));
+	acct = (struct accounting *) buff;
+
+	printf("Got some data.\n");
+	printf("CPU Cycles %llu\n",acct->cpu.cycles);
+
+	close(relay_f);
+
+}

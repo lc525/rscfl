@@ -68,8 +68,8 @@ cmake -DCMAKE_BUILD_TYPE=$TYPE ..
 
 if [ $VBOSE -eq 1 ]
 then
-  make VERBOSE=1 -j $JOPT $TARGETS $INSTALL
+  make VERBOSE=1 $TARGETS $INSTALL
 else
-  make -j $JOPT $TARGETS $INSTALL
+  make $TARGETS $INSTALL
 fi
 

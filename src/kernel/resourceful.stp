@@ -9,7 +9,7 @@
 %}
 
 global files_dir=0, vfs=0, lfs=0, blk=0
-global files_dir_e=0, vfs_e=0, lfs_e=0, blk_e=0
+global files_dir_e=0, vfs_e=0, blk_e=0
 
 probe begin
 {
@@ -75,7 +75,7 @@ function clear_acct_next()
 
 
 probe kernel.function("sys_read").return
-{ 
+{
   if (should_acct()) {
     clear_acct_next();
     fill_struct(vfs);
@@ -103,7 +103,7 @@ probe kernel.function("vfs_read").call
 
 probe kernel.function("vfs_read").return
 {
-  if (should_acct) {
+  if (should_acct()) {
     vfs += get_cycles() - vfs_e;
   }
 }
@@ -137,5 +137,4 @@ probe kernel.function("blk_finish_plug").return
     blk += get_cycles() - blk_e;
   }
 }
-
 

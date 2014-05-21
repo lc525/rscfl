@@ -5,7 +5,7 @@
 
 #define NETLINK_USER 31
 
-extern int acct_next(void);
+extern int acct_next(int);
 
 struct sock *nl_sk = NULL;
 
@@ -27,7 +27,7 @@ static void res_nl_recv_msg(struct sk_buff *skb)
   pid = nlh->nlmsg_pid; /*pid of sending process */
 
   printk("Accounting next call for pid %d\n", pid);
-  acct_next();
+  acct_next(pid);
 
   skb_out = nlmsg_new(msg_size, 0);
 
@@ -49,7 +49,7 @@ static void res_nl_recv_msg(struct sk_buff *skb)
 
 }
 
-static int netlink_setup(void)
+int _netlink_setup(void)
 {
   struct netlink_kernel_cfg cfg = {
     .groups = 0,
@@ -71,27 +71,3 @@ static int netlink_setup(void)
 
   return 0;
 }
-
-static int __init res_init(void)
-{
-  int rc = 0;
-  if ( (rc = netlink_setup()) ) {
-    goto error;
-  }
-
-  return 0;
-error:
-  return rc;
-
-}
-
-static void __exit res_exit(void)
-{
-
-  printk(KERN_INFO "exiting res module\n");
-  netlink_kernel_release(nl_sk);
-}
-
-
-module_init(res_init);
-module_exit(res_exit);

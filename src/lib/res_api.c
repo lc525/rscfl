@@ -3,6 +3,8 @@
 #include <linux/netlink.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/socket.h>
 
 #define NETLINK_USER 31
@@ -50,14 +52,11 @@ int acct_next(void)
   msg.msg_iov = &iov;
   msg.msg_iovlen = 1;
 
-  printf("Requesting next syscall of type %s be accounted for\n",
-         syscall_name);
   sendmsg(sock_fd, &msg, 0);
-  printf("Waiting for return code from resourceful\n");
 
   /* Read message from kernel */
   recvmsg(sock_fd, &msg, 0);
-  printf("Received return code: %s\n", NLMSG_DATA(nlh));
   close(sock_fd);
+  return 0;
 }
 

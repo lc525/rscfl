@@ -4,16 +4,21 @@
 
 #include "costs.h"
 #include "stap_shim.c"
+#include "res_comm.c"
 
 %}
 
 global files_dir=0, vfs=0, lfs=0, blk=0
-global files_dir_e=0, vfs_e=0, lfs_e=0, blk_e=0
+global files_dir_e=0, vfs_e=0, blk_e=0
 
 probe begin
 {
   if (create_shared_mem()) {
     printf("Unable to create debugfs entry\n");
+    exit();
+  }
+  if (netlink_setup()) {
+    printf("Cannot setup netlink\n");
     exit();
   }
   print("running");
@@ -23,6 +28,11 @@ probe end
 {
   clean_debugfs();
 }
+
+function netlink_setup:long()
+%{
+  STAP_RETVALUE = _netlink_setup();
+%}
 
 function clean_debugfs()
 %{
@@ -41,6 +51,9 @@ function should_acct_:long(pid:long)
 
 function should_acct()
 {
+  if (should_acct_(pid())) {
+    print(get_cycles());
+  }
   return should_acct_(pid());
 }
 
@@ -62,10 +75,10 @@ function clear_acct_next()
 
 
 probe kernel.function("sys_read").return
-{ 
+{
   if (should_acct()) {
     clear_acct_next();
-    fill_struct(vfs);
+    fill_struct(get_cycles());
     update_relay();
   }
 }
@@ -90,7 +103,7 @@ probe kernel.function("vfs_read").call
 
 probe kernel.function("vfs_read").return
 {
-  if (should_acct) {
+  if (should_acct()) {
     vfs += get_cycles() - vfs_e;
   }
 }
@@ -124,5 +137,4 @@ probe kernel.function("blk_finish_plug").return
     blk += get_cycles() - blk_e;
   }
 }
-
 

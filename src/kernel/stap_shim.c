@@ -66,7 +66,7 @@ int _clean_debugfs(void)
 
 int _fill_struct(long cycles)
 {
-  acct->cpu.cycles = 0;
+  acct->cpu.cycles = cycles;
   return 0;
 }
 

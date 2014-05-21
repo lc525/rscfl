@@ -94,3 +94,8 @@ int acct_next(void)
   return 0;
 }
 EXPORT_SYMBOL(acct_next);
+
+int _clear_acct_next(void)
+{
+  acct_next_call = 0;
+}

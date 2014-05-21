@@ -54,9 +54,16 @@ function update_relay()
   _update_relay();
 %}
 
+function clear_acct_next()
+%{
+  _clear_acct_next();
+%}
+
+
 probe kernel.function("sys_read").return
 { 
   if (should_acct()) {
+    clear_acct_next();
     fill_struct(vfs);
     update_relay();
   }

@@ -1,4 +1,4 @@
-#include "resourceful.h"
+#include "res_kernel/stap_shim.h"
 
 
 static struct rchan *chan;
@@ -45,7 +45,7 @@ int _create_shared_mem(void)
     goto error;
   }
 
-  if ( !(chan = relay_open(PROJNAME, NULL, SUBBUF_SIZE,
+  if ( !(chan = relay_open(PROJECT_NAME, NULL, SUBBUF_SIZE,
          N_SUBBUFS, &relay_callbacks, NULL)) ) {
     kfree(acct);
     printk("Error doing a relay_open\n");
@@ -60,8 +60,8 @@ error:
 
 int _clean_debugfs(void)
 {
-	relay_close(chan);
-	return 0;
+  relay_close(chan);
+  return 0;
 }
 
 int _fill_struct(long cycles)
@@ -72,24 +72,24 @@ int _fill_struct(long cycles)
 
 int _update_relay(void)
 {
-	relay_reset(chan);
-	relay_write(chan, acct, sizeof(struct accounting));
-	return 0;
+  relay_reset(chan);
+  relay_write(chan, acct, sizeof(struct accounting));
+  return 0;
 }
 
 int _should_acct(int tid)
 {
-	return ((tid == tid_acct) && acct_next_call);
+  return ((tid == tid_acct) && acct_next_call);
 }
 
 int _set_tid(int tid)
 {
-	tid_acct = tid;
-	return 0;
+  tid_acct = tid;
+  return 0;
 }
 
 int acct_next(void)
 {
-	acct_next_call = 1;
+  acct_next_call = 1;
 }
 EXPORT_SYMBOL(acct_next);

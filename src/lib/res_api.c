@@ -61,7 +61,3 @@ int acct_next(void)
   close(sock_fd);
 }
 
-int main(int argc, char *argv[])
-{
-  return acct_next();
-}

@@ -5,7 +5,7 @@
 
 #define NETLINK_USER 31
 
-extern int acct_next(void);
+extern int acct_next(int);
 
 struct sock *nl_sk = NULL;
 
@@ -27,7 +27,7 @@ static void res_nl_recv_msg(struct sk_buff *skb)
   pid = nlh->nlmsg_pid; /*pid of sending process */
 
   printk("Accounting next call for pid %d\n", pid);
-  acct_next();
+  acct_next(pid);
 
   skb_out = nlmsg_new(msg_size, 0);
 

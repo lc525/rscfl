@@ -79,7 +79,7 @@ int _update_relay(void)
 
 int _should_acct(int tid)
 {
-  return (acct_next_call);
+  return acct_next_call;
 }
 
 int _set_tid(int tid)
@@ -88,9 +88,9 @@ int _set_tid(int tid)
   return 0;
 }
 
-int acct_next(void)
+int acct_next(int pid)
 {
-  acct_next_call = 1;
+  acct_next_call = pid;
   return 0;
 }
 EXPORT_SYMBOL(acct_next);

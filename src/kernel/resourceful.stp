@@ -4,6 +4,7 @@
 
 #include "costs.h"
 #include "stap_shim.c"
+#include "res_comm.c"
 
 %}
 
@@ -16,6 +17,10 @@ probe begin
     printf("Unable to create debugfs entry\n");
     exit();
   }
+  if (netlink_setup()) {
+    printf("Cannot setup netlink\n");
+    exit();
+  }
   print("running");
 }
 
@@ -23,6 +28,11 @@ probe end
 {
   clean_debugfs();
 }
+
+function netlink_setup:long()
+%{
+  STAP_RETVALUE = _netlink_setup();
+%}
 
 function clean_debugfs()
 %{

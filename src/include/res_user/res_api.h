@@ -3,4 +3,6 @@
 
 int acct_next();
 
+int read_acct();
+
 #endif

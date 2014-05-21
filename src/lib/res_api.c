@@ -3,6 +3,8 @@
 #include <linux/netlink.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/socket.h>
 
 #define NETLINK_USER 31

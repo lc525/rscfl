@@ -52,7 +52,7 @@ function should_acct_:long(pid:long)
 function should_acct()
 {
   if (should_acct_(pid())) {
-	  print(get_cycles());
+    print(get_cycles());
   }
   return should_acct_(pid());
 }

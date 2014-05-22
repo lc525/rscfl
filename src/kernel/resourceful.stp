@@ -9,7 +9,7 @@
 %}
 
 global files_dir=0, vfs=0, lfs=0, blk=0
-global files_dir_e=0, vfs_e=0, blk_e=0
+global files_dir_e=0, vfs_e=0, blk_e=0, cycles=0
 
 probe begin
 {
@@ -79,16 +79,16 @@ function clear_acct_next()
 %}
 
 
-probe kernel.function("sys_read").return
+probe kernel.function("sys_socket").return
 {
   if (should_acct()) {
     clear_acct_next();
-    fill_struct(get_cycles());
+    fill_struct(get_cycles() - cycles);
     update_relay();
   }
 }
 
-probe kernel.function("sys_read").call
+probe kernel.function("sys_socket").call
 {
   if (should_acct()) {
     files_dir = 0;
@@ -96,6 +96,7 @@ probe kernel.function("sys_read").call
     lfs = 0;
     blk = 0;
     files_dir_e = get_cycles();
+    cycles = get_cycles();
   }
 }
 

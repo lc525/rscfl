@@ -14,8 +14,8 @@ static int remove_buf_file_handler(struct dentry *dentry);
 
 static struct rchan_callbacks relay_callbacks =
 {
-        .create_buf_file = create_buf_file_handler,
-        .remove_buf_file = remove_buf_file_handler,
+  .create_buf_file = create_buf_file_handler,
+  .remove_buf_file = remove_buf_file_handler,
 };
 
 static struct dentry *create_buf_file_handler(const char *filename,
@@ -24,15 +24,15 @@ static struct dentry *create_buf_file_handler(const char *filename,
                 struct rchan_buf *buf,
                 int *is_global)
 {
-        return debugfs_create_file(filename, mode, parent, buf,
-           &relay_file_operations);
+  return debugfs_create_file(filename, mode, parent, buf,
+			     &relay_file_operations);
 }
 
 static int remove_buf_file_handler(struct dentry *dentry)
 {
-        debugfs_remove(dentry);
+  debugfs_remove(dentry);
 
-        return 0;
+  return 0;
 }
 
 

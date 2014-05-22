@@ -66,22 +66,22 @@ int acct_next(void)
 
 int read_acct(void)
 {
-	int relay_f;
-	char buff[sizeof(struct accounting)];
-	struct accounting *acct;
+  int relay_f;
+  char buff[sizeof(struct accounting)];
+  struct accounting *acct;
 
-	relay_f = open("/mnt/resourceful0", O_RDONLY);
-	if (relay_f == -1) {
-		printf("Problem opening fd to relay file.\n");
-		return 1;
-	}
+  relay_f = open("/mnt/resourceful0", O_RDONLY);
+  if (relay_f == -1) {
+    printf("Problem opening fd to relay file.\n");
+    return 1;
+  }
 
-	read(relay_f, buff, sizeof(struct accounting));
-	acct = (struct accounting *) buff;
+  read(relay_f, buff, sizeof(struct accounting));
+  acct = (struct accounting *) buff;
 
-	printf("Got some data.\n");
-	printf("CPU Cycles %llu\n",acct->cpu.cycles);
+  printf("Got some data.\n");
+  printf("CPU Cycles %llu\n",acct->cpu.cycles);
 
-	close(relay_f);
+  close(relay_f);
 
 }

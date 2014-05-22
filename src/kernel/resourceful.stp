@@ -27,6 +27,9 @@ probe begin
 probe end
 {
   clean_debugfs();
+  if (netlink_teardown()) {
+    printf("Cannot teardown netlink\n");
+  }
 }
 
 function netlink_setup:long()
@@ -37,6 +40,11 @@ function netlink_setup:long()
 function clean_debugfs()
 %{
   _clean_debugfs();
+%}
+
+function netlink_teardown:long()
+%{
+  STAP_RETVALUE = _netlink_teardown();
 %}
 
 function create_shared_mem:long()

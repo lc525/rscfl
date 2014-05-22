@@ -67,3 +67,12 @@ int _netlink_setup(void)
 
   return 0;
 }
+
+int _netlink_teardown()
+{
+  if (!nl_sk) {
+    return -1;
+  }
+  netlink_kernel_release(nl_sk);
+  return 0;
+}

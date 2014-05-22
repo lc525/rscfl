@@ -39,6 +39,7 @@ static int remove_buf_file_handler(struct dentry *dentry)
 
 int _create_shared_mem(void)
 {
+  printk("_create_shared_mem\n");
   if ( !(acct = ((struct accounting*) kmalloc(sizeof(struct accounting),
                 GFP_KERNEL))) ) {
     printk("Error doing a kmalloc\n");
@@ -66,12 +67,14 @@ int _clean_debugfs(void)
 
 int _fill_struct(long cycles)
 {
+  printk("_fill_struct\n");
   acct->cpu.cycles = cycles;
   return 0;
 }
 
 int _update_relay(void)
 {
+  printk("_update_relay\n");
   relay_reset(chan);
   relay_write(chan, acct, sizeof(struct accounting));
   return 0;
@@ -84,6 +87,7 @@ int _should_acct(int tid)
 
 int _set_tid(int tid)
 {
+  printk("_set_tid\n");
   tid_acct = tid;
   return 0;
 }

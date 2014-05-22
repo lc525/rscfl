@@ -59,7 +59,6 @@ int _netlink_setup(void)
     .bind = NULL,
     .compare = NULL
   };
-  printk("Entering: %s\n", __FUNCTION__);
   nl_sk = netlink_kernel_create(&init_net, NETLINK_USER, &cfg);
   if (!nl_sk)
   {

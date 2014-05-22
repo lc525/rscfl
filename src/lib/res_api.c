@@ -9,6 +9,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <costs.h>
+#include <string.h>
 
 #define NETLINK_USER 31
 #define MAX_PAYLOAD 1024 /* maximum payload size*/

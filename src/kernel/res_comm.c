@@ -60,12 +60,9 @@ int _netlink_setup(void)
     .compare = NULL
   };
   nl_sk = netlink_kernel_create(&init_net, NETLINK_USER, &cfg);
-  if (!nl_sk)
-  {
-
-          printk(KERN_ALERT "Error creating socket.\n");
-          return -10;
-
+  if (!nl_sk) {
+    printk(KERN_ALERT "Error creating socket.\n");
+    return -10;
   }
 
   return 0;

@@ -90,13 +90,13 @@ configure_project(
 set(GEN_INCLUDE_DIR ${PROJECT_BINARY_DIR}
   CACHE STRING "include for gen configs")
 
-# common includes and project settings
-include_directories("${GEN_INCLUDE_DIR}") # for generated configs
-include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 set (PROJECT_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set (PROJECT_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/kernel)
 
+# common includes and project settings
+include_directories("${GEN_INCLUDE_DIR}") # for generated configs
+include_directories("${PROJECT_INCLUDE_DIR}")
 
 # build systemtap modules
 include(stap)

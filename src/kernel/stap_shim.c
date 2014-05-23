@@ -8,7 +8,7 @@
  *  - provide sensible values for relayfs per-cpu buffer and sub-buffer sizes,
  *  in accordance to sizeof(struct accounting)
  *
- *  TODO(unowned):
+ *  TODO(oc243):
  *  - memory management for more than one accounting struct (we'll need a whole
  *  vector of them
  *  - zero-copy to accounting-to-relayfs (why should we allocate things twice

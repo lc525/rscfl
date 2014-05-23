@@ -25,16 +25,14 @@ static struct dentry *create_buf_file_handler(const char *filename,
                 int *is_global)
 {
   return debugfs_create_file(filename, mode, parent, buf,
-			     &relay_file_operations);
+           &relay_file_operations);
 }
 
 static int remove_buf_file_handler(struct dentry *dentry)
 {
   debugfs_remove(dentry);
-
   return 0;
 }
-
 
 
 int _create_shared_mem(void)

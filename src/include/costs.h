@@ -32,7 +32,7 @@
 
 #include <linux/tcp.h>
 
-
+#define BIT(x) 1U << x
 #define ALL_BITS(x) (1U << (x + 1)) - 1
 #define u32 unsigned int
 #define u64 unsigned long long

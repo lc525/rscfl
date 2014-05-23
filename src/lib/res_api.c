@@ -1,10 +1,9 @@
 #include "res_user/res_api.h"
 
-#define BIT(x) 1U << x
-
 #include <linux/netlink.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <stdlib.h>  // malloc builtin; avoids debug compilation warning
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <fcntl.h>

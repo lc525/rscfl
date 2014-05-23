@@ -9,6 +9,7 @@ This list establishes ownership of issues and work items
     - test mmap interface for relayfs
     - provide sensible values for relayfs per-cpu buffer and sub-buffer sizes,
     in accordance to sizeof(struct accounting)
+    - provide more complex measurements (sync/async) for the network stack
 
    TODO(oc243):
     - memory management for more than one accounting struct (we'll need a whole

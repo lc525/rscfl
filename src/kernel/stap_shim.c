@@ -14,6 +14,11 @@
  *  - zero-copy to accounting-to-relayfs (why should we allocate things twice
  *  and then copy? - this is messy atm, especially because there is yet another
  *  copy in userspace)
+ *
+ *  TODO(jas250):
+ *  - Init function to setup mmap and userspace api.
+ *  - mmap in relayfs file instead of continually calling open.
+ *  - Print what ever we have on program exit.
  */
 #include "res_kernel/stap_shim.h"
 

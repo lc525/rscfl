@@ -16,7 +16,7 @@ int _update_relay(void);
 int acct_next(int);
 
 #ifndef NDEBUG
-  #define debugk(format, ...) printk(format, __VA_ARGS__)
+  #define debugk(format, ...) printk(format, ##__VA_ARGS__)
 #else
   #define debugk(format, ...)
 #endif

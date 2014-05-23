@@ -55,7 +55,12 @@ if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
 endif(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
 message("!! Build type: ${CMAKE_BUILD_TYPE}")
 
-
+string( TOLOWER "${CMAKE_BUILD_TYPE}" bt_lower )
+if(bt_lower STREQUAL "debug")
+  set(DEFINE_NDEBUG)
+else(bt_lower STREQUAL "debug")
+  set(DEFINE_NDEBUG "\#define NDEBUG")
+endif(bt_lower STREQUAL "debug")
 
 ###
 #

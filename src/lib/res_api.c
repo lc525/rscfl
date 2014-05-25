@@ -1,8 +1,6 @@
 #include "res_user/res_api.h"
 
-//#include <config.h> // There seems to be a problem including this.
-                      // WARNING: Static values used in mmap, these
-                      // should be replaced when config is included.
+#include <config.h> 
 #include <linux/netlink.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -44,7 +42,7 @@ int rscfl_init(void)
     return -1;
   }
 
-  relay_f_data = mmap(0, 262144 * 4, PROT_READ, MAP_SHARED, relay_fd, 0);
+  relay_f_data = mmap(0, SUBBUF_SIZE * N_SUBBUFS, PROT_READ, MAP_SHARED, relay_fd, 0);
   if (relay_f_data == MAP_FAILED) { 
     printf("Error: could not mmap file. %d - %s\n", errno, strerror(errno));
     return -1;

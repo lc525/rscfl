@@ -6,7 +6,10 @@
 #ifndef _@PNAME@_CONFIG_H
 #define _@PNAME@_CONFIG_H
 
-@DEFINE_NDEBUG@
+#ifndef NDEBUG
+  @DEFINE_NDEBUG@
+#endif
+
 #define PROJECT_NAME "@CMAKE_PROJECT_NAME@"
 const unsigned int MAJOR_VERSION = @MAJOR_VERSION@;
 const unsigned int MINOR_VERSION = @MINOR_VERSION@;

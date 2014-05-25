@@ -4,8 +4,7 @@ This list establishes ownership of issues and work items
 
 * Stap kernel module (C shim):
    TODO(lc525):
-    - fix need to reset relayfs channel on each write (stop resetting all values
-    on each write (move to flight-record mode in relayfs)
+    - stop resetting all values on each write (move to flight-record mode in relayfs)
     - test mmap interface for relayfs
     - provide sensible values for relayfs per-cpu buffer and sub-buffer sizes,
     in accordance to sizeof(struct accounting)

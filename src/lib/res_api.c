@@ -50,6 +50,12 @@ int rscfl_init(void)
     return -1;
   }
 
+  // Register our atexit handler
+  if (atexit(rscfl_atexit_handler)) {
+    printf("Error: could not register atexit handler.\n");
+    return -1;
+  }
+
   return 0;
 }
 
@@ -103,4 +109,8 @@ int rscfl_read_acct(void)
   return 0;
 }
 
+void rscfl_atexit_handler()
+{
+  printf("== Resourceful ==\nProgram Exit Summary:\n");
+  rscfl_read_acct();
 }

@@ -100,4 +100,7 @@ int rscfl_read_acct(void)
   struct accounting *acct;
   acct = (struct accounting *) relay_f_data;
   printf("CPU Cycles: %llu.\n", acct->cpu.cycles);
+  return 0;
+}
+
 }

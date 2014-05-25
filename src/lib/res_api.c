@@ -1,5 +1,8 @@
 #include "res_user/res_api.h"
 
+//#include <config.h> // There seems to be a problem including this.
+                      // WARNING: Static values used in mmap, these
+                      // should be replaced when config is included.
 #include <linux/netlink.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -9,6 +12,9 @@
 #include <fcntl.h>
 #include <costs.h>
 #include <string.h>
+#include <sys/mman.h>
+#include <errno.h>
+#include <unistd.h>
 
 #define NETLINK_USER 31
 #define MAX_PAYLOAD 1024 /* maximum payload size*/
@@ -20,6 +26,37 @@ struct nlmsghdr *nlh = NULL;
 struct iovec iov;
 int sock_fd;
 struct msghdr msg;
+char *relay_f_data;
+
+int rscfl_init(void)
+{
+  struct stat sb;
+  int relay_fd;
+
+  relay_fd = open("/mnt/resourceful0", O_RDONLY);
+  if (relay_fd == -1) {
+    printf("Error: cannot open relay file.\n");
+    return -1;
+  }
+
+  if (fstat(relay_fd, &sb) == -1) {
+    printf("Error: stat encountered an error with the file.\n");
+    return -1;
+  }
+
+  relay_f_data = mmap(0, 262144 * 4, PROT_READ, MAP_SHARED, relay_fd, 0);
+  if (relay_f_data == MAP_FAILED) { 
+    printf("Error: could not mmap file. %d - %s\n", errno, strerror(errno));
+    return -1;
+  }
+
+  if (close(relay_fd) == -1) {
+    printf("Error: could not close file.\n");
+    return -1;
+  }
+
+  return 0;
+}
 
 int rscfl_acct_next(void)
 {
@@ -65,23 +102,7 @@ int rscfl_acct_next(void)
 
 int rscfl_read_acct(void)
 {
-  /*
-  int relay_f;
-  char buff[sizeof(struct accounting)];
   struct accounting *acct;
-
-  relay_f = open("/mnt/resourceful0", O_RDONLY);
-  if (relay_f == -1) {
-    printf("Problem opening fd to relay file.\n");
-    return 1;
-  }
-
-  read(relay_f, buff, sizeof(struct accounting));
-  acct = (struct accounting *) buff;
-
-  printf("Got some data.\n");
-  printf("CPU Cycles %llu\n",acct->cpu.cycles);
-
-  close(relay_f);
-
+  acct = (struct accounting *) relay_f_data;
+  printf("CPU Cycles: %llu.\n", acct->cpu.cycles);
 }

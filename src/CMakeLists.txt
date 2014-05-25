@@ -50,12 +50,18 @@ include(InternalMacros)
 # OPTIONS
 #
 ###
+set(CMAKE_C_FLAGS "-Werror")
 if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Debug)
 endif(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
 message("!! Build type: ${CMAKE_BUILD_TYPE}")
 
-
+string( TOLOWER "${CMAKE_BUILD_TYPE}" bt_lower )
+if(bt_lower STREQUAL "debug")
+  set(DEFINE_NDEBUG)
+else(bt_lower STREQUAL "debug")
+  set(DEFINE_NDEBUG "\#define NDEBUG")
+endif(bt_lower STREQUAL "debug")
 
 ###
 #
@@ -84,13 +90,13 @@ configure_project(
 set(GEN_INCLUDE_DIR ${PROJECT_BINARY_DIR}
   CACHE STRING "include for gen configs")
 
-# common includes and project settings
-include_directories("${GEN_INCLUDE_DIR}") # for generated configs
-include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 set (PROJECT_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set (PROJECT_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/kernel)
 
+# common includes and project settings
+include_directories("${GEN_INCLUDE_DIR}") # for generated configs
+include_directories("${PROJECT_INCLUDE_DIR}")
 
 # build systemtap modules
 include(stap)

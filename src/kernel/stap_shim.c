@@ -1,25 +1,3 @@
-/* -- stap_shim.c TODO list --
- * This list establishes ownership of issues and work items.
- *
- * TODO(lc525):
- *  - fix need to reset relayfs channel on each write (stop resetting all values
- *  on each write (move to flight-record mode in relayfs)
- *  - test mmap interface for relayfs
- *  - provide sensible values for relayfs per-cpu buffer and sub-buffer sizes,
- *  in accordance to sizeof(struct accounting)
- *
- *  TODO(oc243):
- *  - memory management for more than one accounting struct (we'll need a whole
- *  vector of them
- *  - zero-copy to accounting-to-relayfs (why should we allocate things twice
- *  and then copy? - this is messy atm, especially because there is yet another
- *  copy in userspace)
- *
- *  TODO(jas250):
- *  - Init function to setup mmap and userspace api.
- *  - mmap in relayfs file instead of continually calling open.
- *  - Print what ever we have on program exit.
- */
 #include "res_kernel/stap_shim.h"
 
 

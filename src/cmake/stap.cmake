@@ -5,7 +5,9 @@
 #   MOD_NAME = the name of resulting kernel module
 #   INCLUDE_FILES = include files to add to kbuild make
 #   OUT_DIR = the output directory for stap results
-#   ARGN = stp files
+#   STP = SystemTap .stp script
+#   ARGN = file dependencies (if one of those is modified the module
+#          gets rebuilt)
 #
 #  ====================================================================
 
@@ -28,14 +30,38 @@ function(STAP_BUILD MOD_NAME INCLUDE_FILES OUT_DIR STP)
 
   get_filename_component(ABS_FIL ${STP} ABSOLUTE)
   get_filename_component(NM_FIL ${STP} NAME)
-  message("${STP}")
+
   add_custom_command(
     OUTPUT ${OUT_DIR}/${MOD_NAME}.ko
     COMMAND stap
-    ARGS -g -p 4 -k -B C_INCLUDE_PATH="${_stap_includes}" --tmpdir=${OUT_DIR} -m ${MOD_NAME} ${ABS_FIL}
+    ARGS
+     -g                   # guru mode
+     -p 4                 # stop after compilation stage
+     --tmpdir=${OUT_DIR}  # temporary directory
+     -k                   # keep temp directory around
+     -B C_INCLUDE_PATH="${_stap_includes}" # pass to kbuild
+     -m ${MOD_NAME}       # force module name
+     ${ABS_FIL}           # .stp file
     DEPENDS ${STP} ${ARGN}
     COMMENT "Building stap kernel module ${MOD_NAME} from ${NM_FIL}"
   )
-  add_custom_target(stap_gen ALL DEPENDS ${OUT_DIR}/${MOD_NAME}.ko)
+   add_custom_target(stap_gen ALL DEPENDS ${OUT_DIR}/${MOD_NAME}.ko)
+
+  #add_custom_command(
+    #OUTPUT ${OUT_DIR}/${MOD_NAME}.c
+    #COMMAND stap
+    #ARGS
+      #-g                  # guru mode
+      #-p 3                # stop after code gen
+      #--tmpdir=${OUT_DIR} # temporary directory
+      #-k                  # keep temporary directory
+      #-B C_INCLUDE_PATH="${_stap_includes}" # pass to kbuild
+      #-m ${MOD_NAME}      # force module name
+      #${ABS_FIL}
+      #> /dev/null
+    #DEPENDS ${STP} ${ARGN}
+    #COMMENT "Building stap kernel module ${MOD_NAME} from ${NM_FIL}"
+  #)
+  #add_custom_target(stap_gen ALL DEPENDS ${OUT_DIR}/${MOD_NAME}.c)
 
 endfunction()

@@ -23,6 +23,7 @@ int sock_fd;
 struct msghdr msg;
 
 int acct_next(void)
+int rscfl_acct_next(void)
 {
   sock_fd = socket(PF_NETLINK, SOCK_RAW, NETLINK_USER);
   if (sock_fd < 0) {
@@ -64,8 +65,9 @@ int acct_next(void)
   return 0;
 }
 
-int read_acct(void)
+int rscfl_read_acct(void)
 {
+  /*
   int relay_f;
   char buff[sizeof(struct accounting)];
   struct accounting *acct;

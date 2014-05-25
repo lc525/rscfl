@@ -19,9 +19,10 @@ int main(int argc, char *argv[])
   // Open 3 sockets
   socfd_1 = socket(sock_domain, sock_type, sock_proto);
 
-  acct_next();
+  rscfl_init();
+  rscfl_acct_next();
   socfd_2 = socket(sock_domain, sock_type, sock_proto);
-  read_acct();
+  rscfl_read_acct();
 
   socfd_3 = socket(sock_domain, sock_type, sock_proto);
 

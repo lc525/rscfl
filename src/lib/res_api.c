@@ -1,6 +1,6 @@
 #include "res_user/res_api.h"
 
-#include <config.h> 
+#include <config.h>
 #include <linux/netlink.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -13,7 +13,6 @@
 #include <errno.h>
 #include <unistd.h>
 
-#define NETLINK_USER 31
 #define MAX_PAYLOAD 1024 /* maximum payload size*/
 
 #define syscall_name "any_syscall"
@@ -39,7 +38,7 @@ int rscfl_init(void)
 
   // mmap a chunk of data the size of all of the sub-buffers (def in config.h)
   relay_f_data = mmap(0, SUBBUF_SIZE * N_SUBBUFS, PROT_READ, MAP_SHARED, relay_fd, 0);
-  if (relay_f_data == MAP_FAILED) { 
+  if (relay_f_data == MAP_FAILED) {
     printf("Error: could not mmap file. %d - %s\n", errno, strerror(errno));
     return -1;
   }

@@ -1,9 +1,9 @@
+#include "config.h"
+
 #include <linux/module.h>
 #include <linux/netlink.h>
 #include <linux/skbuff.h>
 #include <net/sock.h>
-
-#define NETLINK_USER 31
 
 extern int acct_next(int);
 

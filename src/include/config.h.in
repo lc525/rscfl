@@ -20,5 +20,8 @@ const char VERSION[] = "@VERSION@";
 #define SUBBUF_SIZE 262144
 #define N_SUBBUFS 4
 
+// communication parameters
+#define NETLINK_USER 31
+
 #endif
 

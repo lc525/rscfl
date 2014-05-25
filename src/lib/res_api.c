@@ -6,7 +6,6 @@
 #include <stdio.h>
 #include <stdlib.h>  // malloc builtin; avoids debug compilation warning
 #include <sys/socket.h>
-#include <sys/stat.h>
 #include <fcntl.h>
 #include <costs.h>
 #include <string.h>
@@ -34,11 +33,6 @@ int rscfl_init(void)
   relay_fd = open("/mnt/resourceful0", O_RDONLY);
   if (relay_fd == -1) {
     printf("Error: cannot open relay file.\n");
-    return -1;
-  }
-
-  if (fstat(relay_fd, &sb) == -1) {
-    printf("Error: stat encountered an error with the file.\n");
     return -1;
   }
 

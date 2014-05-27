@@ -104,8 +104,7 @@ STAP_GEN_FILES := $(wildcard @OUT_DIR@/@stap_MOD_NAME@*.c)
 STAP_OBJ_FILES := $(patsubst %.c, %.o, $(STAP_GEN_FILES))
 obj-m := @stap_MOD_NAME@.o
 @stap_MOD_NAME@-y := $(notdir $(STAP_OBJ_FILES)) @STAP_O_FILES@
-@OUT_DIR@/@stap_MOD_NAME@_src.c: $(STAPCONF_HEADER)
-@OUT_DIR@/@stap_MOD_NAME@_aux_0.c: $(STAPCONF_HEADER)
+$(STAP_GEN_FILES): $(STAPCONF_HEADER)
 
 #.PHONY: print_vars
 #print_vars:

@@ -3,8 +3,8 @@
 %{
 
 #include "costs.h"
-#include "stap_shim.c"
-#include "res_comm.c"
+#include "res_kernel/stap_shim.h"
+#include "res_kernel/res_comm.h"
 
 %}
 

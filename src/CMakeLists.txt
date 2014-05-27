@@ -101,65 +101,38 @@ include_directories("${PROJECT_INCLUDE_DIR}")
 # build systemtap modules
 include(stap)
 
+set (stap_OUT_DIR ${PROJECT_BINARY_DIR}/Kstap_gen)
+set (stap_MOD_NAME rsfcl_${PROJECT_PATCH_VERSION})
+
 set (stap_INCLUDES
   ${PROJECT_INCLUDE_DIR} # for cost.h and other headers
-  ${PROJECT_SOURCE_DIR}  # for stap_shim.c
   ${PROJECT_BINARY_DIR}  # for generated config.h
 )
 
-set (stap_SOURCES
+set (stap_gen_SOURCES
   ${PROJECT_SOURCE_DIR}/resourceful.stp
 )
-set (stap_DEPS # if any of those files change, the stap ko is rebuilt
+set (stap_SOURCES
   ${PROJECT_SOURCE_DIR}/res_comm.c
   ${PROJECT_SOURCE_DIR}/stap_shim.c
+)
+
+set (stap_DEPS # if any of those files change, the stap ko is rebuilt
   ${PROJECT_INCLUDE_DIR}/res_kernel/stap_shim.h
   ${PROJECT_INCLUDE_DIR}/costs.h
   ${PROJECT_BINARY_DIR}/config.h
 )
 
-set (stap_OUT_DIR ${PROJECT_BINARY_DIR}/Kstap_gen)
 file(MAKE_DIRECTORY ${stap_OUT_DIR})
-stap_build(rscfl_${PROJECT_PATCH_VERSION}
+
+# remember to pass variables that contain lists of files/directories with ""
+stap_build(${stap_MOD_NAME}
   "${stap_INCLUDES}"
    ${stap_OUT_DIR}
-   ${stap_SOURCES}
+   ${stap_gen_SOURCES}
+   "${stap_SOURCES}"
    ${stap_DEPS}
 )
-
-# build userspace-kernelspace communication kernel module
-# this module depends on the stap module being loaded into the kernel
-#set (res_comm_OUT_DIR ${PROJECT_BINARY_DIR}/Kres_comm)
-#file(MAKE_DIRECTORY ${res_comm_OUT_DIR})
-#Set( MODULE_OUTPUT_FILES    res_comm.o
-                            #res_comm.ko)
-
-#Set( MODULE_SOURCE_FILES    Kbuild
-                            #res_comm.c )
-#JOIN("${MODULE_SOURCE_FILES}" "," _msf)
-
-#Set( MODULE_FILE        res_comm.ko )
-#Set( MODULE_TARGET_NAME res_comm-module )
-#Set( MODULE_BIN_FILE    ${PROJECT_BINARY_DIR}/${MODULE_FILE} )
-#Set( MODULE_SOURCE_DIR  ${res_comm_OUT_DIR} )
-
-#Set( KERNEL_DIR "/lib/modules/${CMAKE_SYSTEM_VERSION}/build" )
-#Set( KBUILD_CMD ${CMAKE_MAKE_PROGRAM}
-                #-C ${KERNEL_DIR}
-                #M=${MODULE_SOURCE_DIR}
-                #KBUILD_EXTRA_SYMBOLS=${stap_OUT_DIR}/Module.symvers
-                #modules )
-
-#Add_Custom_Command( OUTPUT  ${PROJECT_BINARY_DIR}/${MODULE_BIN_FILE}
-                            #${MODULE_OUTPUT_FILES}
-                    #COMMAND /bin/bash -c "cp -f ${PROJECT_SOURCE_DIR}/{${_msf}} ${res_comm_OUT_DIR}"
-                    #COMMAND ${KBUILD_CMD}
-                    #COMMAND cp -f ${res_comm_OUT_DIR}/${MODULE_FILE} ${MODULE_BIN_FILE}
-                    #VERBATIM )
-
-#Add_Custom_Target ( ${MODULE_TARGET_NAME}
-                    #ALL
-                    #DEPENDS stap ${PROJECT_BINARY_DIR}/${MODULE_BIN_FILE} )
 
 # build examples
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/examples)

@@ -16,52 +16,80 @@ function(JOIN VALUES GLUE OUTPUT)
   set (${OUTPUT} "${_TMP_STR}" PARENT_SCOPE)
 endfunction()
 
-function(STAP_BUILD MOD_NAME INCLUDE_FILES OUT_DIR STP)
-  # Create an include path for each file specified
-  foreach(FIL ${INCLUDE_FILES})
+function(STAP_BUILD MOD_NAME INCLUDES OUT_DIR GEN_SRC SRC)
+  # Generate includes list
+  foreach(FIL ${INCLUDES})
     get_filename_component(ABS_FIL ${FIL} ABSOLUTE)
-    list(FIND _stap_include_path ${ABS_FIL} _contains_already)
+    list(FIND _stap_include_path -I${ABS_FIL} _contains_already)
     if(${_contains_already} EQUAL -1)
-      list(APPEND _stap_include_path ${ABS_FIL})
+      list(APPEND _stap_include_path -I${ABS_FIL})
     endif()
   endforeach()
+  JOIN("${_stap_include_path}" " " _stap_includes)
+  set(STAP_INCLUDES ${_stap_includes})
 
-  JOIN("${_stap_include_path}" ":" _stap_includes)
+  # Generate extra files list
+  foreach(SRC_FIL ${SRC})
+    get_filename_component(ABS_PATH ${SRC_FIL} ABSOLUTE)
+    get_filename_component(FNAME ${ABS_PATH} NAME)
+    get_filename_component(FNAME_NAME ${ABS_PATH} NAME_WE)
+    add_custom_command(OUTPUT ${OUT_DIR}/${FNAME}
+                       COMMAND ${CMAKE_COMMAND} -E copy ${ABS_PATH} ${OUT_DIR}
+                       COMMENT "Copying source file ${FNAME} for .ko")
+    list(FIND _stap_objs ${FNAME_NAME}.o _contains_already)
+    if(${_contains_already} EQUAL -1)
+      list(APPEND _stap_objs ${FNAME_NAME}.o)
+      list(APPEND _stap_srcf ${OUT_DIR}/${FNAME})
+    endif()
+  endforeach()
+  JOIN("${_stap_objs}" " " STAP_O_FILES)
 
-  get_filename_component(ABS_FIL ${STP} ABSOLUTE)
-  get_filename_component(NM_FIL ${STP} NAME)
+  configure_file(
+    "${PROJECT_SOURCE_DIR}/Makefile.in"
+    "${OUT_DIR}/Makefile"
+    @ONLY)
 
+  get_filename_component(ABS_FIL ${GEN_SRC} ABSOLUTE)
+  get_filename_component(NM_FIL ${GEN_SRC} NAME)
+
+  # Generate stap sources
   add_custom_command(
-    OUTPUT ${OUT_DIR}/${MOD_NAME}.ko
+    OUTPUT ${OUT_DIR}/${MOD_NAME}.c
     COMMAND stap
     ARGS
-     -g                   # guru mode
-     -p 4                 # stop after compilation stage
-     --tmpdir=${OUT_DIR}  # temporary directory
-     -k                   # keep temp directory around
-     -B C_INCLUDE_PATH="${_stap_includes}" # pass to kbuild
-     -m ${MOD_NAME}       # force module name
-     ${ABS_FIL}           # .stp file
-    DEPENDS ${STP} ${ARGN}
+      -g                  # guru mode
+      -p 3                # stop after code gen
+      --tmpdir=${OUT_DIR} # temporary directory
+      -k                  # keep temporary directory
+      -m ${MOD_NAME}      # force module name
+      ${ABS_FIL}
+      > /dev/null
+    DEPENDS ${GEN_SRC} ${ARGN}
     COMMENT "Building stap kernel module ${MOD_NAME} from ${NM_FIL}"
   )
-   add_custom_target(stap_gen ALL DEPENDS ${OUT_DIR}/${MOD_NAME}.ko)
+  add_custom_target(stap_gen ALL DEPENDS ${OUT_DIR}/${MOD_NAME}.c)
 
-  #add_custom_command(
-    #OUTPUT ${OUT_DIR}/${MOD_NAME}.c
-    #COMMAND stap
-    #ARGS
-      #-g                  # guru mode
-      #-p 3                # stop after code gen
-      #--tmpdir=${OUT_DIR} # temporary directory
-      #-k                  # keep temporary directory
-      #-B C_INCLUDE_PATH="${_stap_includes}" # pass to kbuild
-      #-m ${MOD_NAME}      # force module name
-      #${ABS_FIL}
-      #> /dev/null
-    #DEPENDS ${STP} ${ARGN}
-    #COMMENT "Building stap kernel module ${MOD_NAME} from ${NM_FIL}"
-  #)
-  #add_custom_target(stap_gen ALL DEPENDS ${OUT_DIR}/${MOD_NAME}.c)
+
+  # Build kernel module
+  set( MODULE_TARGET_NAME rscfl_ko )
+  set( MODULE_BIN_FILE    ${OUT_DIR}/${MOD_NAME}.ko )
+  set( MODULE_OUTPUT_FILES    ${_stap_objs} )
+  set( MODULE_SOURCE_DIR  ${OUT_DIR} )
+
+  set( KERNEL_DIR "/lib/modules/${CMAKE_SYSTEM_VERSION}/build" )
+  set( KBUILD_CMD ${CMAKE_MAKE_PROGRAM}
+                  -C ${KERNEL_DIR}
+                  M=${MODULE_SOURCE_DIR}
+                  modules )
+
+  add_custom_command( OUTPUT  ${MODULE_BIN_FILE}
+                              ${MODULE_OUTPUT_FILES}
+                      COMMAND ${KBUILD_CMD}
+                      COMMAND cp -f ${MODULE_BIN_FILE} ${PROJECT_BINARY_DIR}
+                      DEPENDS ${_stap_srcf} stap_gen
+                      VERBATIM )
+
+  add_custom_target ( ${MODULE_TARGET_NAME} ALL
+                      DEPENDS ${MODULE_BIN_FILE})
 
 endfunction()

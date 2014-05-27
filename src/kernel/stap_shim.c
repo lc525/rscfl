@@ -1,5 +1,5 @@
 #include "res_kernel/stap_shim.h"
-
+#include "costs.h"
 
 static struct rchan *chan;
 static struct accounting *acct;
@@ -100,4 +100,5 @@ EXPORT_SYMBOL(acct_next);
 int _clear_acct_next(void)
 {
   acct_next_call = 0;
+  return 0;
 }

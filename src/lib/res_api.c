@@ -93,11 +93,9 @@ int rscfl_acct_next(void)
   return 0;
 }
 
-int rscfl_read_acct(char **relay_f_data)
+int rscfl_read_acct(char **relay_f_data, struct accounting **acct)
 {
-  struct accounting *acct;
-  acct = (struct accounting *) *relay_f_data;
-  printf("CPU Cycles: %llu.\n", acct->cpu.cycles);
+  *acct = (struct accounting *) *relay_f_data;
   return 0;
 }
 

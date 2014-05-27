@@ -3,18 +3,18 @@
  *            Modify variables in CMakeLists.txt and/or in config.h.in but
  *            not directly in this file
  */
-#ifndef _@PNAME@_CONFIG_H
-#define _@PNAME@_CONFIG_H
+#ifndef _@PNAME@_CONFIG_H_
+#define _@PNAME@_CONFIG_H_
 
 #ifndef NDEBUG
   @DEFINE_NDEBUG@
 #endif
 
 #define PROJECT_NAME "@CMAKE_PROJECT_NAME@"
-const unsigned int MAJOR_VERSION = @MAJOR_VERSION@;
-const unsigned int MINOR_VERSION = @MINOR_VERSION@;
-const unsigned int PATCH_VERSION = 0x@PATCH_VERSION@;
-const char VERSION[] = "@VERSION@";
+static const unsigned int MAJOR_VERSION = @MAJOR_VERSION@;
+static const unsigned int MINOR_VERSION = @MINOR_VERSION@;
+static const unsigned int PATCH_VERSION = 0x@PATCH_VERSION@;
+static const char VERSION[] = "@VERSION@";
 
 // resourceful kernel module parameters:
 #define SUBBUF_SIZE 262144

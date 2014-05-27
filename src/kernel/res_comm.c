@@ -1,8 +1,8 @@
 #include "config.h"
+#include "res_kernel/res_comm.h"
 
 #include <linux/module.h>
 #include <linux/netlink.h>
-#include <linux/skbuff.h>
 #include <net/sock.h>
 
 extern int acct_next(int);

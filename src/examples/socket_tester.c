@@ -16,13 +16,16 @@ int main(int argc, char *argv[])
   if (DEBUG)
     printf("Opening sockets\n");
 
+  char *relay_f_data;
+
   // Open 3 sockets
   socfd_1 = socket(sock_domain, sock_type, sock_proto);
 
-  rscfl_init();
+  rscfl_init(&relay_f_data);
+
   rscfl_acct_next();
   socfd_2 = socket(sock_domain, sock_type, sock_proto);
-  rscfl_read_acct();
+  rscfl_read_acct(&relay_f_data);
 
   socfd_3 = socket(sock_domain, sock_type, sock_proto);
 

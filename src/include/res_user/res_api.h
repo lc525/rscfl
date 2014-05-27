@@ -1,11 +1,11 @@
 #ifndef _RES_API_H_
 #define _RES_API_H_
 
-int rscfl_init();
+int rscfl_init(char **relay_f_data);
 
 int rscfl_acct_next();
 
-int rscfl_acct();
+int rscfl_read_acct(char **relay_f_data);
 
 void rscfl_atexit_handler();
 

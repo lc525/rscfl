@@ -84,7 +84,7 @@ function(STAP_BUILD MOD_NAME INCLUDES OUT_DIR GEN_SRC SRC)
   set( MODULE_SOURCE_DIR  ${OUT_DIR} )
 
   set( KERNEL_DIR "/lib/modules/${CMAKE_SYSTEM_VERSION}/build" )
-  set( KBUILD_CMD ${CMAKE_MAKE_PROGRAM}
+  set( KBUILD_CMD $(MAKE)
                   -C ${KERNEL_DIR}
                   M=${MODULE_SOURCE_DIR}
                   modules )

@@ -1,21 +1,25 @@
-# inspired by google's protobuf cmake module
-#  ====================================================================
-#
-# STAP_BUILD (public function)
-#   MOD_NAME = the name of resulting kernel module
-#   INCLUDE_FILES = include files to add to kbuild make
-#   OUT_DIR = the output directory for stap results
-#   STP = SystemTap .stp script
-#   ARGN = file dependencies (if one of those is modified the module
-#          gets rebuilt)
-#
-#  ====================================================================
+# systemtap kernel module build file
+# author: Lucian Carata <lc525@cam.ac.uk>
 
 function(JOIN VALUES GLUE OUTPUT)
   string (REPLACE ";" "${GLUE}" _TMP_STR "${VALUES}")
   set (${OUTPUT} "${_TMP_STR}" PARENT_SCOPE)
 endfunction()
 
+#  ====================================================================
+#
+# STAP_BUILD (public function)
+#   MOD_NAME = the name of resulting kernel module
+#   INCLUDES = include files to add to kbuild make
+#   OUT_DIR = the output directory for stap results
+#   GEN_SRC = SystemTap .stp script
+#   SRC = Other sources that need to be built for this module
+#
+#   Unnamed parameters:
+#   ARGN = file dependencies (if one of those is modified the module
+#          gets rebuilt)
+#
+#  ====================================================================
 function(STAP_BUILD MOD_NAME INCLUDES OUT_DIR GEN_SRC SRC)
   # Generate includes list
   foreach(FIL ${INCLUDES})
@@ -52,6 +56,7 @@ function(STAP_BUILD MOD_NAME INCLUDES OUT_DIR GEN_SRC SRC)
   NO_DEFAULT_PATH # ignore system paths
   )
 
+  # Generate kernel module Makefile
   configure_file(
     "${PROJECT_SOURCE_DIR}/Makefile.in"
     "${OUT_DIR}/Makefile"

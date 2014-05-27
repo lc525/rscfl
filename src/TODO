@@ -19,11 +19,9 @@ This list establishes ownership of issues and work items
 
 * User space library
    TODO(jas250):
-    - Init function to setup mmap and userspace api. DONE
-    - mmap in relayfs file instead of continually calling open. DONE
-    - Print what ever we have on program exit. DONE
     - Extend API to take name of system call to account for, pass this down
       to the kernel layer.
     - Reuse NETLINK socket from acct_next. One per user thread should suffice.
     - Call rsfcl_init automatically on library load
+    - Finish subsystem discovery script
 

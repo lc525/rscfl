@@ -45,6 +45,12 @@ function(STAP_BUILD MOD_NAME INCLUDES OUT_DIR GEN_SRC SRC)
   endforeach()
   JOIN("${_stap_objs}" " " STAP_O_FILES)
 
+  find_path(STAP_RUNTIME runtime_defines.h
+  PATHS /usr/local/share/systemtap/runtime
+        /usr/share/systemtap/runtime
+  NO_DEFAULT_PATH # ignore system paths
+  )
+
   configure_file(
     "${PROJECT_SOURCE_DIR}/Makefile.in"
     "${OUT_DIR}/Makefile"

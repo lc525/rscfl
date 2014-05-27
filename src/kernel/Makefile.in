@@ -2,7 +2,7 @@ _KBUILD_CFLAGS := $(call flags,KBUILD_CFLAGS)
 stap_check_gcc = $(shell  if $(CC) $(1) -S -o /dev/null -xc /dev/null > /dev/null 2>&1; then echo "$(1)"; else echo "$(2)"; fi)
 CHECK_BUILD := $(CC) $(NOSTDINC_FLAGS) $(KBUILD_CPPFLAGS) $(CPPFLAGS) $(LINUXINCLUDE) $(_KBUILD_CFLAGS) $(CFLAGS_KERNEL) $(EXTRA_CFLAGS) $(CFLAGS) -DKBUILD_BASENAME=\"@stap_MOD_NAME@\" -Werror -S -o /dev/null -xc
 stap_check_build = $(shell  if $(CHECK_BUILD) $(1) > /dev/null 2>&1 ; then echo "$(2)"; else echo "$(3)"; fi)
-SYSTEMTAP_RUNTIME = "/usr/local/share/systemtap/runtime"
+SYSTEMTAP_RUNTIME = "@STAP_RUNTIME@"
 CONFIG_MODULE_SIG := n
 EXTRA_CFLAGS := @STAP_INCLUDES@
 EXTRA_CFLAGS += -Iinclude2/asm/mach-default
@@ -99,7 +99,7 @@ EXTRA_CFLAGS += -freorder-blocks
 EXTRA_CFLAGS += -fasynchronous-unwind-tables
 EXTRA_CFLAGS += $(call cc-option,-Wframe-larger-than=512)
 EXTRA_CFLAGS += -Wno-unused -Werror
-EXTRA_CFLAGS += -I"/usr/local/share/systemtap/runtime"
+EXTRA_CFLAGS += -I"@STAP_RUNTIME@"
 obj-m := @stap_MOD_NAME@.o
 @stap_MOD_NAME@-y :=  @stap_MOD_NAME@_src.o @stap_MOD_NAME@_aux_0.o @STAP_O_FILES@
 @OUT_DIR@/@stap_MOD_NAME@_src.c: $(STAPCONF_HEADER)

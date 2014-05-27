@@ -7,6 +7,4 @@ int rscfl_acct_next();
 
 int rscfl_read_acct(char **relay_f_data);
 
-void rscfl_atexit_handler();
-
 #endif

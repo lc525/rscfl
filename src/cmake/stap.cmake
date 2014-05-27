@@ -35,6 +35,7 @@ function(STAP_BUILD MOD_NAME INCLUDES OUT_DIR GEN_SRC SRC)
     get_filename_component(FNAME_NAME ${ABS_PATH} NAME_WE)
     add_custom_command(OUTPUT ${OUT_DIR}/${FNAME}
                        COMMAND ${CMAKE_COMMAND} -E copy ${ABS_PATH} ${OUT_DIR}
+                       DEPENDS ${ABS_PATH}
                        COMMENT "Copying source file ${FNAME} for .ko")
     list(FIND _stap_objs ${FNAME_NAME}.o _contains_already)
     if(${_contains_already} EQUAL -1)

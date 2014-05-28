@@ -98,7 +98,7 @@ int _should_acct(pid_t pid, int syscall_nr)
   while (e) {
     printk("%d\n", e->pid);
     if ((e->pid == pid) &&
-	((syscall_nr == -1) || (e->syscall_nr == syscall_nr))) {
+  ((syscall_nr == -1) || (e->syscall_nr == syscall_nr))) {
       printk("accounting\n");
       return 1;
     }
@@ -138,16 +138,17 @@ int _clear_acct_next(pid_t pid, int syscall_nr)
   int rc = -1;
   while (entry) {
     if (((syscall_nr == -1) || (syscall_nr == entry->syscall_nr)) &&
-	((pid == -1) || (pid = entry->pid))) {
+        ((pid == -1) || (pid = entry->pid)))
+    {
       if (prev) {
-	prev->next = entry->next;
+        prev->next = entry->next;
       } else {
-	syscall_acct_list = entry->next;
+        syscall_acct_list = entry->next;
       }
       next = entry->next;
       kfree(entry);
       if (syscall_nr > 0)
-	  return 0;
+        return 0;
       rc = 0;
 
       entry = next;

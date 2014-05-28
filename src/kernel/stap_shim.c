@@ -1,10 +1,19 @@
 #include "res_kernel/stap_shim.h"
 #include "costs.h"
 
+struct syscall_acct_list_t {
+  unsigned long syscall_id;
+  pid_t pid;
+  int syscall_nr;
+  struct syscall_acct_list_t *next;
+};
+
+typedef struct syscall_acct_list_t syscall_acct_list_t;
+
+static syscall_acct_list_t *syscall_acct_list;
 static struct rchan *chan;
 static struct accounting *acct;
-static int tid_acct;
-static int acct_next_call;
+static long syscall_id_c;
 
 static struct dentry *create_buf_file_handler(const char *, struct dentry *,
                 umode_t, struct rchan_buf *,
@@ -78,27 +87,76 @@ int _update_relay(void)
   return 0;
 }
 
-int _should_acct(int tid)
-{
-  return (acct_next_call == tid);
-}
 
-int _set_tid(int tid)
+/**
+ * if syscall_nr==-1 then we account for the next syscall, independent of which
+\ * syscall is executed.
+ **/
+int _should_acct(pid_t pid, int syscall_nr)
 {
-  debugk("_set_tid\n");
-  tid_acct = tid;
+  syscall_acct_list_t *e = syscall_acct_list;
+  while (e) {
+    printk("%d\n", e->pid);
+    if ((e->pid == pid) &&
+	((syscall_nr == -1) || (e->syscall_nr == syscall_nr))) {
+      printk("accounting\n");
+      return 1;
+    }
+    e = e->next;
+  }
   return 0;
 }
 
-int acct_next(int pid)
+int acct_next(pid_t pid, int syscall_nr)
 {
-  acct_next_call = pid;
+  syscall_acct_list_t *to_acct = (syscall_acct_list_t *)
+    kmalloc(sizeof(syscall_acct_list_t), GFP_KERNEL);
+  if (!to_acct) {
+    return -1;
+  }
+  to_acct->syscall_id = syscall_id_c++;
+  to_acct->pid = pid;
+  to_acct->syscall_nr = syscall_nr;
+  to_acct->next = syscall_acct_list;
+  syscall_acct_list = to_acct;
   return 0;
 }
-EXPORT_SYMBOL(acct_next);
 
-int _clear_acct_next(void)
+/**
+ * if syscall_nr==-1 then all resource consumption requests for the given pid
+ * are cleared.
+ *
+ * if pid==-1 then syscall_nr will be cleared regardless of its associated pid
+ *
+ * if pid==-1 && syscall_nr==-1 then the resource consumption list is cleared
+ **/
+int _clear_acct_next(pid_t pid, int syscall_nr)
 {
-  acct_next_call = 0;
-  return 0;
+  syscall_acct_list_t *entry = syscall_acct_list;
+  syscall_acct_list_t *prev = NULL;
+  syscall_acct_list_t *next;
+  int rc = -1;
+  while (entry) {
+    if (((syscall_nr == -1) || (syscall_nr == entry->syscall_nr)) &&
+	((pid == -1) || (pid = entry->pid))) {
+      if (prev) {
+	prev->next = entry->next;
+      } else {
+	syscall_acct_list = entry->next;
+      }
+      next = entry->next;
+      kfree(entry);
+      if (syscall_nr > 0)
+	  return 0;
+      rc = 0;
+
+      entry = next;
+
+    } else {
+      prev = entry;
+      entry = entry->next;
+    }
+  }
+
+  return rc;
 }

@@ -1,18 +1,17 @@
 #include "config.h"
 #include "res_kernel/res_comm.h"
+#include "res_kernel/stap_shim.h"
 
 #include <linux/module.h>
 #include <linux/netlink.h>
 #include <net/sock.h>
-
-extern int acct_next(int);
 
 struct sock *nl_sk = NULL;
 
 static void res_nl_recv_msg(struct sk_buff *skb)
 {
   struct nlmsghdr *nlh;
-  int pid;
+  pid_t pid;
   struct sk_buff *skb_out;
   int msg_size;
   char *msg = "Hello from resourceful";
@@ -27,7 +26,7 @@ static void res_nl_recv_msg(struct sk_buff *skb)
   pid = nlh->nlmsg_pid; /*pid of sending process */
 
   printk("Accounting next call for pid %d\n", pid);
-  acct_next(pid);
+  acct_next(pid, -1);
 
   skb_out = nlmsg_new(msg_size, 0);
 

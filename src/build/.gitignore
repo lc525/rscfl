@@ -5,3 +5,4 @@
 !.gitignore
 !.build
 !.clean
+!.rscfl_ko_update.sh

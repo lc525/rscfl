@@ -30,7 +30,7 @@ int rscfl_init(void)
   int relay_fd;
 
   // Open the relay file
-  relay_fd = open("/mnt/resourceful0", O_RDONLY);
+  relay_fd = open("/sys/kernel/debug/resourceful0", O_RDONLY);
   if (relay_fd == -1) {
     printf("Error: cannot open relay file.\n");
     return -1;

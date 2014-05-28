@@ -13,13 +13,13 @@ int _fill_struct(long);
 
 int _update_relay(void);
 
-int _should_acct(int tid);
+int _should_acct(int pid, int syscall_nr);
 
-int acct_next(int);
+int acct_next(pid_t, int);
 
 int _clean_debugfs(void);
 
-int _clear_acct_next(void);
+int _clear_acct_next(pid_t, int);
 
 #ifndef NDEBUG
   #define debugk(format, ...) printk(format, ##__VA_ARGS__)

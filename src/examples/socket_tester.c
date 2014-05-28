@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <sys/socket.h>
 #include <res_user/res_api.h>
+#include <costs.h>
 
 int main(int argc, char *argv[])
 {
@@ -16,13 +17,19 @@ int main(int argc, char *argv[])
   if (DEBUG)
     printf("Opening sockets\n");
 
+  char *relay_f_data;
+  struct accounting *acct;
+
   // Open 3 sockets
   socfd_1 = socket(sock_domain, sock_type, sock_proto);
 
-  rscfl_init();
+  rscfl_init(&relay_f_data);
   rscfl_acct_next();
+
   socfd_2 = socket(sock_domain, sock_type, sock_proto);
-  rscfl_read_acct();
+
+  rscfl_read_acct(&relay_f_data, &acct);
+  printf("Acct: %llu\n", acct->cpu.cycles);
 
   socfd_3 = socket(sock_domain, sock_type, sock_proto);
 

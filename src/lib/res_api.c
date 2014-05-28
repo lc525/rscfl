@@ -22,9 +22,8 @@ struct nlmsghdr *nlh = NULL;
 struct iovec iov;
 int sock_fd;
 struct msghdr msg;
-char *relay_f_data;
 
-int rscfl_init(void)
+int rscfl_init(char **relay_f_data)
 {
   struct stat sb;
   int relay_fd;
@@ -37,7 +36,7 @@ int rscfl_init(void)
   }
 
   // mmap a chunk of data the size of all of the sub-buffers (def in config.h)
-  relay_f_data = mmap(0, SUBBUF_SIZE * N_SUBBUFS, PROT_READ, MAP_SHARED, relay_fd, 0);
+  *relay_f_data = mmap(0, SUBBUF_SIZE * N_SUBBUFS, PROT_READ, MAP_SHARED, relay_fd, 0);
   if (relay_f_data == MAP_FAILED) {
     printf("Error: could not mmap file. %d - %s\n", errno, strerror(errno));
     return -1;
@@ -46,12 +45,6 @@ int rscfl_init(void)
   // Return the fd to the system
   if (close(relay_fd) == -1) {
     printf("Error: could not close file.\n");
-    return -1;
-  }
-
-  // Register our atexit handler
-  if (atexit(rscfl_atexit_handler)) {
-    printf("Error: could not register atexit handler.\n");
     return -1;
   }
 
@@ -100,16 +93,9 @@ int rscfl_acct_next(void)
   return 0;
 }
 
-int rscfl_read_acct(void)
+int rscfl_read_acct(char **relay_f_data, struct accounting **acct)
 {
-  struct accounting *acct;
-  acct = (struct accounting *) relay_f_data;
-  printf("CPU Cycles: %llu.\n", acct->cpu.cycles);
+  *acct = (struct accounting *) *relay_f_data;
   return 0;
 }
 
-void rscfl_atexit_handler()
-{
-  printf("== Resourceful ==\nProgram Exit Summary:\n");
-  rscfl_read_acct();
-}

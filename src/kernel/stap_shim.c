@@ -1,5 +1,8 @@
 #include "res_kernel/stap_shim.h"
 #include "costs.h"
+#include <linux/rwlock_types.h>
+#include <linux/spinlock.h>
+
 
 struct syscall_acct_list_t {
   unsigned long syscall_id;
@@ -14,6 +17,8 @@ static syscall_acct_list_t *syscall_acct_list;
 static struct rchan *chan;
 static struct accounting *acct;
 static long syscall_id_c;
+
+static rwlock_t lock = __RW_LOCK_UNLOCKED(lock);
 
 static struct dentry *create_buf_file_handler(const char *, struct dentry *,
                 umode_t, struct rchan_buf *,
@@ -94,16 +99,21 @@ int _update_relay(void)
  **/
 int _should_acct(pid_t pid, int syscall_nr)
 {
-  syscall_acct_list_t *e = syscall_acct_list;
+  syscall_acct_list_t *e;
+
+  read_lock(&lock);
+  e = syscall_acct_list;
   while (e) {
     printk("%d\n", e->pid);
     if ((e->pid == pid) &&
 	((syscall_nr == -1) || (e->syscall_nr == syscall_nr))) {
       printk("accounting\n");
+      read_unlock(&lock);
       return 1;
     }
     e = e->next;
   }
+  read_unlock(&lock);
   return 0;
 }
 
@@ -118,7 +128,9 @@ int acct_next(pid_t pid, int syscall_nr)
   to_acct->pid = pid;
   to_acct->syscall_nr = syscall_nr;
   to_acct->next = syscall_acct_list;
+  write_lock(&lock);
   syscall_acct_list = to_acct;
+  write_unlock(&lock);
   return 0;
 }
 
@@ -132,10 +144,14 @@ int acct_next(pid_t pid, int syscall_nr)
  **/
 int _clear_acct_next(pid_t pid, int syscall_nr)
 {
-  syscall_acct_list_t *entry = syscall_acct_list;
+  syscall_acct_list_t *entry;
   syscall_acct_list_t *prev = NULL;
   syscall_acct_list_t *next;
   int rc = -1;
+
+  read_lock(&lock);
+  entry = syscall_acct_list;
+
   while (entry) {
     if (((syscall_nr == -1) || (syscall_nr == entry->syscall_nr)) &&
 	((pid == -1) || (pid = entry->pid))) {
@@ -146,8 +162,10 @@ int _clear_acct_next(pid_t pid, int syscall_nr)
       }
       next = entry->next;
       kfree(entry);
-      if (syscall_nr > 0)
-	  return 0;
+      if (syscall_nr > 0) {
+	read_unlock(&lock);
+	return 0;
+      }
       rc = 0;
 
       entry = next;
@@ -157,6 +175,6 @@ int _clear_acct_next(pid_t pid, int syscall_nr)
       entry = entry->next;
     }
   }
-
+  read_unlock(&lock);
   return rc;
 }

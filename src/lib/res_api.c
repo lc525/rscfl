@@ -84,8 +84,6 @@ int rscfl_acct_next(void)
 
   sendmsg(sock_fd, &msg, 0);
 
-  /* Read message from kernel */
-  recvmsg(sock_fd, &msg, 0);
   close(sock_fd);
   return 0;
 }

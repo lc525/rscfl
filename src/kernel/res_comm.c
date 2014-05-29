@@ -17,15 +17,9 @@ static void res_nl_recv_msg(struct sk_buff *skb)
   char *msg = "Hello from resourceful";
   int res;
 
-  printk(KERN_INFO "Entering: %s\n", __FUNCTION__);
-
   msg_size = strlen(msg);
-
   nlh = (struct nlmsghdr *)skb->data;
-  printk(KERN_INFO "Netlink received msg payload: %s\n", (char *)nlmsg_data(nlh));
   pid = nlh->nlmsg_pid; /*pid of sending process */
-
-  printk("Accounting next call for pid %d\n", pid);
   acct_next(pid, -1);
 
   skb_out = nlmsg_new(msg_size, 0);
@@ -33,7 +27,7 @@ static void res_nl_recv_msg(struct sk_buff *skb)
   if (!skb_out)
   {
 
-    printk(KERN_ERR "Failed to allocate new skb\n");
+    printk(KERN_ERR "rscfl: Failed to allocate new skb\n");
     return;
 
   }
@@ -44,7 +38,7 @@ static void res_nl_recv_msg(struct sk_buff *skb)
   res = nlmsg_unicast(nl_sk, skb_out, pid);
 
   if (res < 0)
-    printk(KERN_INFO "Error while sending bak to user\n");
+    printk(KERN_INFO "rscfl: Error while sending bak to user\n");
 
 }
 
@@ -60,7 +54,7 @@ int _netlink_setup(void)
   };
   nl_sk = netlink_kernel_create(&init_net, NETLINK_USER, &cfg);
   if (!nl_sk) {
-    printk(KERN_ALERT "Error creating socket.\n");
+    printk(KERN_ERR "rscfl: Error creating socket.\n");
     return -10;
   }
 

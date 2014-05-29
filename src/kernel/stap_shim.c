@@ -54,20 +54,19 @@ int _create_shared_mem(void)
   debugk("_create_shared_mem\n");
   if ( !(acct = ((struct accounting*) kmalloc(sizeof(struct accounting),
                 GFP_KERNEL))) ) {
-    printk("Error doing a kmalloc\n");
+    printk(KERN_ERR "rscfl: cannot kmalloc shared mem\n");
     goto error;
   }
 
   if ( !(chan = relay_open(PROJECT_NAME, NULL, SUBBUF_SIZE,
          N_SUBBUFS, &relay_callbacks, NULL)) ) {
     kfree(acct);
-    printk("Error doing a relay_open\n");
+    printk(KERN_ERR "rscfl: cannot open relay channel\n");
     goto error;
   }
   return 0;
 
 error:
-  printk("Error creating shared memory\n");
   return -1;
 }
 
@@ -104,10 +103,8 @@ int _should_acct(pid_t pid, int syscall_nr)
   read_lock(&lock);
   e = syscall_acct_list;
   while (e) {
-    printk("%d\n", e->pid);
     if ((e->pid == pid) &&
   ((syscall_nr == -1) || (e->syscall_nr == syscall_nr))) {
-      printk("accounting\n");
       read_unlock(&lock);
       return 1;
     }

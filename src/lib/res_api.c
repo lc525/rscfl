@@ -31,20 +31,17 @@ int rscfl_init(char **relay_f_data)
   // Open the relay file
   relay_fd = open("/sys/kernel/debug/resourceful0", O_RDONLY);
   if (relay_fd == -1) {
-    printf("Error: cannot open relay file.\n");
     return -1;
   }
 
   // mmap a chunk of data the size of all of the sub-buffers (def in config.h)
   *relay_f_data = mmap(0, SUBBUF_SIZE * N_SUBBUFS, PROT_READ, MAP_SHARED, relay_fd, 0);
   if (relay_f_data == MAP_FAILED) {
-    printf("Error: could not mmap file. %d - %s\n", errno, strerror(errno));
     return -1;
   }
 
   // Return the fd to the system
   if (close(relay_fd) == -1) {
-    printf("Error: could not close file.\n");
     return -1;
   }
 

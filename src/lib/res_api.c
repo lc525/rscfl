@@ -17,11 +17,11 @@
 
 #define syscall_name "any_syscall"
 
-struct sockaddr_nl src_addr, dest_addr;
-struct nlmsghdr *nlh = NULL;
-struct iovec iov;
-int sock_fd;
-struct msghdr msg;
+static struct sockaddr_nl src_addr, dest_addr;
+static struct nlmsghdr *nlh = NULL;
+static struct iovec iov;
+static int sock_fd;
+static struct msghdr msg;
 
 int rscfl_init(char **relay_f_data)
 {

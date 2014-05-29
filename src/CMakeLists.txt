@@ -102,7 +102,7 @@ include_directories("${PROJECT_INCLUDE_DIR}")
 include(stap)
 
 set (stap_OUT_DIR ${PROJECT_BINARY_DIR}/Kstap_gen)
-set (stap_MOD_NAME rsfcl_${PROJECT_PATCH_VERSION})
+set (stap_MOD_NAME rscfl_${PROJECT_PATCH_VERSION})
 
 set (stap_INCLUDES
   ${PROJECT_INCLUDE_DIR} # for cost.h and other headers

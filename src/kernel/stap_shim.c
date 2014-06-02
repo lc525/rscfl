@@ -117,7 +117,7 @@ int _should_acct(pid_t pid, int syscall_nr)
 int acct_next(pid_t pid, int syscall_nr)
 {
   syscall_acct_list_t *to_acct = (syscall_acct_list_t *)
-    kmalloc(sizeof(syscall_acct_list_t), GFP_KERNEL);
+    kzalloc(sizeof(syscall_acct_list_t), GFP_KERNEL);
   if (!to_acct) {
     return -1;
   }

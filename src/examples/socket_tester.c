@@ -1,3 +1,4 @@
+#include <stderr.h>
 #include <stdio.h>
 #include <sys/socket.h>
 #include <res_user/res_api.h>
@@ -25,7 +26,7 @@ int main(int argc, char *argv[])
 
   rscfl_init(&relay_f_data);
   if (rscfl_acct_next()) {
-    printf(stderr, "rscfl: acct_next errno=%d", errno);
+    fprintf(stderr, "rscfl: acct_next errno=%d", errno);
     return -1;
   }
 
@@ -43,5 +44,5 @@ int main(int argc, char *argv[])
   close(socfd_1);
   close(socfd_2);
   close(socfd_3);
-  return 0
+  return 0;
 }

@@ -18,7 +18,7 @@ int main(int argc, char *argv[])
   if (DEBUG)
     printf("Opening sockets\n");
 
-  char *relay_f_data;
+  rscfl_handle relay_f_data;
   struct accounting acct = {0};
 
 // Open 3 sockets

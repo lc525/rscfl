@@ -3,10 +3,12 @@
 
 #include <costs.h>
 
-int rscfl_init(char **relay_f_data);
+typedef char * rscfl_handle;
+
+rscfl_handle rscfl_init();
 
 int rscfl_acct_next();
 
-int rscfl_read_acct(char *relay_f_data, struct accounting *acct);
+int rscfl_read_acct(rscfl_handle handle, struct accounting *acct);
 
 #endif

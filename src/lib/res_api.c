@@ -23,7 +23,7 @@ static struct iovec iov;
 static int sock_fd;
 static struct msghdr msg;
 
-int rscfl_init(char **relay_f_data)
+rscfl_handle rscfl_init()
 {
   struct stat sb;
   int relay_fd;
@@ -31,19 +31,19 @@ int rscfl_init(char **relay_f_data)
   // Open the relay file
   relay_fd = open("/sys/kernel/debug/resourceful0", O_RDONLY);
   if (relay_fd == -1) {
-    return -1;
+    return NULL;
   }
 
   // mmap a chunk of data the size of all of the sub-buffers (def in config.h)
-  *relay_f_data = mmap(0, SUBBUF_SIZE * N_SUBBUFS, PROT_READ, MAP_SHARED,
+  char *relay_f_data = mmap(0, SUBBUF_SIZE * N_SUBBUFS, PROT_READ, MAP_SHARED,
                        relay_fd, 0);
   if (relay_f_data == MAP_FAILED) {
-    return -1;
+    return NULL;
   }
 
   // Return the fd to the system
   if (close(relay_fd) == -1) {
-    return -1;
+    return NULL;
   }
 
   return 0;
@@ -89,7 +89,7 @@ int rscfl_acct_next(void)
   return 0;
 }
 
-int rscfl_read_acct(char *relay_f_data, struct accounting *acct)
+int rscfl_read_acct(rscfl_handle relay_f_data, struct accounting *acct)
 {
   memcpy(acct, relay_f_data, sizeof(struct accounting));
   return 0;

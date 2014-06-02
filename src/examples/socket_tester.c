@@ -24,7 +24,10 @@ int main(int argc, char *argv[])
   socfd_1 = socket(sock_domain, sock_type, sock_proto);
 
   rscfl_init(&relay_f_data);
-  rscfl_acct_next();
+  if (rscfl_acct_next()) {
+    printf(stderr, "rscfl: acct_next errno=%d", errno);
+    return -1;
+  }
 
   socfd_2 = socket(sock_domain, sock_type, sock_proto);
 
@@ -40,4 +43,5 @@ int main(int argc, char *argv[])
   close(socfd_1);
   close(socfd_2);
   close(socfd_3);
+  return 0
 }

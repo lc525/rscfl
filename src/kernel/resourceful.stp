@@ -6,6 +6,8 @@
 #include "res_kernel/stap_shim.h"
 #include "res_kernel/res_comm.h"
 
+struct accounting *acct;
+
 %}
 
 global files_dir=0, vfs=0, lfs=0, blk=0
@@ -13,7 +15,7 @@ global files_dir_e=0, vfs_e=0, blk_e=0, cycles=0
 
 probe begin
 {
-  if (create_shared_mem()) {
+  if (rscfl_shim_init()) {
     printf("Unable to create debugfs entry\n");
     exit();
   }
@@ -47,14 +49,15 @@ function netlink_teardown:long()
   STAP_RETVALUE = _netlink_teardown();
 %}
 
-function create_shared_mem:long()
+function rscfl_shim_init:long()
 %{
-  STAP_RETVALUE = _create_shared_mem();
+  STAP_RETVALUE = _rscfl_shim_init();
 %}
 
 function should_acct_:long(pid:long, syscall_nr:long)
 %{
-  STAP_RETVALUE = _should_acct(STAP_ARG_pid, STAP_ARG_syscall_nr);
+  acct = _should_acct(STAP_ARG_pid, STAP_ARG_syscall_nr);
+  STAP_RETVALUE = (acct != NULL);
 %}
 
 function should_acct()
@@ -65,12 +68,12 @@ function should_acct()
 
 function fill_struct(vfs:long)
 %{
-  _fill_struct(STAP_ARG_vfs);
+  _fill_struct(STAP_ARG_vfs, acct);
 %}
 
 function update_relay()
 %{
-  _update_relay();
+  _update_relay(acct);
 %}
 
 function clear_acct_next(pid:long, syscall_nr:long)

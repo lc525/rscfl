@@ -2,20 +2,28 @@
 #define _KO_RESOURCEFUL_H_
 
 #include "config.h"
+#include "costs.h"
 
 #include <linux/slab.h>
 #include <linux/relay.h>
 #include <linux/debugfs.h>
 
+struct free_accounting_pool {
+  struct accounting *item;
+  struct free_accounting_pool *next;
+};
+
 int _create_shared_mem(void);
 
-int _fill_struct(long);
+int _fill_struct(long, struct accounting *);
 
-int _update_relay(void);
+int _update_relay(struct accounting *);
 
-int _should_acct(int pid, int syscall_nr);
+struct accounting * _should_acct(pid_t pid, int syscall_nr);
 
 int acct_next(pid_t, int);
+
+int _rscfl_shim_init(void);
 
 int _clean_debugfs(void);
 

@@ -3,8 +3,8 @@
 #include <linux/rwlock_types.h>
 #include <linux/spinlock.h>
 
-
 struct syscall_acct_list_t {
+  struct accounting *acct;
   unsigned long syscall_id;
   pid_t pid;
   int syscall_nr;
@@ -15,10 +15,11 @@ typedef struct syscall_acct_list_t syscall_acct_list_t;
 
 static syscall_acct_list_t *syscall_acct_list;
 static struct rchan *chan;
-static struct accounting *acct;
+static struct free_accounting_pool *free_acct_pool;
 static long syscall_id_c;
 
 static rwlock_t lock = __RW_LOCK_UNLOCKED(lock);
+static spinlock_t free_acct_lock = __SPIN_LOCK_UNLOCKED(free_acct_lock);
 
 static struct dentry *create_buf_file_handler(const char *, struct dentry *,
                 umode_t, struct rchan_buf *,
@@ -52,15 +53,9 @@ static int remove_buf_file_handler(struct dentry *dentry)
 int _create_shared_mem(void)
 {
   debugk("_create_shared_mem\n");
-  if ( !(acct = ((struct accounting*) kmalloc(sizeof(struct accounting),
-                GFP_KERNEL))) ) {
-    printk(KERN_ERR "rscfl: cannot kmalloc shared mem\n");
-    goto error;
-  }
 
   if ( !(chan = relay_open(PROJECT_NAME, NULL, SUBBUF_SIZE,
          N_SUBBUFS, &relay_callbacks, NULL)) ) {
-    kfree(acct);
     printk(KERN_ERR "rscfl: cannot open relay channel\n");
     goto error;
   }
@@ -70,20 +65,26 @@ error:
   return -1;
 }
 
+int _rscfl_shim_init(void)
+{
+  return _create_shared_mem();
+}
+
+
 int _clean_debugfs(void)
 {
   relay_close(chan);
   return 0;
 }
 
-int _fill_struct(long cycles)
+int _fill_struct(long cycles, struct accounting *acct)
 {
   debugk("_fill_struct\n");
   acct->cpu.cycles = cycles;
   return 0;
 }
 
-int _update_relay(void)
+int _update_relay(struct accounting *acct)
 {
   debugk("_update_relay\n");
   relay_reset(chan);
@@ -96,22 +97,24 @@ int _update_relay(void)
  * if syscall_nr==-1 then we account for the next syscall, independent of which
 \ * syscall is executed.
  **/
-int _should_acct(pid_t pid, int syscall_nr)
+struct accounting * _should_acct(pid_t pid, int syscall_nr)
 {
   syscall_acct_list_t *e;
+  struct accounting *ret;
 
   read_lock(&lock);
   e = syscall_acct_list;
   while (e) {
     if ((e->pid == pid) &&
   ((syscall_nr == -1) || (e->syscall_nr == syscall_nr))) {
+      ret = e->acct;
       read_unlock(&lock);
-      return 1;
+      return ret;
     }
     e = e->next;
   }
   read_unlock(&lock);
-  return 0;
+  return NULL;
 }
 
 int acct_next(pid_t pid, int syscall_nr)
@@ -125,6 +128,22 @@ int acct_next(pid_t pid, int syscall_nr)
   to_acct->pid = pid;
   to_acct->syscall_nr = syscall_nr;
   to_acct->next = syscall_acct_list;
+
+  /**
+   * Get memory to store the accounting in. Prefer reusing memory rather than
+   * kmalloc-ing more.
+   **/
+  spin_lock(&free_acct_lock);
+  if (free_acct_pool) {
+    to_acct->acct = free_acct_pool->item;
+    free_acct_pool = free_acct_pool->next;
+    spin_unlock(&free_acct_lock);
+  }
+  else {
+    spin_unlock(&free_acct_lock);
+    to_acct->acct = (struct accounting *) kzalloc(sizeof(struct accounting),
+                                                  GFP_KERNEL);
+  }
   write_lock(&lock);
   syscall_acct_list = to_acct;
   write_unlock(&lock);

@@ -1,4 +1,4 @@
-#include <stderr.h>
+#include <errno.h>
 #include <stdio.h>
 #include <sys/socket.h>
 #include <res_user/res_api.h>

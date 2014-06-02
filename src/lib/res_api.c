@@ -89,9 +89,9 @@ int rscfl_acct_next(void)
   return 0;
 }
 
-int rscfl_read_acct(char **relay_f_data, struct accounting **acct)
+int rscfl_read_acct(char *relay_f_data, struct accounting *acct)
 {
-  *acct = (struct accounting *) *relay_f_data;
+  memcpy(acct, relay_f_data, sizeof(struct accounting));
   return 0;
 }
 

@@ -18,7 +18,7 @@ int main(int argc, char *argv[])
     printf("Opening sockets\n");
 
   char *relay_f_data;
-  struct accounting *acct;
+  struct accounting acct = {0};
 
   // Open 3 sockets
   socfd_1 = socket(sock_domain, sock_type, sock_proto);
@@ -28,8 +28,8 @@ int main(int argc, char *argv[])
 
   socfd_2 = socket(sock_domain, sock_type, sock_proto);
 
-  rscfl_read_acct(&relay_f_data, &acct);
-  printf("Acct: %llu\n", acct->cpu.cycles);
+  rscfl_read_acct(relay_f_data, &acct);
+  printf("Acct: %llu\n", acct.cpu.cycles);
 
   socfd_3 = socket(sock_domain, sock_type, sock_proto);
 

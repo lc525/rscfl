@@ -168,7 +168,6 @@ int _update_relay(struct accounting *acct, int finalised)
 {
   struct free_accounting_pool *head;
   debugk("_update_relay\n");
-  relay_reset(chan);
   relay_write(chan, acct, sizeof(struct accounting));
   if (finalised) {
     // return the struct accounting to the free accounting pool

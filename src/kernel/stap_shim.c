@@ -21,7 +21,7 @@ typedef struct syscall_acct_list_t syscall_acct_list_t;
 
 static syscall_acct_list_t *syscall_acct_list;
 static struct rchan *chan;
-static struct free_accounting_pool *free_acct_pool;
+static struct free_accounting_pool *free_acct_pool_hd, *free_acct_pool_lst;
 static long syscall_id_c;
 
 static rwlock_t lock = __RW_LOCK_UNLOCKED(lock);
@@ -55,6 +55,75 @@ static int remove_buf_file_handler(struct dentry *dentry)
   return 0;
 }
 
+static inline void return_to_pool (struct accounting *acct)
+{
+  spin_lock(&free_acct_lock);
+  BUG_ON(unlikely(!(free_acct_pool_lst || free_acct_pool_hd)));
+  BUG_ON(unlikely(free_acct_pool_lst->next));
+  BUG_ON(unlikely(free_acct_pool_lst->item));
+  free_acct_pool_lst->next = free_acct_pool_hd;
+  free_acct_pool_hd = free_acct_pool_lst;
+  if (free_acct_pool_lst->prev) {
+    free_acct_pool_lst = free_acct_pool_lst->prev;
+     free_acct_pool_hd->next->prev = free_acct_pool_hd;
+  }
+  free_acct_pool_hd->item = acct;
+  free_acct_pool_hd->prev = NULL;
+  free_acct_pool_lst->next = NULL;
+  BUG_ON(unlikely(!(free_acct_pool_lst || free_acct_pool_hd)));
+  spin_unlock(&free_acct_lock);
+}
+
+
+/**
+ * Get memory to store the accounting in. Prefer reusing memory rather than
+ * kmalloc-ing more.
+ **/
+static inline struct accounting * fetch_from_pool(void)
+{
+  struct accounting *acct;
+  spin_lock(&free_acct_lock);
+  if (free_acct_pool_hd && free_acct_pool_hd->item) {
+    acct = free_acct_pool_hd->item;
+    free_acct_pool_hd->item = NULL;
+    free_acct_pool_lst->next = free_acct_pool_hd;
+    free_acct_pool_hd = free_acct_pool_hd->next;
+    free_acct_pool_lst->next = NULL;
+    free_acct_pool_hd = NULL;
+    spin_unlock(&free_acct_lock);
+  }
+  else {
+    if (free_acct_pool_lst) {
+      // No free struct accountings, create memory for a new one
+      struct free_accounting_pool *to_ins =
+        kzalloc(sizeof(struct free_accounting_pool), GFP_KERNEL);
+      if (!to_ins) {
+        return NULL;
+      }
+      to_ins->prev = free_acct_pool_lst;
+      free_acct_pool_lst->next = to_ins;
+    }
+    else {
+      // Need to initialise pool
+      free_acct_pool_hd = free_acct_pool_lst = (struct free_accounting_pool *)
+        kzalloc(sizeof(struct free_accounting_pool), GFP_KERNEL);
+      if (!free_acct_pool_hd) {
+        return NULL;
+      }
+    }
+    spin_unlock(&free_acct_lock);
+    /**
+     * No need to lock on elements of the pool.
+     */
+    acct = (struct accounting *) kzalloc(sizeof(struct accounting),
+                                                  GFP_KERNEL);
+    if (!acct) {
+      //TODO: We currently leak here :-(
+      return NULL;
+    }
+  }
+  return acct;
+}
 
 int _create_shared_mem(void)
 {
@@ -90,11 +159,21 @@ int _fill_struct(long cycles, struct accounting *acct)
   return 0;
 }
 
-int _update_relay(struct accounting *acct)
+/**
+ * if finalised then all synchronous effects associated with acct have finished.
+ * We therefore assume that there will be no further writes to it, and return
+ * it to the pool.
+ */
+int _update_relay(struct accounting *acct, int finalised)
 {
+  struct free_accounting_pool *head;
   debugk("_update_relay\n");
   relay_reset(chan);
   relay_write(chan, acct, sizeof(struct accounting));
+  if (finalised) {
+    // return the struct accounting to the free accounting pool
+    return_to_pool(acct);
+  }
   return 0;
 }
 
@@ -135,21 +214,11 @@ int acct_next(pid_t pid, int syscall_nr)
   to_acct->pid = pid;
   to_acct->syscall_nr = syscall_nr;
   to_acct->next = syscall_acct_list;
+  to_acct->acct = fetch_from_pool();
 
-  /**
-   * Get memory to store the accounting in. Prefer reusing memory rather than
-   * kmalloc-ing more.
-   **/
-  spin_lock(&free_acct_lock);
-  if (free_acct_pool) {
-    to_acct->acct = free_acct_pool->item;
-    free_acct_pool = free_acct_pool->next;
-    spin_unlock(&free_acct_lock);
-  }
-  else {
-    spin_unlock(&free_acct_lock);
-    to_acct->acct = (struct accounting *) kzalloc(sizeof(struct accounting),
-                                                  GFP_KERNEL);
+  if (!to_acct->acct) {
+    kfree(to_acct);
+    return -1;
   }
   write_lock(&lock);
   syscall_acct_list = to_acct;

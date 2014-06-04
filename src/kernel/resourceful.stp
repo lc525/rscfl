@@ -73,7 +73,7 @@ function fill_struct(vfs:long)
 
 function update_relay()
 %{
-  _update_relay(acct);
+  _update_relay(acct, 1);
 %}
 
 function clear_acct_next(pid:long, syscall_nr:long)

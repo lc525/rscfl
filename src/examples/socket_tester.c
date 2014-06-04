@@ -22,14 +22,16 @@ int main(int argc, char *argv[])
   struct accounting acct = {0};
 
 // Open 3 sockets
-  rscfl_init(&relay_f_data);
+  if ( !(relay_f_data = rscfl_init())) {
+    printf("rscfl: Error initialising. Errno=%d\n", errno);
+  }
 
   if ( (socfd_1 = socket(sock_domain, sock_type, sock_proto)) < 0) {
     goto soc_err;
   }
 
-  if (rscfl_acct_next()) {
-    fprintf(stderr, "rscfl: acct_next errno=%d", errno);
+  if (rscfl_acct_next(relay_f_data)) {
+    fprintf(stderr, "rscfl: acct_next errno=%d\n", errno);
     return -1;
   }
 
@@ -37,8 +39,12 @@ int main(int argc, char *argv[])
     goto soc_err;
   }
 
-  rscfl_read_acct(relay_f_data, &acct);
-  printf("Acct: %llu\n", acct.cpu.cycles);
+  if (!rscfl_read_acct(relay_f_data, &acct)) {
+    printf("Acct: %llu\n", acct.cpu.cycles);
+  }
+  else {
+    fprintf(stderr, "rscfl: read_acct failed\n");
+  }
 
   if ( (socfd_3 = socket(sock_domain, sock_type, sock_proto)) < -1 ) {
     goto soc_err;

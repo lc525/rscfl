@@ -2,6 +2,7 @@
 
 #include <config.h>
 #include <linux/netlink.h>
+#include <linux/types.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>  // malloc builtin; avoids debug compilation warning
@@ -15,8 +16,6 @@
 
 #define MAX_PAYLOAD 1024 /* maximum payload size*/
 
-#define syscall_name "any_syscall"
-
 static struct sockaddr_nl src_addr, dest_addr;
 static struct nlmsghdr *nlh = NULL;
 static struct iovec iov;
@@ -27,29 +26,42 @@ rscfl_handle rscfl_init()
 {
   struct stat sb;
   int relay_fd;
+  rscfl_handle relay_f_data = (rscfl_handle) malloc(sizeof(*relay_f_data));
+  if (!relay_f_data) {
+    return NULL;
+  }
 
   // Open the relay file
   relay_fd = open("/sys/kernel/debug/resourceful0", O_RDONLY);
   if (relay_fd == -1) {
-    return NULL;
+    goto error;
   }
 
   // mmap a chunk of data the size of all of the sub-buffers (def in config.h)
-  char *relay_f_data = mmap(0, SUBBUF_SIZE * N_SUBBUFS, PROT_READ, MAP_SHARED,
-                       relay_fd, 0);
+  relay_f_data->buf = mmap(0, SUBBUF_SIZE * N_SUBBUFS, PROT_READ, MAP_SHARED,
+                           relay_fd, 0);
   if (relay_f_data == MAP_FAILED) {
-    return NULL;
+    goto error;
   }
 
   // Return the fd to the system
   if (close(relay_fd) == -1) {
-    return NULL;
+    goto error;
   }
 
-  return 0;
+  return relay_f_data;
+
+error:
+  if (relay_f_data) {
+    if (relay_f_data->buf) {
+      munmap(relay_f_data->buf, SUBBUF_SIZE);
+    }
+    free(relay_f_data);
+  }
+  return NULL;
 }
 
-int rscfl_acct_next(void)
+int rscfl_acct_next(rscfl_handle relay_f_data)
 {
   sock_fd = socket(PF_NETLINK, SOCK_RAW, NETLINK_USER);
   if (sock_fd < 0) {
@@ -74,7 +86,8 @@ int rscfl_acct_next(void)
   nlh->nlmsg_pid = getpid();
   nlh->nlmsg_flags = 0;
 
-  strcpy(NLMSG_DATA(nlh), syscall_name);
+  memcpy(NLMSG_DATA(nlh), &relay_f_data->lst_syscall,
+         sizeof(rscfl_syscall_id_t));
 
   iov.iov_base = (void *)nlh;
   iov.iov_len = nlh->nlmsg_len;
@@ -86,12 +99,23 @@ int rscfl_acct_next(void)
   sendmsg(sock_fd, &msg, 0);
 
   close(sock_fd);
+
+  relay_f_data->lst_syscall.id++;
+
   return 0;
 }
 
 int rscfl_read_acct(rscfl_handle relay_f_data, struct accounting *acct)
 {
-  memcpy(acct, relay_f_data, sizeof(struct accounting));
-  return 0;
+  struct accounting *relay_acct = (struct accounting *) relay_f_data->buf;
+  if ((relay_acct->syscall_id.pid == getpid()) &&
+      (relay_acct->syscall_id.id == (relay_f_data->lst_syscall.id - 1))) {
+    memcpy(acct, relay_acct, sizeof(struct accounting));
+    return 0;
+  }
+  else {
+    relay_acct++;
+  }
+  return -1;
 }
 

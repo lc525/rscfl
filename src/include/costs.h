@@ -32,6 +32,12 @@
 
 #include <linux/tcp.h>
 
+#ifdef __KERNEL__
+#include <linux/types.h>
+#else
+#include <sys/types.h>
+#endif
+
 #ifndef BIT
 #define BIT(x) 1U << x
 #endif
@@ -83,6 +89,11 @@ typedef enum {
 
   ALL              = ALL_BITS(21)
 } resource;
+
+typedef struct {
+  unsigned long id;
+  pid_t pid;
+} rscfl_syscall_id_t;
 
 struct cost_bitmap {
   u32 primary; // logical OR between multiple resource elements
@@ -141,6 +152,8 @@ struct accounting {
 
   struct acct_CPU cpu;
   struct acct_Mem mem;
+
+  rscfl_syscall_id_t syscall_id;
 
 #ifdef STAGE_2
   accounting_component[3] kunit_acct;

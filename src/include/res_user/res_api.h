@@ -3,11 +3,14 @@
 
 #include <costs.h>
 
-typedef char * rscfl_handle;
+typedef struct {
+  char *buf;
+  rscfl_syscall_id_t lst_syscall;
+} * rscfl_handle;
 
 rscfl_handle rscfl_init();
 
-int rscfl_acct_next();
+int rscfl_acct_next(rscfl_handle);
 
 int rscfl_read_acct(rscfl_handle handle, struct accounting *acct);
 

@@ -63,6 +63,7 @@ error:
 
 int rscfl_acct_next(rscfl_handle relay_f_data)
 {
+  int rc;
   sock_fd = socket(PF_NETLINK, SOCK_RAW, NETLINK_USER);
   if (sock_fd < 0) {
     return -1;
@@ -72,7 +73,9 @@ int rscfl_acct_next(rscfl_handle relay_f_data)
   src_addr.nl_family = AF_NETLINK;
   src_addr.nl_pid = getpid(); /* self pid */
 
-  bind(sock_fd, (struct sockaddr *)&src_addr, sizeof(src_addr));
+  if (rc = bind(sock_fd, (struct sockaddr *)&src_addr, sizeof(src_addr))) {
+    return rc;
+  }
 
   memset(&dest_addr, 0, sizeof(dest_addr));
   memset(&dest_addr, 0, sizeof(dest_addr));

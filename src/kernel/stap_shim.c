@@ -11,6 +11,12 @@ struct syscall_acct_list_t {
   struct syscall_acct_list_t *next;
 };
 
+struct free_accounting_pool {
+  struct accounting *item;
+  struct free_accounting_pool *prev;
+  struct free_accounting_pool *next;
+};
+
 typedef struct syscall_acct_list_t syscall_acct_list_t;
 
 static syscall_acct_list_t *syscall_acct_list;

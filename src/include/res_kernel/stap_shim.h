@@ -8,11 +8,6 @@
 #include <linux/relay.h>
 #include <linux/debugfs.h>
 
-struct free_accounting_pool {
-  struct accounting *item;
-  struct free_accounting_pool *next;
-};
-
 int _create_shared_mem(void);
 
 int _fill_struct(long, struct accounting *);

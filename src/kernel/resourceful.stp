@@ -10,8 +10,7 @@ struct accounting *acct;
 
 %}
 
-global files_dir=0, vfs=0, lfs=0, blk=0
-global files_dir_e=0, vfs_e=0, blk_e=0, cycles=0
+global cycles=0
 
 probe begin
 {
@@ -94,56 +93,6 @@ probe kernel.function("sys_socket").return
 probe kernel.function("sys_socket").call
 {
   if (should_acct()) {
-    files_dir = 0;
-    vfs = 0;
-    lfs = 0;
-    blk = 0;
-    files_dir_e = get_cycles();
     cycles = get_cycles();
   }
 }
-
-probe kernel.function("vfs_read").call
-{
-  if (should_acct()) {
-    vfs_e = get_cycles();
-  }
-}
-
-probe kernel.function("vfs_read").return
-{
-  if (should_acct()) {
-    vfs += get_cycles() - vfs_e;
-  }
-}
-
-#probe kernel.function("ext4_readpages").call
-#{
-# if (should_acct()) {
-#   lfs_e = get_cycles();
-#   blk = 0;
-# }
-#}
-
-#probe kernel.function("ext4_readpages").return
-#{
-# if (should_acct()) {
-#   lfs += get_cycles() - lfs_e;
-# }
-#
-#}
-
-probe kernel.function("blk_finish_plug").call
-{
-  if (should_acct()) {
-    blk_e = get_cycles();
-  }
-}
-
-probe kernel.function("blk_finish_plug").return
-{
-  if (should_acct()) {
-    blk += get_cycles() - blk_e;
-  }
-}
-

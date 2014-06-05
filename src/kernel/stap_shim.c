@@ -82,6 +82,7 @@ static inline struct accounting * fetch_from_pool(void)
     acct_pool_free = acct_pool_free->next;
     tmp->next = acct_pool_used;
     acct_pool_used = tmp;
+    spin_unlock(&free_acct_lock);
   }
   else {
     tmp = kzalloc(sizeof(struct free_accounting_pool), GFP_KERNEL);
@@ -91,16 +92,17 @@ static inline struct accounting * fetch_from_pool(void)
     }
     tmp->next = acct_pool_used;
     acct_pool_used = tmp;
-  }
-  spin_unlock(&free_acct_lock);
-  /**
-   * No need to lock on elements of the pool.
-   */
-  acct = (struct accounting *) kzalloc(sizeof(struct accounting),
-				       GFP_KERNEL);
-  if (!acct) {
-    kfree(tmp);
-    return NULL;
+    /**
+     * No need to lock on elements of the pool.
+     */
+    acct = (struct accounting *) kzalloc(sizeof(struct accounting),
+					 GFP_KERNEL);
+    if (!acct) {
+      spin_unlock(&free_acct_lock);
+      kfree(tmp);
+      return NULL;
+    }
+    spin_unlock(&free_acct_lock);
   }
   return acct;
 }

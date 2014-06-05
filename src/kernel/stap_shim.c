@@ -161,7 +161,7 @@ int _update_relay(struct accounting *acct, int finalised)
 
 /**
  * if syscall_nr==-1 then we account for the next syscall, independent of which
-\ * syscall is executed.
+ * syscall is executed.
  **/
 struct accounting * _should_acct(pid_t pid, int syscall_nr)
 {

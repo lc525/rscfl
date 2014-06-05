@@ -13,7 +13,6 @@ struct syscall_acct_list_t {
 
 struct free_accounting_pool {
   struct accounting *item;
-  struct free_accounting_pool *prev;
   struct free_accounting_pool *next;
 };
 
@@ -21,7 +20,7 @@ typedef struct syscall_acct_list_t syscall_acct_list_t;
 
 static syscall_acct_list_t *syscall_acct_list;
 static struct rchan *chan;
-static struct free_accounting_pool *free_acct_pool_hd, *free_acct_pool_lst;
+static struct free_accounting_pool *acct_pool_free, *acct_pool_used;
 static long syscall_id_c;
 
 static rwlock_t lock = __RW_LOCK_UNLOCKED(lock);
@@ -57,20 +56,13 @@ static int remove_buf_file_handler(struct dentry *dentry)
 
 static inline void return_to_pool (struct accounting *acct)
 {
+  struct free_accounting_pool *tmp;
   spin_lock(&free_acct_lock);
-  BUG_ON(unlikely(!(free_acct_pool_lst || free_acct_pool_hd)));
-  BUG_ON(unlikely(free_acct_pool_lst->next));
-  BUG_ON(unlikely(free_acct_pool_lst->item));
-  free_acct_pool_lst->next = free_acct_pool_hd;
-  free_acct_pool_hd = free_acct_pool_lst;
-  if (free_acct_pool_lst->prev) {
-    free_acct_pool_lst = free_acct_pool_lst->prev;
-     free_acct_pool_hd->next->prev = free_acct_pool_hd;
-  }
-  free_acct_pool_hd->item = acct;
-  free_acct_pool_hd->prev = NULL;
-  free_acct_pool_lst->next = NULL;
-  BUG_ON(unlikely(!(free_acct_pool_lst || free_acct_pool_hd)));
+  BUG_ON(!(acct_pool_used));
+  tmp = acct_pool_used;
+  acct_pool_used = acct_pool_used->next;
+  acct_pool_free = tmp;
+  tmp->item = acct;
   spin_unlock(&free_acct_lock);
 }
 
@@ -82,45 +74,33 @@ static inline void return_to_pool (struct accounting *acct)
 static inline struct accounting * fetch_from_pool(void)
 {
   struct accounting *acct;
+  struct free_accounting_pool *tmp;
   spin_lock(&free_acct_lock);
-  if (free_acct_pool_hd && free_acct_pool_hd->item) {
-    acct = free_acct_pool_hd->item;
-    free_acct_pool_hd->item = NULL;
-    free_acct_pool_lst->next = free_acct_pool_hd;
-    free_acct_pool_hd = free_acct_pool_hd->next;
-    free_acct_pool_lst->next = NULL;
-    free_acct_pool_hd = NULL;
-    spin_unlock(&free_acct_lock);
+  if (acct_pool_free) {
+    tmp = acct_pool_free;
+    acct = acct_pool_free->item;
+    acct_pool_free = acct_pool_free->next;
+    tmp->next = acct_pool_used;
+    acct_pool_used = tmp;
   }
   else {
-    if (free_acct_pool_lst) {
-      // No free struct accountings, create memory for a new one
-      struct free_accounting_pool *to_ins =
-        kzalloc(sizeof(struct free_accounting_pool), GFP_KERNEL);
-      if (!to_ins) {
-        return NULL;
-      }
-      to_ins->prev = free_acct_pool_lst;
-      free_acct_pool_lst->next = to_ins;
-    }
-    else {
-      // Need to initialise pool
-      free_acct_pool_hd = free_acct_pool_lst = (struct free_accounting_pool *)
-        kzalloc(sizeof(struct free_accounting_pool), GFP_KERNEL);
-      if (!free_acct_pool_hd) {
-        return NULL;
-      }
-    }
-    spin_unlock(&free_acct_lock);
-    /**
-     * No need to lock on elements of the pool.
-     */
-    acct = (struct accounting *) kzalloc(sizeof(struct accounting),
-                                                  GFP_KERNEL);
-    if (!acct) {
-      //TODO: We currently leak here :-(
+    tmp = kzalloc(sizeof(struct free_accounting_pool), GFP_KERNEL);
+    if (!tmp) {
+      spin_unlock(&free_acct_lock);
       return NULL;
     }
+    tmp->next = acct_pool_used;
+    acct_pool_used = tmp;
+  }
+  spin_unlock(&free_acct_lock);
+  /**
+   * No need to lock on elements of the pool.
+   */
+  acct = (struct accounting *) kzalloc(sizeof(struct accounting),
+				       GFP_KERNEL);
+  if (!acct) {
+    kfree(tmp);
+    return NULL;
   }
   return acct;
 }

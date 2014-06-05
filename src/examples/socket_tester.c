@@ -23,7 +23,7 @@ int main(int argc, char *argv[])
 
 // Open 3 sockets
   if ( !(relay_f_data = rscfl_init())) {
-    printf("rscfl: Error initialising. Errno=%d\n", errno);
+    fprintf(stderr, "rscfl: Error initialising. Errno=%d\n", errno);
     return -1;
   }
 

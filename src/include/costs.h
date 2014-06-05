@@ -116,6 +116,7 @@ struct acct_CPU {
   u64 cycles;
   u64 branch_mispredictions; //count
   u64 instructions; //count
+  u64 wall_clock_time;
 };
 
 

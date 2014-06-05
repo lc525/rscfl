@@ -41,7 +41,8 @@ int main(int argc, char *argv[])
   }
 
   if (!rscfl_read_acct(relay_f_data, &acct)) {
-    printf("Acct: %llu\n", acct.cpu.cycles);
+    printf("rscfl: cpu_cycles=%llu wall_clock_time=%llu\n", acct.cpu.cycles,
+           acct.cpu.wall_clock_time);
   }
   else {
     fprintf(stderr, "rscfl: read_acct failed\n");

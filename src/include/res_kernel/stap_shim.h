@@ -10,7 +10,7 @@
 
 int _create_shared_mem(void);
 
-int _fill_struct(long, struct accounting *);
+int _fill_struct(long, long, struct accounting *);
 
 int _update_relay(struct accounting *, int finalised);
 

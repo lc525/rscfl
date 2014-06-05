@@ -11,6 +11,7 @@ struct accounting *acct;
 %}
 
 global cycles=0
+global wall_clock_time
 
 probe begin
 {
@@ -65,9 +66,9 @@ function should_acct()
 }
 
 
-function fill_struct(vfs:long)
+function fill_struct(vfs:long, wall_clock_time:long)
 %{
-  _fill_struct(STAP_ARG_vfs, acct);
+  _fill_struct(STAP_ARG_vfs, STAP_ARG_wall_clock_time, acct);
 %}
 
 function update_relay()
@@ -85,14 +86,16 @@ probe kernel.function("sys_socket").return
 {
   if (should_acct()) {
     clear_acct_next(pid(), -1);
-    fill_struct(get_cycles() - cycles);
+    fill_struct(get_cycles() - cycles, gettimeofday_us() - wall_clock_time);
     update_relay();
   }
 }
 
 probe kernel.function("sys_socket").call
 {
+  start = gettimeofday_us()
   if (should_acct()) {
     cycles = get_cycles();
+    wall_clock_time = start;
   }
 }

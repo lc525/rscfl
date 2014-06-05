@@ -134,10 +134,11 @@ int _clean_debugfs(void)
   return 0;
 }
 
-int _fill_struct(long cycles, struct accounting *acct)
+int _fill_struct(long cycles, long wall_clock_time, struct accounting *acct)
 {
   debugk("_fill_struct\n");
   acct->cpu.cycles = cycles;
+  acct->cpu.wall_clock_time = wall_clock_time;
   return 0;
 }
 

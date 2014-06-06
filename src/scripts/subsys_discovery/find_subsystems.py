@@ -77,9 +77,6 @@ if __name__ == '__main__':
     parser.add_argument('-c', dest='ctags_fn', action='store',
                         type=argparse.FileType('r'), default='tags',
                         help='The CTags file to use')
-    parser.add_argument('--entries', dest='entry_fn', action='store',
-                        type=argparse.FileType('w'), default='subsystems.out',
-                        help='The file to output the final subsystem entries to')
     parser.add_argument('--efile', dest='entries_file',
                         action='store', help='An existing entries file')
     args = parser.parse_args()
@@ -87,7 +84,6 @@ if __name__ == '__main__':
     entry_points = []
 
     if not args.entries_file:
-        print '.'
         ftrace_fn = args.ftrace_fn
         ctags_fn = args.ctags_fn
 
@@ -96,22 +92,26 @@ if __name__ == '__main__':
         ftrace_d = parse_ftrace.get_function_list(
             parse_ftrace.read_trace_file(ftrace_fn))
 
-        print ' '
-        print "Matching functions to subsystems"
         func_sys = get_subsystems(ftrace_d, ctags_d)
         write_funcs(func_sys, 'funcs.out')
 
-        print ''
-        print "Finding subsystem entry points"
         entry_points = find_entry_exit(func_sys)
         write_subsys(entry_points, 'entry_points.out')
     else:
         entry_points = parse_entries(args.entries_file)
+    entry_points = ['kernel.function("%s").call,' % x[1] for x in entry_points]
+    # remove duplicates
+    entry_points = list(set(entry_points))
+    entry_points[-1] = entry_points[-1][0:-1]
 
-    print ''
-    print "Outputting D for each function"
-    fd = open("probes.out", 'w')
-    for entry in entry_points:
-        probe = get_d_for_func(entry[1])
-        fd.write(probe)
-
+    print("probe ")
+    print("\n".join(entry_points))
+    print("""
+{
+  if (should_acct()) {
+    clear_acct_next(pid(), -1);
+    fill_struct(get_cycles() - cycles, gettimeofday_us() - wall_clock_time);
+    update_relay();
+  }
+}
+          """)

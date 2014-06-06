@@ -6,11 +6,6 @@ import sys
 import argparse
 
 
-def update_status(stat, tot):
-    sys.stdout.write('\r%d of %d' % (stat, tot))
-    sys.stdout.flush()
-
-
 def write_funcs(funcs, filename):
     fd = open(filename, 'w')
     for line in funcs:
@@ -31,13 +26,10 @@ def get_subsystems(ftrace_d, ctags_d):
     curr = 0
     ftfunc_file = []
     for func in ftrace_d:
-        for tag in ctags_d:
-            if len(tag) > 1:
-                if tag[0] == func:
-                    ftfunc_file.append([func, parse_ctags.get_subsys(tag[1])])
-                    curr = curr + 1
-                    update_status(curr, total)
-                    break
+        try:
+            ftfunc_file.append([func, parse_ctags.get_subsys(ctags_d[func])])
+        except KeyError:
+            sys.stderr.write("Cannot find ctag for %s\n" % func)
 
     return ftfunc_file
 
@@ -53,7 +45,6 @@ def find_entry_exit(func_sys):
         if entry[1] != prev_sys:
             prev_sys = entry[1]
             entry_points.append([prev_sys, entry[0]])
-        update_status(count, total)
         count = count + 1
     return entry_points
 

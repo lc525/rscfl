@@ -6,12 +6,15 @@ def read_ctags_file(f):
 
 
 def parse_for_func_file(tags):
-    parsed_tags = [[]]
+    parsed_tags = {}
     for line in tags:
-        s = line.split('\t')
-        func = s[0]
-        fl = s[1]
-        parsed_tags.append([func, fl])
+        try:
+            s = line.split('\t')
+            func = s[0]
+            fl = s[1]
+            parsed_tags[func] = fl
+        except IndexError:
+            pass
     return parsed_tags
 
 

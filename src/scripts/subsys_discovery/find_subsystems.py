@@ -114,3 +114,4 @@ if __name__ == '__main__':
     for entry in entry_points:
         probe = get_d_for_func(entry[1])
         fd.write(probe)
+

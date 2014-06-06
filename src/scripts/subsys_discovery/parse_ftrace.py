@@ -1,9 +1,7 @@
 #!/usr/bin/env python2.7
 
-def read_trace_file(filename):
-    with open(filename) as f:
-        lines = list(f)
-        return lines[11:-1]
+def read_trace_file(f):
+        return f.readlines()[11:-1]
 
 
 def get_function_list(trace):

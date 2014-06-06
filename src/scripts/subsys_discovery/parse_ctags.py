@@ -1,10 +1,8 @@
 #!/usr/bin/env python2.7
 
 
-def read_ctags_file(filename):
-    with open(filename) as f:
-        lines = list(f)
-        return lines
+def read_ctags_file(f):
+    return f.readlines()
 
 
 def parse_for_func_file(tags):

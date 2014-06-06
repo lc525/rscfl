@@ -81,11 +81,14 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description="Find and output subsystems present in an FTrace trace")
     parser.add_argument('-t', dest='ftrace_fn', action='store',
-                        default='trace', help='The FTrace trace file.')
+                        type=argparse.FileType('r'), default='trace',
+                        help='The FTrace trace file.')
     parser.add_argument('-c', dest='ctags_fn', action='store',
-                        default='tags', help='The CTags file to use')
+                        type=argparse.FileType('r'), default='tags',
+                        help='The CTags file to use')
     parser.add_argument('--entries', dest='entry_fn', action='store',
-                        default='subsystems.out', help='The file to output the final subsystem entries to')
+                        type=argparse.FileType('w'), default='subsystems.out',
+                        help='The file to output the final subsystem entries to')
     parser.add_argument('--efile', dest='entries_file',
                         action='store', help='An existing entries file')
     args = parser.parse_args()

@@ -1,4 +1,4 @@
-#! /usr/bin/env py
+#! /usr/bin/env python2.7
 
 import parse_ctags
 import parse_ftrace

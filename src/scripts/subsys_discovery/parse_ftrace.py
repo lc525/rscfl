@@ -1,3 +1,5 @@
+#!/usr/bin/env python2.7
+
 def read_trace_file(filename):
     with open(filename) as f:
         lines = list(f)

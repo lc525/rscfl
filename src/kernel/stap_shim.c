@@ -1,6 +1,9 @@
 #include "res_kernel/stap_shim.h"
 #include "costs.h"
 #include <linux/rwlock_types.h>
+#include <linux/slab.h>
+#include <linux/relay.h>
+#include <linux/debugfs.h>
 #include <linux/spinlock.h>
 
 struct syscall_acct_list_t {

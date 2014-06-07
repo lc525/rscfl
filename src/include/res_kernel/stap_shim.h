@@ -4,10 +4,6 @@
 #include "config.h"
 #include "costs.h"
 
-#include <linux/slab.h>
-#include <linux/relay.h>
-#include <linux/debugfs.h>
-
 int _create_shared_mem(void);
 
 int _fill_struct(long, long, struct accounting *);

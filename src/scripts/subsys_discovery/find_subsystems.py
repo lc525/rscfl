@@ -61,13 +61,6 @@ def parse_entries(filename):
     return entries
 
 
-def get_d_for_func(func):
-    sig = "probe kernel.function(\"" + func + "\").call { \n"
-    body = "\tif (should_acct()) {\n\t\tclear_acct_next(pid(), -1);\n\t\tfill_struct(get_cycles(), gettimeofday_us());\n\t\tupdate_relay();\n\t}\n"
-    close = "}\n"
-    probe = sig + ' ' + body + ' ' + close
-    return probe
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description="Find and output subsystems present in an FTrace trace")

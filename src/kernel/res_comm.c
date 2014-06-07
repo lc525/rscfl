@@ -1,4 +1,5 @@
 #include "config.h"
+#include "costs.h"
 #include "res_kernel/res_comm.h"
 #include "res_kernel/stap_shim.h"
 
@@ -12,10 +13,12 @@ static void res_nl_recv_msg(struct sk_buff *skb)
 {
   struct nlmsghdr *nlh;
   pid_t pid;
+  rscfl_syscall_id_t *lst_syscall;
 
   nlh = (struct nlmsghdr *)skb->data;
   pid = nlh->nlmsg_pid; /*pid of sending process */
-  acct_next(pid, -1);
+  lst_syscall = (rscfl_syscall_id_t *)NLMSG_DATA(nlh);
+  acct_next(pid, lst_syscall->id);
 }
 
 int _netlink_setup(void)

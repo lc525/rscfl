@@ -1,10 +1,12 @@
 #include "res_kernel/stap_shim.h"
+#include "res_common.h"
 #include "costs.h"
 #include <linux/rwlock_types.h>
 #include <linux/slab.h>
-#include <linux/relay.h>
-#include <linux/debugfs.h>
 #include <linux/spinlock.h>
+#include <linux/mm.h>
+
+#define BUF_SIZE 4096  // need to think about this
 
 struct syscall_acct_list_t {
   struct accounting *acct;
@@ -22,40 +24,22 @@ struct free_accounting_pool {
 typedef struct syscall_acct_list_t syscall_acct_list_t;
 
 static syscall_acct_list_t *syscall_acct_list;
-static struct rchan *chan;
 static struct free_accounting_pool *acct_pool_free, *acct_pool_used;
 static long syscall_id_c;
+static char *buf;
 
 static rwlock_t lock = __RW_LOCK_UNLOCKED(lock);
 static spinlock_t free_acct_lock = __SPIN_LOCK_UNLOCKED(free_acct_lock);
 
-static struct dentry *create_buf_file_handler(const char *, struct dentry *,
-                umode_t, struct rchan_buf *,
-                int *);
+static int rscfl_mmap(struct file *, struct vm_area_struct *);
 
-static int remove_buf_file_handler(struct dentry *dentry);
+static struct class *rscfl_class;
 
-static struct rchan_callbacks relay_callbacks =
+static struct file_operations fops =
 {
-  .create_buf_file = create_buf_file_handler,
-  .remove_buf_file = remove_buf_file_handler,
+  .mmap = rscfl_mmap,
 };
 
-static struct dentry *create_buf_file_handler(const char *filename,
-                struct dentry *parent,
-                umode_t mode,
-                struct rchan_buf *buf,
-                int *is_global)
-{
-  return debugfs_create_file(filename, mode, parent, buf,
-           &relay_file_operations);
-}
-
-static int remove_buf_file_handler(struct dentry *dentry)
-{
-  debugfs_remove(dentry);
-  return 0;
-}
 
 static inline void return_to_pool (struct accounting *acct)
 {
@@ -110,19 +94,49 @@ static inline struct accounting * fetch_from_pool(void)
   return acct;
 }
 
-int _create_shared_mem(void)
+static int rscfl_mmap(struct file *filp, struct vm_area_struct *vma)
 {
-  debugk("_create_shared_mem\n");
+  unsigned long page;
+  unsigned long pos;
+  unsigned long size = (unsigned long)vma->vm_end-vma->vm_start;
+  unsigned long start = (unsigned long)vma->vm_start;
 
-  if ( !(chan = relay_open(PROJECT_NAME, NULL, SUBBUF_SIZE,
-         N_SUBBUFS, &relay_callbacks, NULL)) ) {
-    printk(KERN_ERR "rscfl: cannot open relay channel\n");
-    goto error;
+  if (size > BUF_SIZE)
+    return -EINVAL;
+
+  buf = kmalloc(BUF_SIZE, GFP_KERNEL);
+  if (!buf) {
+    return -1;
+  }
+
+  pos = (unsigned long)buf;
+
+  while (size) {
+    page = virt_to_phys((void *)pos);
+    /* fourth argument is the protection of the map. you might
+     * want to use vma->vm_page_prot instead.
+     */
+    if (remap_pfn_range(vma, start, page >> PAGE_SHIFT, PAGE_SIZE, PAGE_SHARED))
+      return -EAGAIN;
+    start+=PAGE_SIZE;
+    pos+=PAGE_SIZE;
+    size-=PAGE_SIZE;
   }
   return 0;
+}
 
-error:
-  return -1;
+
+int _create_shared_mem(void)
+{
+  int rc;
+  rc = register_chrdev(90, RSCFL_DRIVER, &fops);
+  rscfl_class = class_create(THIS_MODULE, RSCFL_DRIVER);
+  device_create(rscfl_class, NULL, MKDEV(90, 0), NULL, RSCFL_DRIVER);
+  if (rc < 0) {
+    return rc;
+  }
+
+  return 0;
 }
 
 int _rscfl_shim_init(void)
@@ -133,7 +147,10 @@ int _rscfl_shim_init(void)
 
 int _clean_debugfs(void)
 {
-  relay_close(chan);
+  device_destroy(rscfl_class, MKDEV(90, 0));
+  class_unregister(rscfl_class);
+  class_destroy(rscfl_class);
+  unregister_chrdev(90, "rscfl2");
   return 0;
 }
 
@@ -154,7 +171,7 @@ int _update_relay(struct accounting *acct, int finalised)
 {
   struct free_accounting_pool *head;
   debugk("_update_relay\n");
-  relay_write(chan, acct, sizeof(struct accounting));
+  memcpy(buf, acct, sizeof(struct accounting));
   if (finalised) {
     // return the struct accounting to the free accounting pool
     return_to_pool(acct);

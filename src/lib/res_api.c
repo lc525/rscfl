@@ -1,4 +1,5 @@
 #include "res_user/res_api.h"
+#include "res_common.h"
 
 #include <config.h>
 #include <linux/netlink.h>
@@ -26,27 +27,25 @@ static struct msghdr msg;
 rscfl_handle rscfl_init()
 {
   struct stat sb;
-  int relay_fd;
+  int fd = open("/dev/rscfl", O_RDWR);
   rscfl_handle relay_f_data = (rscfl_handle) malloc(sizeof(*relay_f_data));
   if (!relay_f_data) {
     return NULL;
   }
 
-  // Open the relay file
-  relay_fd = open("/sys/kernel/debug/resourceful0", O_RDONLY);
-  if (relay_fd == -1) {
+  if (fd == -1) {
     goto error;
   }
 
+
   // mmap a chunk of data the size of all of the sub-buffers (def in config.h)
-  relay_f_data->buf = mmap(0, SUBBUF_SIZE * N_SUBBUFS, PROT_READ, MAP_SHARED,
-                           relay_fd, 0);
+  relay_f_data->buf = mmap(NULL, 4096, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
   if (relay_f_data == MAP_FAILED) {
     goto error;
   }
 
   // Return the fd to the system
-  if (close(relay_fd) == -1) {
+  if (close(fd) == -1) {
     goto error;
   }
 

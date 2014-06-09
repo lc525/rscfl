@@ -113,9 +113,6 @@ static int rscfl_mmap(struct file *filp, struct vm_area_struct *vma)
 
   while (size) {
     page = virt_to_phys((void *)pos);
-    /* fourth argument is the protection of the map. you might
-     * want to use vma->vm_page_prot instead.
-     */
     if (remap_pfn_range(vma, start, page >> PAGE_SHIFT, PAGE_SIZE, PAGE_SHARED))
       return -EAGAIN;
     start+=PAGE_SIZE;

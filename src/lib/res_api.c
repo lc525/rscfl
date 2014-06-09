@@ -1,7 +1,8 @@
+#include "config.h"
+#include "costs.h"
 #include "res_user/res_api.h"
 #include "res_common.h"
 
-#include <config.h>
 #include <linux/netlink.h>
 #include <linux/types.h>
 #include <stddef.h>
@@ -9,7 +10,6 @@
 #include <stdlib.h>  // malloc builtin; avoids debug compilation warning
 #include <sys/socket.h>
 #include <fcntl.h>
-#include <costs.h>
 #include <string.h>
 #include <sys/mman.h>
 #include <errno.h>

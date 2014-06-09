@@ -114,6 +114,8 @@ int _rscfl_shim_init(void)
 
 int _rscfl_shim_cleanup(void)
 {
+  device_destroy(rscfl_class, MKDEV(RSCFL_MAJOR, RSCFL_MINOR));
+  class_destroy(rscfl_class);
   return 0;
 }
 

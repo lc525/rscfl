@@ -100,6 +100,11 @@ int _rscfl_shim_init(void)
   return 0;
 }
 
+int _rscfl_shim_cleanup(void)
+{
+  return 0;
+}
+
 
 int _fill_struct(long cycles, long wall_clock_time, struct accounting *acct)
 {

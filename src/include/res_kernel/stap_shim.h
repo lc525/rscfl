@@ -14,6 +14,8 @@ int acct_next(pid_t, int);
 
 int _rscfl_shim_init(void);
 
+int _rscfl_shim_cleanup(void);
+
 int _clear_acct_next(pid_t, int);
 
 #ifndef NDEBUG

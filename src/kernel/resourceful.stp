@@ -28,6 +28,9 @@ probe begin
 
 probe end
 {
+  if (rscfl_shim_cleanup()) {
+    printf("Cannot cleanup rscfl driver\n");
+  }
   if (netlink_teardown()) {
     printf("Cannot teardown netlink\n");
   }
@@ -41,6 +44,11 @@ function netlink_setup:long()
 function netlink_teardown:long()
 %{
   STAP_RETVALUE = _netlink_teardown();
+%}
+
+function rscfl_shim_cleanup:long()
+%{
+  STAP_RETVALUE = _rscfl_shim_cleanup();
 %}
 
 function rscfl_shim_init:long()

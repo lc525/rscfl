@@ -129,17 +129,6 @@ int _fill_struct(long cycles, long wall_clock_time, struct accounting *acct)
 }
 
 /**
- * if finalised then all synchronous effects associated with acct have finished.
- * We therefore assume that there will be no further writes to it, and return
- * it to the pool.
- */
-int _update_relay(struct accounting *acct, int finalised)
-{
-  return 0;
-}
-
-
-/**
  * if syscall_nr==-1 then we account for the next syscall, independent of which
  * syscall is executed.
  **/

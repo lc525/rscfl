@@ -8,8 +8,6 @@ int _create_shared_mem(void);
 
 int _fill_struct(long, long, struct accounting *);
 
-int _update_relay(struct accounting *, int finalised);
-
 struct accounting * _should_acct(pid_t pid, int syscall_nr);
 
 int acct_next(pid_t, int);

@@ -65,11 +65,6 @@ function fill_struct(vfs:long, wall_clock_time:long)
   _fill_struct(STAP_ARG_vfs, STAP_ARG_wall_clock_time, acct);
 %}
 
-function update_relay()
-%{
-  _update_relay(acct, 1);
-%}
-
 function clear_acct_next(pid:long, syscall_nr:long)
 %{
   _clear_acct_next(STAP_ARG_pid, STAP_ARG_syscall_nr);
@@ -81,7 +76,6 @@ probe kernel.function("sys_socket").return
   if (should_acct()) {
     clear_acct_next(pid(), -1);
     fill_struct(get_cycles() - cycles, gettimeofday_us() - wall_clock_time);
-    update_relay();
   }
 }
 

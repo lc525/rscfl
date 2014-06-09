@@ -15,11 +15,6 @@ struct syscall_acct_list_t {
   struct syscall_acct_list_t *next;
 };
 
-struct free_accounting_pool {
-  struct accounting *item;
-  struct free_accounting_pool *next;
-};
-
 struct rscfl_pid_pages_t {
   char *buf;
   struct rscfl_pid_pages_t *next;
@@ -29,13 +24,11 @@ struct rscfl_pid_pages_t {
 typedef struct syscall_acct_list_t syscall_acct_list_t;
 
 static syscall_acct_list_t *syscall_acct_list;
-static struct free_accounting_pool *acct_pool_free, *acct_pool_used;
 static long syscall_id_c;
 static struct rscfl_pid_pages_t *rscfl_pid_pages;
 
 static rwlock_t lock = __RW_LOCK_UNLOCKED(lock);
 static rwlock_t pid_pages_lock = __RW_LOCK_UNLOCKED(pid_pages_lock);
-static spinlock_t free_acct_lock = __SPIN_LOCK_UNLOCKED(free_acct_lock);
 
 static int rscfl_mmap(struct file *, struct vm_area_struct *);
 
@@ -46,59 +39,6 @@ static struct file_operations fops =
   .mmap = rscfl_mmap,
 };
 
-
-static inline void return_to_pool (struct accounting *acct)
-{
-  struct free_accounting_pool *tmp;
-  spin_lock(&free_acct_lock);
-  BUG_ON(!(acct_pool_used));
-  tmp = acct_pool_used;
-  acct_pool_used = acct_pool_used->next;
-  acct_pool_free = tmp;
-  tmp->item = acct;
-  spin_unlock(&free_acct_lock);
-}
-
-
-/**
- * Get memory to store the accounting in. Prefer reusing memory rather than
- * kmalloc-ing more.
- **/
-static inline struct accounting * fetch_from_pool(void)
-{
-  struct accounting *acct;
-  struct free_accounting_pool *tmp;
-  spin_lock(&free_acct_lock);
-  if (acct_pool_free) {
-    tmp = acct_pool_free;
-    acct = acct_pool_free->item;
-    acct_pool_free = acct_pool_free->next;
-    tmp->next = acct_pool_used;
-    acct_pool_used = tmp;
-    spin_unlock(&free_acct_lock);
-  }
-  else {
-    tmp = kzalloc(sizeof(struct free_accounting_pool), GFP_KERNEL);
-    if (!tmp) {
-      spin_unlock(&free_acct_lock);
-      return NULL;
-    }
-    tmp->next = acct_pool_used;
-    acct_pool_used = tmp;
-    /**
-     * No need to lock on elements of the pool.
-     */
-    acct = (struct accounting *) kzalloc(sizeof(struct accounting),
-					 GFP_KERNEL);
-    if (!acct) {
-      spin_unlock(&free_acct_lock);
-      kfree(tmp);
-      return NULL;
-    }
-    spin_unlock(&free_acct_lock);
-  }
-  return acct;
-}
 
 static int rscfl_mmap(struct file *filp, struct vm_area_struct *vma)
 {

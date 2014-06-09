@@ -87,8 +87,7 @@ static int rscfl_mmap(struct file *filp, struct vm_area_struct *vma)
   return 0;
 }
 
-
-int _create_shared_mem(void)
+int _rscfl_shim_init(void)
 {
   int rc;
   rc = register_chrdev(90, RSCFL_DRIVER, &fops);
@@ -99,11 +98,6 @@ int _create_shared_mem(void)
   }
 
   return 0;
-}
-
-int _rscfl_shim_init(void)
-{
-  return _create_shared_mem();
 }
 
 

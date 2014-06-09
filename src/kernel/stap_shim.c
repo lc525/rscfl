@@ -9,7 +9,6 @@
 #define BUF_SIZE 4096  // need to think about this
 
 struct syscall_acct_list_t {
-  struct accounting *acct;
   unsigned long syscall_id;
   pid_t pid;
   int syscall_nr;
@@ -21,14 +20,21 @@ struct free_accounting_pool {
   struct free_accounting_pool *next;
 };
 
+struct rscfl_pid_pages_t {
+  char *buf;
+  struct rscfl_pid_pages_t *next;
+  pid_t pid;
+};
+
 typedef struct syscall_acct_list_t syscall_acct_list_t;
 
 static syscall_acct_list_t *syscall_acct_list;
 static struct free_accounting_pool *acct_pool_free, *acct_pool_used;
 static long syscall_id_c;
-static char *buf;
+static struct rscfl_pid_pages_t *rscfl_pid_pages;
 
 static rwlock_t lock = __RW_LOCK_UNLOCKED(lock);
+static rwlock_t pid_pages_lock = __RW_LOCK_UNLOCKED(pid_pages_lock);
 static spinlock_t free_acct_lock = __SPIN_LOCK_UNLOCKED(free_acct_lock);
 
 static int rscfl_mmap(struct file *, struct vm_area_struct *);
@@ -100,21 +106,40 @@ static int rscfl_mmap(struct file *filp, struct vm_area_struct *vma)
   unsigned long pos;
   unsigned long size = (unsigned long)vma->vm_end-vma->vm_start;
   unsigned long start = (unsigned long)vma->vm_start;
+  struct rscfl_pid_pages_t *new_hd;
+  char *buf;
 
   if (size > BUF_SIZE)
     return -EINVAL;
 
-  buf = kmalloc(BUF_SIZE, GFP_KERNEL);
+  buf = kzalloc(BUF_SIZE, GFP_KERNEL);
   if (!buf) {
     return -1;
   }
+  write_lock(&pid_pages_lock);
+  new_hd = (struct rscfl_pid_pages_t *) kmalloc(sizeof(struct rscfl_pid_pages_t),
+						GFP_KERNEL);
+  if (!new_hd) {
+    kfree(buf);
+    return -1;
+  }
+  new_hd->buf = buf;
+  new_hd->pid = current->pid;
+  new_hd->next = rscfl_pid_pages;
+  rscfl_pid_pages = new_hd;
+  write_unlock(&pid_pages_lock);
 
   pos = (unsigned long)buf;
 
   while (size) {
     page = virt_to_phys((void *)pos);
-    if (remap_pfn_range(vma, start, page >> PAGE_SHIFT, PAGE_SIZE, PAGE_SHARED))
+    if (remap_pfn_range(vma, start, page >> PAGE_SHIFT, PAGE_SIZE,
+                        PAGE_SHARED)) {
+      rscfl_pid_pages = rscfl_pid_pages->next;
+      kfree(new_hd);
+      kfree(buf);
       return -EAGAIN;
+    }
     start+=PAGE_SIZE;
     pos+=PAGE_SIZE;
     size-=PAGE_SIZE;
@@ -142,15 +167,6 @@ int _rscfl_shim_init(void)
 }
 
 
-int _clean_debugfs(void)
-{
-  device_destroy(rscfl_class, MKDEV(90, 0));
-  class_unregister(rscfl_class);
-  class_destroy(rscfl_class);
-  unregister_chrdev(90, "rscfl2");
-  return 0;
-}
-
 int _fill_struct(long cycles, long wall_clock_time, struct accounting *acct)
 {
   debugk("_fill_struct\n");
@@ -166,13 +182,6 @@ int _fill_struct(long cycles, long wall_clock_time, struct accounting *acct)
  */
 int _update_relay(struct accounting *acct, int finalised)
 {
-  struct free_accounting_pool *head;
-  debugk("_update_relay\n");
-  memcpy(buf, acct, sizeof(struct accounting));
-  if (finalised) {
-    // return the struct accounting to the free accounting pool
-    return_to_pool(acct);
-  }
   return 0;
 }
 
@@ -185,16 +194,31 @@ struct accounting * _should_acct(pid_t pid, int syscall_nr)
 {
   syscall_acct_list_t *e;
   struct accounting *ret;
+  struct rscfl_pid_pages_t *pid_page = rscfl_pid_pages;
 
   read_lock(&lock);
   e = syscall_acct_list;
   while (e) {
     if ((e->pid == pid) &&
-  ((syscall_nr == -1) || (e->syscall_nr == syscall_nr))) {
-      ret = e->acct;
-      ret->syscall_id.pid = pid;
-      read_unlock(&lock);
-      return ret;
+       ((syscall_nr == -1) || (e->syscall_nr == syscall_nr))) {
+      while (pid_page) {
+        if (pid_page->pid == current->pid) {
+	  ret = (struct accounting *) pid_page->buf;
+	  BUG_ON(!ret);
+          ret->syscall_id.pid = pid;
+          read_unlock(&lock);
+          return ret;
+        }
+        else {
+	  pid_page++;
+	  if (pid_page - rscfl_pid_pages >= BUF_SIZE / sizeof(pid_page)) {
+	    read_unlock(&lock);
+	    printk(KERN_ERR "rscfl: pid %d cannot find mapped page\n",
+                   current->pid);
+            return NULL;
+	  }
+        }
+      }
     }
     e = e->next;
   }
@@ -213,12 +237,6 @@ int acct_next(pid_t pid, int syscall_nr)
   to_acct->pid = pid;
   to_acct->syscall_nr = syscall_nr;
   to_acct->next = syscall_acct_list;
-  to_acct->acct = fetch_from_pool();
-
-  if (!to_acct->acct) {
-    kfree(to_acct);
-    return -1;
-  }
   write_lock(&lock);
   syscall_acct_list = to_acct;
   write_unlock(&lock);

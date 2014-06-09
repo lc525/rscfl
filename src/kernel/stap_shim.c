@@ -5,8 +5,11 @@
 #include <linux/slab.h>
 #include <linux/spinlock.h>
 #include <linux/mm.h>
+#include <linux/cdev.h>
 
 #define BUF_SIZE 4096  // need to think about this
+#define RSCFL_MAJOR 90
+#define RSCFL_MINOR 0
 
 struct syscall_acct_list_t {
   unsigned long syscall_id;
@@ -32,6 +35,7 @@ static rwlock_t pid_pages_lock = __RW_LOCK_UNLOCKED(pid_pages_lock);
 
 static int rscfl_mmap(struct file *, struct vm_area_struct *);
 
+static struct cdev rscfl_cdev;
 static struct class *rscfl_class;
 
 static struct file_operations fops =
@@ -90,9 +94,17 @@ static int rscfl_mmap(struct file *filp, struct vm_area_struct *vma)
 int _rscfl_shim_init(void)
 {
   int rc;
-  rc = register_chrdev(90, RSCFL_DRIVER, &fops);
+  int dev_no = MKDEV(RSCFL_MAJOR, RSCFL_MINOR);
+  cdev_init(&rscfl_cdev, &fops);
+  rscfl_cdev.owner = THIS_MODULE;
+  rscfl_cdev.ops = &fops;
+  rc = cdev_add(&rscfl_cdev, dev_no, 1);
+  if (rc) {
+    return -1;
+  }
+
   rscfl_class = class_create(THIS_MODULE, RSCFL_DRIVER);
-  device_create(rscfl_class, NULL, MKDEV(90, 0), NULL, RSCFL_DRIVER);
+  device_create(rscfl_class, NULL, dev_no, NULL, RSCFL_DRIVER);
   if (rc < 0) {
     return rc;
   }

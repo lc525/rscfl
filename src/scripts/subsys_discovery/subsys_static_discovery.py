@@ -34,7 +34,7 @@ def read_cscope(p):
 
 
 def find_caller_subsys(fns, linux):
-    boundary_fns = []
+    boundary_fns = {}
     i = 0
     p = subprocess.Popen(["cscope -dl cscope.out"],
                          shell=True, stdout=PIPE, stdin=PIPE, stderr=PIPE,
@@ -52,9 +52,14 @@ def find_caller_subsys(fns, linux):
             callee_subsys = line.split('/')[0]
             if callee_subsys not in subsys:
                 # Callee in a different subsystem to definition
-                boundary_fns.append(fn)
-                break
-        print("%d of %d" % (i, len(fns)))
+                for s in subsys:
+                    try:
+                        boundary_fns[s]
+                    except KeyError:
+                        boundary_fns[s] = []
+                    boundary_fns[s].append("*@%s:%s" % (line.split(' ')[0],
+                                                        line.split(' ')[2]))
+                    print("%s in subsytem %s called in %s" % (fn, s, line.split(' ')[0]))
         i = i + 1
     return boundary_fns
 
@@ -70,23 +75,27 @@ def main():
         sys.stderr.write("Cannot find cscope.out\n")
         exit(-1)
     ext_link_fns = get_ext_link_fns()
-    entry_points = find_caller_subsys(ext_link_fns, args.linux_root)
-    entry_points = ['kernel.function("%s").call,' % x for x in entry_points]
-    # remove duplicates
-    entry_points = list(set(entry_points))
-    entry_points[-1] = entry_points[-1][0:-1]
+    subsys_entries = find_caller_subsys(ext_link_fns, args.linux_root)
 
-    print("probe ")
-    print("\n".join(entry_points))
-    print("""
+    for subsys in subsys_entries:
+        entry_points = ['kernel.statement("%s"),' % x for x in
+                        subsys_entries[subsys]]
+        # remove duplicates
+        entry_points = list(set(entry_points))
+        entry_points[-1] = entry_points[-1][0:-1]
+
+        print("probe ")
+        print("\n".join(entry_points))
+        print("""
 {
   if (should_acct()) {
+    print("Entered %s subsystem")
     clear_acct_next(pid(), -1);
     fill_struct(get_cycles() - cycles, gettimeofday_us() - wall_clock_time);
     update_relay();
    }
 }
-          """)
+              """ % subsys)
 
 
 if __name__ == '__main__':

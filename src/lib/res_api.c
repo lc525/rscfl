@@ -115,6 +115,7 @@ int rscfl_read_acct(rscfl_handle relay_f_data, struct accounting *acct)
 	 NO_RELAY_ACCTS) {
     if (relay_acct->syscall_id.id == (relay_f_data->lst_syscall.id - 1)) {
       memcpy(acct, relay_acct, sizeof(struct accounting));
+      relay_acct->in_use = 0;
       return 0;
     }
     else {

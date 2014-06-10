@@ -113,8 +113,7 @@ int rscfl_read_acct(rscfl_handle relay_f_data, struct accounting *acct)
   struct accounting *relay_acct = (struct accounting *) relay_f_data->buf;
   while (relay_acct - (struct accounting *) relay_f_data->buf <
 	 NO_RELAY_ACCTS) {
-    if ((relay_acct->syscall_id.pid == getpid()) &&
-	(relay_acct->syscall_id.id == (relay_f_data->lst_syscall.id - 1))) {
+    if (relay_acct->syscall_id.id == (relay_f_data->lst_syscall.id - 1)) {
       memcpy(acct, relay_acct, sizeof(struct accounting));
       return 0;
     }

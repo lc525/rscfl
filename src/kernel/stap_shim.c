@@ -205,8 +205,7 @@ int _clear_acct_next(pid_t pid, int syscall_nr)
 
   while (entry) {
     if (((syscall_nr == -1) || (syscall_nr == entry->syscall_nr)) &&
-        ((pid == -1) || (pid = entry->pid)))
-    {
+        ((pid == -1) || (pid = entry->pid))) {
       if (prev) {
         prev->next = entry->next;
       } else {

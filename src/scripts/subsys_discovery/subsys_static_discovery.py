@@ -33,10 +33,10 @@ def get_fn_calls(linux):
     boundary_fns = {}
     cscope = subprocess.Popen(["cscope -dl cscope.out"],
                          shell=True, stdout=PIPE, stdin=PIPE, stderr=PIPE,
-                         cwd="/home/oc243/linux-stable/")
+                         cwd=linux)
     probe_addrs = []
     proc1 = subprocess.Popen('objdump -d vmlinux', shell=True,
-                             stdout=subprocess.PIPE)
+                             stdout=subprocess.PIPE, cwd=linux)
     proc2 = subprocess.Popen(
         ['grep', '-E', 'callq|>:'], stdin=proc1.stdout, stdout=PIPE)
     out, err = proc2.communicate()

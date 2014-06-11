@@ -4,63 +4,57 @@ import os
 import sys
 import argparse
 import re
+import shlex
 import subprocess
 from subprocess import PIPE, STDOUT
 from sets import Set
 
-
-KALLSYMS = "/proc/kallsyms"
-
-
-def get_ext_link_fns():
-    kern_syms = []
-    p = re.compile("0000000000000000 T ([^\n\t]*)")
-    kallsyms_fd = open(KALLSYMS)
-    for line in kallsyms_fd:
-        m = p.match(line)
-        if m != None:
-            kern_syms.append(m.group(1))
-    return kern_syms
+def get_subsys(fn, p):
+    subsys = []
+    p.stdin.write("1%s\n" % fn)
+    for line in read_cscope(p):
+        subsys.append(line.split('/')[0])
+    return subsys
 
 
-def read_cscope(p):
-    lines = []
-    line = p.stdout.readline()
-    pat = re.compile(">> cscope: ([0-9]*) lines")
-    m = pat.match(line)
-    for i in range(int(m.group(1))):
-        lines.append(p.stdout.readline())
-    return lines
-
-
-def find_caller_subsys(fns, linux):
-    boundary_fns = {}
+def get_fn_calls(linux):
     i = 0
-    p = subprocess.Popen(["cscope -dl cscope.out"],
+    subsys_cache = {}
+    boundary_fns = {}
+    cscope = subprocess.Popen(["cscope -dl cscope.out"],
                          shell=True, stdout=PIPE, stdin=PIPE, stderr=PIPE,
-                         cwd=linux)
-    for fn in fns:
-        # Find the subsytem that the function definition is in
-        subsys = Set()
-        p.stdin.write("1%s\n" % fn)
-        for line in read_cscope(p):
-            subsys.add(line.split('/')[0])
-
-        # Find the subsystem that all function calls are in
-        p.stdin.write("4%s\n" % fn)
-        for line in read_cscope(p):
-            callee_subsys = line.split('/')[0]
-            if callee_subsys not in subsys:
-                # Callee in a different subsystem to definition
-                for s in subsys:
-                    try:
-                        boundary_fns[s]
-                    except KeyError:
-                        boundary_fns[s] = []
-                    boundary_fns[s].append("*@%s:%s" % (line.split(' ')[0],
-                                                        line.split(' ')[2]))
-                    print("%s in subsytem %s called in %s" % (fn, s, line.split(' ')[0]))
-        i = i + 1
+                         cwd="/home/oc243/linux-stable/")
+    probe_addrs = []
+    proc1 = subprocess.Popen('objdump -d vmlinux', shell=True,
+                             stdout=subprocess.PIPE)
+    proc2 = subprocess.Popen(
+        ['grep', '-E', 'callq|>:'], stdin=proc1.stdout, stdout=PIPE)
+    out, err = proc2.communicate()
+    p = re.compile("([0-9a-f]{16,16}) <(.*)>:")
+    p_callq = re.compile("([0-9a-f]{16,16}).*callq.*<(.*)>")
+    for line in out.split('\n'):
+        m = p.match(line)
+        if m:
+            fn = m.group(2)
+            addr = m.group(1)
+            subsys = get_subsys(fn, cscope)
+        else:
+            m = p_callq.match(line)
+            if m:
+                callee_fn = m.group(2)
+                callee_addr = m.group(1)
+                try:
+                    callee_subsys = subsys_cache[callee_fn]
+                except KeyError:
+                    callee_subsys = get_subsys(callee_fn, cscope)
+                    subsys_cache[callee_fn] = callee_subsys
+                if (get_subsys(callee_fn, cscope) != subsys):
+                    for x in callee_subsys:
+                        try:
+                            boundary_fns[x]
+                        except KeyError:
+                            boundary_fns[x] = []
+                        boundary_fns[x].append(callee_addr)
     return boundary_fns
 
 
@@ -74,8 +68,7 @@ def main():
     if not os.path.exists("%s/cscope.out" % args.linux_root):
         sys.stderr.write("Cannot find cscope.out\n")
         exit(-1)
-    ext_link_fns = get_ext_link_fns()
-    subsys_entries = find_caller_subsys(ext_link_fns, args.linux_root)
+    subsys_entries = get_fn_calls(args.linux_root)
 
     for subsys in subsys_entries:
         entry_points = ['kernel.statement("%s"),' % x for x in

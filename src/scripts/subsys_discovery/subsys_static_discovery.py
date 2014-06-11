@@ -9,6 +9,16 @@ import subprocess
 from subprocess import PIPE, STDOUT
 from sets import Set
 
+def read_cscope(p):
+    lines = []
+    line = p.stdout.readline()
+    pat = re.compile(">> cscope: ([0-9]*) lines")
+    m = pat.match(line)
+    for i in range(int(m.group(1))):
+        lines.append(p.stdout.readline())
+    return lines
+
+
 def get_subsys(fn, p):
     subsys = []
     p.stdin.write("1%s\n" % fn)

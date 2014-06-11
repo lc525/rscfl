@@ -6,6 +6,7 @@
 #include <linux/spinlock.h>
 #include <linux/mm.h>
 #include <linux/cdev.h>
+#include <asm/atomic.h>
 
 #define BUF_SIZE 4096  // need to think about this
 #define RSCFL_MAJOR 90
@@ -129,17 +130,6 @@ int _fill_struct(long cycles, long wall_clock_time, struct accounting *acct)
 }
 
 /**
- * if finalised then all synchronous effects associated with acct have finished.
- * We therefore assume that there will be no further writes to it, and return
- * it to the pool.
- */
-int _update_relay(struct accounting *acct, int finalised)
-{
-  return 0;
-}
-
-
-/**
  * if syscall_nr==-1 then we account for the next syscall, independent of which
  * syscall is executed.
  **/
@@ -156,10 +146,16 @@ struct accounting * _should_acct(pid_t pid, int syscall_nr)
        ((syscall_nr == -1) || (e->syscall_nr == syscall_nr))) {
       while (pid_page) {
         if (pid_page->pid == current->pid) {
+	  read_unlock(&lock);
 	  ret = (struct accounting *) pid_page->buf;
 	  BUG_ON(!ret);
+	  while (test_and_set_bit(RSCFL_ACCT_USE_BIT, &ret->in_use)) {
+	    ret++;
+	    if ((void *)ret > (void *)pid_page->buf + BUF_SIZE) {
+	      ret = (struct accounting *) pid_page;
+	    }
+	  }
           ret->syscall_id.pid = pid;
-          read_unlock(&lock);
           return ret;
         }
         else {
@@ -216,8 +212,7 @@ int _clear_acct_next(pid_t pid, int syscall_nr)
 
   while (entry) {
     if (((syscall_nr == -1) || (syscall_nr == entry->syscall_nr)) &&
-        ((pid == -1) || (pid = entry->pid)))
-    {
+        ((pid == -1) || (pid = entry->pid))) {
       if (prev) {
         prev->next = entry->next;
       } else {

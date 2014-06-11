@@ -46,6 +46,8 @@
 #define u32 unsigned int
 #define u64 unsigned long long
 
+#define RSCFL_ACCT_USE_BIT 0
+
 #define STAGE_1
 // #define STAGE_2  // The elements marked with #ifdef STAGE_2 will be
                     // implemented after all the STAGE_1 functionality is in place
@@ -155,6 +157,7 @@ struct accounting {
   struct acct_Mem mem;
 
   rscfl_syscall_id_t syscall_id;
+  volatile long unsigned int in_use;
 
 #ifdef STAGE_2
   accounting_component[3] kunit_acct;

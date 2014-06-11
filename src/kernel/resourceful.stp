@@ -75,15 +75,19 @@ function fill_struct(vfs:long, wall_clock_time:long)
 
 function clear_acct_next(pid:long, syscall_nr:long)
 %{
-  _clear_acct_next(STAP_ARG_pid, STAP_ARG_syscall_nr);
+  acct = NULL;
 %}
 
+function acct_now:long()
+%{
+  STAP_RETVALUE = (acct != NULL);
+%}
 
 probe kernel.function("sys_socket").return
 {
-  if (should_acct()) {
-    clear_acct_next(pid(), -1);
+  if (acct_now()) {
     fill_struct(get_cycles() - cycles, gettimeofday_us() - wall_clock_time);
+    clear_acct_next(pid(), -1);
   }
 }
 

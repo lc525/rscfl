@@ -5,6 +5,7 @@
 #include "costs.h"
 #include "res_kernel/stap_shim.h"
 #include "res_kernel/res_comm.h"
+#include "res_kernel/probes.h"
 
 struct accounting *acct;
 
@@ -15,12 +16,8 @@ global wall_clock_time
 
 probe begin
 {
-  if (rscfl_shim_init()) {
+  if (probes_start()) {
     printf("Unable to create debugfs entry\n");
-    exit();
-  }
-  if (netlink_setup()) {
-    printf("Cannot setup netlink\n");
     exit();
   }
   print("running");
@@ -36,9 +33,9 @@ probe end
   }
 }
 
-function netlink_setup:long()
+function probes_start:long()
 %{
-  STAP_RETVALUE = _netlink_setup();
+  STAP_RETVALUE = probes_init();
 %}
 
 function netlink_teardown:long()

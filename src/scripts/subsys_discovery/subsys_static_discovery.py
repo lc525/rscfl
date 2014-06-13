@@ -4,10 +4,8 @@ import os
 import sys
 import argparse
 import re
-import shlex
 import subprocess
-from subprocess import PIPE, STDOUT
-from sets import Set
+from subprocess import PIPE
 
 def read_cscope(p):
     lines = []

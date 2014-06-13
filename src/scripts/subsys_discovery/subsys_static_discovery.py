@@ -26,13 +26,11 @@ def get_subsys(fn, p):
 
 
 def get_fn_calls(linux):
-    i = 0
     subsys_cache = {}
     boundary_fns = {}
     cscope = subprocess.Popen(["cscope -dl cscope.out"],
                          shell=True, stdout=PIPE, stdin=PIPE, stderr=PIPE,
                          cwd=linux)
-    probe_addrs = []
     proc1 = subprocess.Popen('objdump -d vmlinux', shell=True,
                              stdout=subprocess.PIPE, cwd=linux)
     proc2 = subprocess.Popen(
@@ -56,7 +54,7 @@ def get_fn_calls(linux):
                 except KeyError:
                     callee_subsys = get_subsys(callee_fn, cscope)
                     subsys_cache[callee_fn] = callee_subsys
-                if (get_subsys(callee_fn, cscope) != subsys):
+                if get_subsys(callee_fn, cscope) != subsys:
                     for x in callee_subsys:
                         try:
                             boundary_fns[x]

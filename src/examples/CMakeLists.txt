@@ -26,6 +26,20 @@ add_executable(socket_tester ${SOCK_TESTER_SOURCES})
 # link with resourceful API
 target_link_libraries(socket_tester res_api)
 
+##
+# Value Validator
+#
+set(VALIDATOR_FLAGS "-g")
+set(
+  VALIDATOR_SOURCES
+  ${EXAMPLES_DIR}/value_validator.c
+)
+set_source_files_properties(
+  ${VALIDATOR_SOURCES}
+  PROPERTIES COMPILE_FLAGS ${VALIDATOR_FLAGS}
+)
+add_executable(value_validator ${VALIDATOR_SOURCES})
+target_link_libraries(value_validator res_api)
 
 ##
 # Small writes example

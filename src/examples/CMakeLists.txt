@@ -32,7 +32,7 @@ target_link_libraries(socket_tester res_api)
 set(VALIDATOR_FLAGS "-g")
 set(
   VALIDATOR_SOURCES
-  ${EXAMPLES_DIR}/value_validator.c
+  ${EXAMPLES_DIR}/value_validation.c
 )
 set_source_files_properties(
   ${VALIDATOR_SOURCES}

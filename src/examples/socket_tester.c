@@ -20,13 +20,14 @@ int main(int argc, char *argv[])
 
   rscfl_handle relay_f_data;
   struct accounting acct = {0};
+  struct accounting acct2 = {0};
 
-// Open 3 sockets
   if ( !(relay_f_data = rscfl_init())) {
     fprintf(stderr, "rscfl: Error initialising. Errno=%d\n", errno);
     return -1;
   }
 
+  // Open 3 sockets
   if ( (socfd_1 = socket(sock_domain, sock_type, sock_proto)) < 0) {
     goto soc_err;
   }
@@ -48,8 +49,21 @@ int main(int argc, char *argv[])
     fprintf(stderr, "rscfl: read_acct failed\n");
   }
 
+  if (rscfl_acct_next(relay_f_data)) {
+    fprintf(stderr, "rscfl 2: acct_next errno=%d\n", errno);
+    return -1;
+  }
+
   if ( (socfd_3 = socket(sock_domain, sock_type, sock_proto)) < -1 ) {
     goto soc_err;
+  }
+
+  if (!rscfl_read_acct(relay_f_data, &acct2)) {
+    printf("rscfl 2: cpu_cycles=%llu wall_clock_time=%llu\n", acct2.cpu.cycles,
+           acct2.cpu.wall_clock_time);
+  }
+  else {
+    fprintf(stderr, "rscfl: read_acct failed\n");
   }
 
   if (DEBUG)

@@ -15,7 +15,7 @@
 #include <errno.h>
 #include <unistd.h>
 
-#define NO_RELAY_ACCTS (SUBBUF_SIZE * N_SUBBUFS) / sizeof(struct accounting)
+#define NO_RELAY_ACCTS 4096 / sizeof(struct accounting)
 #define MAX_PAYLOAD 1024 /* maximum payload size*/
 
 static struct sockaddr_nl src_addr, dest_addr;
@@ -110,16 +110,19 @@ int rscfl_acct_next(rscfl_handle relay_f_data)
 
 int rscfl_read_acct(rscfl_handle relay_f_data, struct accounting *acct)
 {
+  int i = 0;
   struct accounting *relay_acct = (struct accounting *) relay_f_data->buf;
-  while (relay_acct - (struct accounting *) relay_f_data->buf <
-	 NO_RELAY_ACCTS) {
+
+  while (i < NO_RELAY_ACCTS) {
     if (relay_acct->syscall_id.id == (relay_f_data->lst_syscall.id - 1)) {
+      printf("API read_acct from %p (syscall_id:%ld) pos:%d\n", (void*)relay_acct, relay_f_data->lst_syscall.id-1, i);
       memcpy(acct, relay_acct, sizeof(struct accounting));
       relay_acct->in_use = 0;
       return 0;
     }
     else {
       relay_acct++;
+      i++;
     }
   }
   return -1;

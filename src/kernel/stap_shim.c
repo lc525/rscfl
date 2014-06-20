@@ -150,7 +150,6 @@ struct accounting * _should_acct(pid_t pid, int syscall_nr)
           ret = (struct accounting *) pid_page->buf;
           BUG_ON(!ret);
           while (test_and_set_bit(RSCFL_ACCT_USE_BIT, &ret->in_use)) {
-            debugk("RET!: %p\n", ret);
             ret++;
             if ((void *)ret > (void *)pid_page->buf + BUF_SIZE) {
               ret = (struct accounting *) pid_page->buf;

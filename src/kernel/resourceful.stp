@@ -68,9 +68,21 @@ function acct_now:long()
   STAP_RETVALUE = (acct != NULL);
 %}
 
+function dbgprt()
+%{
+  printk("sys_socket.call accounting\n");
+%}
+
+function dbgprt2()
+%{
+  printk("sys_socket.return accounting\n");
+%}
+
+
 probe kernel.function("sys_socket").return
 {
   if (acct_now()) {
+    dbgprt2()
     fill_struct(get_cycles() - cycles, gettimeofday_us() - wall_clock_time);
     clear_acct_next(pid(), -1);
   }
@@ -80,6 +92,7 @@ probe kernel.function("sys_socket").call
 {
   start = gettimeofday_us()
   if (should_acct()) {
+    dbgprt();
     cycles = get_cycles();
     wall_clock_time = start;
   }

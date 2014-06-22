@@ -84,3 +84,20 @@ probe kernel.function("sys_socket").call
     wall_clock_time = start;
   }
 }
+
+probe kernel.function("sys_connect").call
+{
+  start = gettimeofday_us()
+  if(should_acct()) {
+    cycles = get_cycles();
+    wall_clock_time = start;
+  }
+}
+
+probe kernel.function("sys_connect").return
+{
+  if (acct_now()) {
+    fill_struct(get_cycles() - cycles, gettimeofday_us() - wall_clock_time);
+    clear_acct_next(pid(), -1);
+  }
+}

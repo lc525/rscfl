@@ -30,8 +30,55 @@ Second Institution
 
 \subsection*{Abstract}
 
-\section{Introduction}
 
+\section{Introduction}
+Tying resource accounting to dependability.
+
+Use cases:\newline
+Inc. async effects.
+
+
+\section{Related Work}
+Existing tracing / profiling systems. (Maybe a chart outlining differences).
+
+FTrace, SystemTap (raw) / DTrace, Perf.
+
+Existing use of tracing for dependability.\newline
+Root-cause analysis. Debugging. Performance monitoring - how do we compare to
+top?
+
+
+\section{System Design}
+\subsection{Kernel / Tracing infrastructure}
+Async / Sync tracing (multiple layers, kworkers etc).
+
+Call granularity tracing.
+
+Trace-point idenfitication - CScope, call site vs function.
+
+Moving from ST to KProbes (more dynamic).
+
+\subsection{Userland API}
+Interface definition.
+
+Discussion around automatically adding this (compiler).
+
+\subsection{What we implemented}
+
+
+\section{Evaluation}
+Describe use case (lighttpd).\newline
+End-to-end example of use of resourceful. Show this is useful. `We show how this
+is useful.'
+
+Overhead evaluation.\newline
+Space / time overhead. Mem. consumed. Time o/h of various workloads.
+
+Latency and throughput degradation.\newline
+For instrumented lighttpd. For something else running at the same time.
+
+
+\section{Conclusion}
 
 \section{Acknowledgments}
 

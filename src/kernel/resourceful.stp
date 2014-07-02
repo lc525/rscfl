@@ -85,7 +85,7 @@ probe kernel.function("sys_socket").call
   }
 }
 
-probe kernel.function("sys_connect").call
+probe kernel.function("sys_accept").call
 {
   start = gettimeofday_us()
   if(should_acct()) {
@@ -94,10 +94,49 @@ probe kernel.function("sys_connect").call
   }
 }
 
-probe kernel.function("sys_connect").return
+probe kernel.function("sys_accept").return
 {
   if (acct_now()) {
     fill_struct(get_cycles() - cycles, gettimeofday_us() - wall_clock_time);
     clear_acct_next(pid(), -1);
   }
 }
+
+/*
+* PROBES: sendfile
+*/
+probe kernel.function("sys_sendfile").call
+{
+  start = gettimeofday_us()
+  if (should_acct()) {
+    cycles = get_cycles()
+    wall_clock_time = start
+  }
+}
+
+probe kernel.function("sys_sendfile").return
+{
+  if (acct_now()) {
+    fill_struct(get_cycles() - cycles, gettimeofday_us() - wall_clock_time)
+    clear_acct_next(pid(), -1);
+  }
+}
+
+
+probe kernel.function("__kmalloc").call
+{
+  start = gettimeofday_us()
+  if (should_acct()) {
+    cycles = get_cycles()
+    wall_clock_time = start;
+  }
+}
+
+probe kernel.function("__kmalloc").return
+{
+  if (acct_now()) {
+    fill_struct(get_cycles() - cycles, gettimeofday_us() - wall_clock_time)
+    clear_acct_next(pid(), -1)
+  }
+}
+

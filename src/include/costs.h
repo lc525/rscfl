@@ -30,12 +30,12 @@
 #ifndef _SYSCALL_COST_H_
 #define _SYSCALL_COST_H_
 
-//#include<linux/tcp.h>
-
 #ifdef __KERNEL__
 #include <linux/types.h>
+#include <linux/tcp.h>
 #else
 #include <sys/types.h>
+#include <netinet/tcp.h>
 #endif
 
 #ifndef RBIT

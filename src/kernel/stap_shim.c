@@ -2,9 +2,11 @@
 #include "res_common.h"
 #include "costs.h"
 
+/*
 #include <asm/byteorder.h>
 #include <linux/ip.h>
 #include <linux/sched.h>
+*/
 
 #include <linux/rwlock_types.h>
 #include <linux/slab.h>

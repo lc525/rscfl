@@ -15,7 +15,7 @@
 #include <linux/cdev.h>
 #include <asm/atomic.h>
 
-#define BUF_SIZE 4096  // need to think about this
+#define BUF_SIZE 40960  // need to think about this
 #define RSCFL_MAJOR 90
 #define RSCFL_MINOR 0
 
@@ -146,7 +146,7 @@ struct accounting * _should_acct(pid_t pid, int syscall_nr)
   struct rscfl_pid_pages_t *pid_page = rscfl_pid_pages;
 
   read_lock(&lock);
-  debugk("_should_acct(?) pid: %d\n", pid);
+  //debugk("_should_acct(?) pid: %d\n", pid);
   e = syscall_acct_list;
   while (e) {
     if ((e->pid == pid) &&
@@ -221,6 +221,7 @@ int _clear_acct_next(pid_t pid, int syscall_nr)
   entry = syscall_acct_list;
 
   while (entry) {
+    debugk("clear_acct_next: in while\n");
     if (((syscall_nr == -1) || (syscall_nr == entry->syscall_nr)) &&
         ((pid == -1) || (pid = entry->pid))) {
       if (prev) {

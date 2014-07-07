@@ -15,7 +15,8 @@
 #include <errno.h>
 #include <unistd.h>
 
-#define NO_RELAY_ACCTS 40960 / sizeof(struct accounting)
+//#define NO_RELAY_ACCTS 40960 / sizeof(struct accounting)
+#define NO_RELAY_ACCTS 40
 #define MAX_PAYLOAD 1024 /* maximum payload size*/
 
 static struct sockaddr_nl src_addr, dest_addr;
@@ -27,7 +28,7 @@ static struct msghdr msg;
 rscfl_handle rscfl_init()
 {
 
-  printf("NO_RELAY_ACCTS %lu\n", NO_RELAY_ACCTS);
+  printf("NO_RELAY_ACCTS %d\n", NO_RELAY_ACCTS);
 
   struct stat sb;
   int fd = open("/dev/rscfl", O_RDWR);
@@ -115,18 +116,27 @@ int rscfl_read_acct(rscfl_handle relay_f_data, struct accounting *acct)
 {
   int i = 0;
   struct accounting *relay_acct = (struct accounting *) relay_f_data->buf;
-
-  while (i < NO_RELAY_ACCTS) {
-    if (relay_acct->syscall_id.id == (relay_f_data->lst_syscall.id - 1)) {
-      //printf("API read_acct from %p (syscall_id:%ld) pos:%d\n", (void*)relay_acct, relay_f_data->lst_syscall.id-1, i);
-      memcpy(acct, relay_acct, sizeof(struct accounting));
-      relay_acct->in_use = 0;
-      return 0;
+  if (relay_acct != NULL) {
+    while (i < NO_RELAY_ACCTS) {
+      printf("relay_acct: %p - in use: %lu\n", (void *)relay_acct, relay_acct->in_use);
+      if (relay_acct->in_use == 1) {
+        if (relay_acct->syscall_id.id == (relay_f_data->lst_syscall.id -1)) {
+          printf("API read_acct from %p (syscall_id:%ld) pos:%d\n", (void*)relay_acct, relay_f_data->lst_syscall.id-1, i);
+          memcpy(acct, relay_acct, sizeof(struct accounting));
+          relay_acct->in_use = 0;
+          return 0;
+        }
+        else {
+          relay_acct++;
+          i++;
+        }
+      } else {
+        relay_acct++;
+        i++;
+      }
     }
-    else {
-      relay_acct++;
-      i++;
-    }
+  } else {
+    printf("relay_acct is null!");
   }
   return -1;
 }

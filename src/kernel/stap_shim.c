@@ -36,6 +36,7 @@ typedef struct syscall_acct_list_t syscall_acct_list_t;
 
 static syscall_acct_list_t *syscall_acct_list;
 static long syscall_id_c;
+static struct accounting *acct = NULL;
 static struct rscfl_pid_pages_t *rscfl_pid_pages;
 
 static rwlock_t lock = __RW_LOCK_UNLOCKED(lock);
@@ -164,6 +165,8 @@ struct accounting * _should_acct(pid_t pid, int syscall_nr)
        ((syscall_nr == -1) || (e->syscall_nr == syscall_nr))) {
       while (pid_page) {
         if (pid_page->pid == current->pid) {
+          if(acct != NULL)
+            return acct;
           read_unlock(&lock);
           ret = (struct accounting *) pid_page->buf;
           BUG_ON(!ret);

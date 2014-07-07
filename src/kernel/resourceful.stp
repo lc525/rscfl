@@ -7,12 +7,11 @@
 #include "res_kernel/res_comm.h"
 #include "res_kernel/probes.h"
 
-struct accounting *acct;
-
 %}
 
-global cycles=0
+global cycles = 0
 global wall_clock_time
+global probe_nest = 0;
 
 probe begin
 {
@@ -72,7 +71,10 @@ probe kernel.function("sys_socket").return
   if (acct_now()) {
     fill_struct(get_cycles() - cycles, gettimeofday_us() - wall_clock_time,
     %{FILL_NET%});
-    clear_acct_next(pid(), -1);
+    probe_nest--;
+    if(probe_nest == 0){
+      clear_acct_next(pid(), -1);
+    }
   }
 }
 
@@ -80,6 +82,7 @@ probe kernel.function("sys_socket").call
 {
   start = gettimeofday_us()
   if (should_acct()) {
+    probe_nest++;
     cycles = get_cycles();
     wall_clock_time = start;
   }
@@ -89,6 +92,7 @@ probe kernel.function("sys_accept").call
 {
   start = gettimeofday_us()
   if(should_acct()) {
+    probe_nest++;
     cycles = get_cycles();
     wall_clock_time = start;
   }
@@ -99,7 +103,10 @@ probe kernel.function("sys_accept").return
   if (acct_now()) {
     fill_struct(get_cycles() - cycles, gettimeofday_us() - wall_clock_time,
     %{FILL_NET%});
-    clear_acct_next(pid(), -1);
+    probe_nest--;
+    if(probe_nest == 0){
+      clear_acct_next(pid(), -1);
+    }
   }
 }
 
@@ -112,6 +119,7 @@ probe kernel.function("sys_sendfile").call
 {
   start = gettimeofday_us()
   if (should_acct()) {
+    probe_nest++;
     cycles = get_cycles()
     wall_clock_time = start
   }
@@ -122,7 +130,10 @@ probe kernel.function("sys_sendfile").return
   if (acct_now()) {
     fill_struct(get_cycles() - cycles, gettimeofday_us() - wall_clock_time,
     %{FILL_FS%})
-    clear_acct_next(pid(), -1);
+    probe_nest--;
+    if(probe_nest == 0){
+      clear_acct_next(pid(), -1);
+    }
   }
 }
 
@@ -131,6 +142,7 @@ probe kernel.function("__kmalloc").call
 {
   start = gettimeofday_us()
   if (should_acct()) {
+    probe_nest++;
     cycles = get_cycles()
     wall_clock_time = start;
   }
@@ -141,6 +153,10 @@ probe kernel.function("__kmalloc").return
   if (acct_now()) {
     fill_struct(get_cycles() - cycles, gettimeofday_us() - wall_clock_time,
     %{FILL_MM%})
+    probe_nest--;
+    if(probe_nest == 0){
+      clear_acct_next(pid(), -1);
+    }
   }
 }
 
@@ -149,6 +165,7 @@ probe kernel.function("sock_sendpage").call
 {
   start = gettimeofday_us()
   if (should_acct()) {
+    probe_nest++;
     cycles = get_cycles()
     wall_clock_time = start
   }
@@ -159,5 +176,9 @@ probe kernel.function("sock_sendpage").return
   if (acct_now()) {
     fill_struct(get_cycles() - cycles, gettimeofday_us() - wall_clock_time,
     %{FILL_NET%})
+    probe_nest--;
+    if(probe_nest == 0){
+      clear_acct_next(pid(), -1);
+    }
   }
 }

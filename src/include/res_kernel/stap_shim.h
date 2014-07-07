@@ -9,6 +9,8 @@
 #define FILL_FS 2
 #define FILL_GLOBAL 3
 
+static struct accounting *acct;
+
 int _create_shared_mem(void);
 
 int _fill_struct(long, long, struct accounting *, long);

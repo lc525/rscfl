@@ -179,7 +179,7 @@ struct accounting * _should_acct(pid_t pid, int syscall_nr)
             ret++;
             if ((void *)ret > (void *)pid_page->buf + BUF_SIZE) {
               ret = (struct accounting *) pid_page->buf;
-              //break;
+              break;
             }
           }
           ret->syscall_id.pid = pid;

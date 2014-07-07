@@ -52,10 +52,9 @@ function should_acct()
   return should_acct_(pid(), -1);
 }
 
-
-function fill_struct(vfs:long, wall_clock_time:long)
+function fill_struct(vfs:long, wall_clock_time:long, fill_type:long)
 %{
-  _fill_struct(STAP_ARG_vfs, STAP_ARG_wall_clock_time, acct);
+  _fill_struct(STAP_ARG_vfs, STAP_ARG_wall_clock_time, acct, STAP_ARG_fill_type);
 %}
 
 function clear_acct_next(pid:long, syscall_nr:long)
@@ -71,7 +70,8 @@ function acct_now:long()
 probe kernel.function("sys_socket").return
 {
   if (acct_now()) {
-    fill_struct(get_cycles() - cycles, gettimeofday_us() - wall_clock_time);
+    fill_struct(get_cycles() - cycles, gettimeofday_us() - wall_clock_time,
+    %{FILL_NET%});
     clear_acct_next(pid(), -1);
   }
 }
@@ -97,7 +97,8 @@ probe kernel.function("sys_accept").call
 probe kernel.function("sys_accept").return
 {
   if (acct_now()) {
-    fill_struct(get_cycles() - cycles, gettimeofday_us() - wall_clock_time);
+    fill_struct(get_cycles() - cycles, gettimeofday_us() - wall_clock_time,
+    %{FILL_NET%});
     clear_acct_next(pid(), -1);
   }
 }
@@ -119,7 +120,8 @@ probe kernel.function("sys_sendfile").call
 probe kernel.function("sys_sendfile").return
 {
   if (acct_now()) {
-    fill_struct(get_cycles() - cycles, gettimeofday_us() - wall_clock_time)
+    fill_struct(get_cycles() - cycles, gettimeofday_us() - wall_clock_time,
+    %{FILL_FS%})
     clear_acct_next(pid(), -1);
   }
 }
@@ -137,7 +139,8 @@ probe kernel.function("__kmalloc").call
 probe kernel.function("__kmalloc").return
 {
   if (acct_now()) {
-    fill_struct(get_cycles() - cycles, gettimeofday_us() - wall_clock_time)
+    fill_struct(get_cycles() - cycles, gettimeofday_us() - wall_clock_time,
+    %{FILL_MM%})
   }
 }
 
@@ -154,6 +157,7 @@ probe kernel.function("sock_sendpage").call
 probe kernel.function("sock_sendpage").return
 {
   if (acct_now()) {
-    fill_struct(get_cycles() - cycles, gettimeofday_us() - wall_clock_time)
+    fill_struct(get_cycles() - cycles, gettimeofday_us() - wall_clock_time,
+    %{FILL_NET%})
   }
 }

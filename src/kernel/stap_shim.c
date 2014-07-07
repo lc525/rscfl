@@ -127,11 +127,22 @@ int _rscfl_shim_cleanup(void)
 }
 
 
-int _fill_struct(long cycles, long wall_clock_time, struct accounting *acct)
+int _fill_struct(long cycles, long wall_clock_time, struct accounting *acct, long fill_type)
 {
   debugk("_fill_struct %p %ld %ld\n", (void*)acct, cycles, wall_clock_time);
-  acct->cpu.cycles = cycles;
-  acct->cpu.wall_clock_time = wall_clock_time;
+  switch(fill_type) {
+    case FILL_MM:
+      acct->mm.cycles += cycles;
+      break;
+    case FILL_FS:
+      acct->fs.cycles += cycles;
+      break;
+    case FILL_NET:
+      acct->net.cycles += cycles;
+      break;
+  }
+  acct->cpu.cycles += cycles;
+  acct->cpu.wall_clock_time += wall_clock_time;
   return 0;
 }
 

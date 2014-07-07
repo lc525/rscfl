@@ -139,6 +139,18 @@ struct acct_Storage {
   ru64 seeks;
 };
 
+struct acct_mm {
+  ru64 cycles;
+};
+
+struct acct_fs {
+  ru64 cycles;
+};
+
+struct acct_net {
+  ru64 cycles;
+};
+
 /*
 struct acct_Net {
   //struct tcp_info stats;
@@ -158,6 +170,10 @@ struct accounting {
 
   rscfl_syscall_id_t syscall_id;
   volatile long unsigned int in_use;
+
+  struct acct_mm mm;
+  struct acct_fs fs;
+  struct acct_net net;
 
 #ifdef STAGE_2
   accounting_component[3] kunit_acct;

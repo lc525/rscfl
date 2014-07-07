@@ -15,7 +15,8 @@
 #include <linux/cdev.h>
 #include <asm/atomic.h>
 
-#define BUF_SIZE 40960  // need to think about this
+//#define BUF_SIZE 40960  // need to think about this
+#define BUF_SIZE sizeof(struct accounting) * 40
 #define RSCFL_MAJOR 90
 #define RSCFL_MINOR 0
 
@@ -130,7 +131,7 @@ int _rscfl_shim_cleanup(void)
 
 int _fill_struct(long cycles, long wall_clock_time, struct accounting *acct, long fill_type)
 {
-  debugk("_fill_struct %p %ld %ld\n", (void*)acct, cycles, wall_clock_time);
+  debugk("_fill_struct %p %ld %ld %ld\n", (void*)acct, cycles, wall_clock_time, fill_type);
   switch(fill_type) {
     case FILL_MM:
       acct->mm.cycles += cycles;
@@ -165,29 +166,37 @@ struct accounting * _should_acct(pid_t pid, int syscall_nr)
        ((syscall_nr == -1) || (e->syscall_nr == syscall_nr))) {
       while (pid_page) {
         if (pid_page->pid == current->pid) {
-          if(acct != NULL)
+          if(acct != NULL) {
+            debugk("_should_acct(yes, nr %d) %d, into %p\n", e->syscall_nr, pid, (void*)acct);
             return acct;
+          }
           read_unlock(&lock);
           ret = (struct accounting *) pid_page->buf;
           BUG_ON(!ret);
-          while (test_and_set_bit(RSCFL_ACCT_USE_BIT, &ret->in_use)) {
+          while (ret->in_use == 1) {
+          //while (test_and_set_bit(RSCFL_ACCT_USE_BIT, &ret->in_use)) {
+            debugk("_should_acct: %p\n", (void *)ret);
             ret++;
             if ((void *)ret > (void *)pid_page->buf + BUF_SIZE) {
               ret = (struct accounting *) pid_page->buf;
+              //break;
             }
           }
           ret->syscall_id.pid = pid;
           ret->syscall_id.id = e->syscall_nr;
+          ret->in_use = 1;
           debugk("_should_acct(yes, nr %d) %d, into %p\n", e->syscall_nr, pid, (void*)ret);
           return ret;
         } else {
-          pid_page++;
-          if (pid_page - rscfl_pid_pages >= BUF_SIZE / sizeof(pid_page)) {
+          //pid_page++;
+          //if (pid_page - rscfl_pid_pages >= BUF_SIZE / sizeof(pid_page)) {
+          if (pid_page->next == NULL) {
             read_unlock(&lock);
             printk(KERN_ERR "rscfl: pid %d cannot find mapped page\n",
                          current->pid);
                   return NULL;
           }
+          pid_page = pid_page->next;
         }
       }
     }

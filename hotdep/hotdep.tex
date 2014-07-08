@@ -1,14 +1,56 @@
 \documentclass[letterpaper,twocolumn,10pt]{article}
-\usepackage{usenix,epsfig,authblk} \usepackage{xcolor} \usepackage{hyperref}
+\usepackage{usenix,epsfig,authblk}
+\usepackage{xcolor}
+\usepackage{hyperref}
 \usepackage{graphicx}
+\usepackage{listings}
 
 \newcommand{\pname}{Resourceful}
 \newcommand{\lnote}[1]{\textcolor{red}{[\textit{#1}]}} %notes
 \newcommand*\aorder[1][\value{footnote}]{\footnotemark[#1]}
 \renewcommand\Authsep{\hskip 1cm} \renewcommand\Authands{\hskip 1cm}
 
-\begin{document}
+\colorlet{punct}{red!60!black}
+\definecolor{background}{HTML}{EEEEEE}
+\definecolor{delim}{RGB}{20,105,176}
+\colorlet{numb}{magenta!60!black}
 
+\lstdefinelanguage{json}{
+    basicstyle=\normalfont\ttfamily,
+    numberstyle=\scriptsize,
+    stepnumber=1,
+    numbersep=8pt,
+    showstringspaces=false,
+    breaklines=true,
+    frame=lines,
+    literate=
+     *{0}{{{\color{numb}0}}}{1}
+      {1}{{{\color{numb}1}}}{1}
+      {2}{{{\color{numb}2}}}{1}
+      {3}{{{\color{numb}3}}}{1}
+      {4}{{{\color{numb}4}}}{1}
+      {5}{{{\color{numb}5}}}{1}
+      {6}{{{\color{numb}6}}}{1}
+      {7}{{{\color{numb}7}}}{1}
+      {8}{{{\color{numb}8}}}{1}
+      {9}{{{\color{numb}9}}}{1}
+      {:}{{{\color{punct}{:}}}}{1}
+      {,}{{{\color{punct}{,}}}}{1}
+      {\{}{{{\color{delim}{\{}}}}{1}
+      {\}}{{{\color{delim}{\}}}}}{1}
+      {[}{{{\color{delim}{[}}}}{1}
+      {]}{{{\color{delim}{]}}}}{1},
+}
+
+\begin{document}
+\lstdefinestyle{customc}{
+  belowcaptionskip=1\baselineskip,
+  frame=lines,
+  breaklines=false,
+  language=json,
+  showstringspaces=false,
+  basicstyle=\scriptsize\ttfamily,
+}
 %don't want date printed
 \date{}
 
@@ -141,84 +183,142 @@ overall design is general enough to allow for implementation in hypervisors and
 extension to other codebases. The main contributions of this paper are:
 \lnote{add as per Andy's suggestions}
 
-\section{\pname: System Design} \pname's gives applications full control over
-measuring resource consumption of system calls, without imposing prohibitive
-overheads. The framework allowing this has three main components: (i) a
-measurement configuration component that analyzes the current kernel in order to
-identify minimal instrumentation probe points and subsystem boundaries (the
-level at which aggregation takes place), guided by a user-provided
-configuration; (ii) a kernel module responsible for inserting those probes into
-the kernel and efficiently activating them when applications request resource
-consumption data and (iii) a user-space library exposing an API that
-applications can use to express interest in the resource consumption of
-particular system calls and to read the results after the required information
-was gathered on the kernel side.
+\section{\pname: System Design} 
 
-Each resource accounting structure read back provides detailed metrics grouped
-per kernel subsystem (as determined by the first component). For example, the
-result of a system call being accounted contains total CPU cycles, wall clock
-time and memory allocated/deallocated during that call, but the same metrics are
-recorded for each of the subsystems touched during that call (total CPU cycles
-spent in the Network subsystem, total cycles spent in VFS alongside
-subsystem-specific metrics such as bytes sent/received, number of
-retransmissions, IO queue size, disk writes, etc.). The application can select
-exactly which of those metrics are recorded and can also perform custom
-aggregations across multiple system calls.
+\pname{ }gives applications full control over measuring resource consumption of
+system calls, without imposing prohibitive overheads. The framework allowing
+this has three main components: (i) \textit{measurement configuration:} this
+analyzes the current kernel in order to identify minimal instrumentation probe
+points and subsystem boundaries (the level at which aggregation takes place),
+guided by a user-provided configuration; (ii) \textit{a kernel module} responsible for
+inserting those probes into the kernel and efficiently activating them when
+applications request resource consumption data and (iii) \textit{a user-space library}
+exposing an API that applications can use to express interest in the resource
+consumption of particular system calls and to read the results after the
+required information was gathered on the kernel side.
+
+Each resource accounting result provides detailed metrics grouped per kernel
+subsystem (as configured by the first component of \pname). For example, the data recorded
+for one system call would contain total CPU cycles, wall clock time and memory
+allocated/deallocated, but the same metrics are recorded for each of the
+subsystems touched during that call (total CPU cycles spent in the Network
+subsystem, total cycles spent in VFS and subsystem-specific metrics such as
+bytes sent/received, number of retransmissions, IO queue size, disk writes,
+etc.). The application can select exactly which of those metrics are recorded
+and can also perform custom aggregations across multiple system calls.
 
 \subsection{Kernel Subsystem Identification}
-
+The point of reporting resource consumption aggregated per subsystem is having a
+more detailed view of what happens inside the kernel. Given a socket
+\texttt{send(...)} operation, for example, the application can look at the
+breakdown of latency: was most of the time spent in the network stack? was the
+packet delayed by the scheduler moving the task on a different core? or perhaps
+most of the time was spent reading data from a file descriptor on disk (in a 
+\texttt{sendfile} call).
+ 
 The Linux kernel has a modular structure of \emph{subsystems}, such as VFS,
-logical filesystems, block devices, which are described by the Linux Kernel
-Map.\footnote{\url{http://www.makelinux.net/kernel_map/}} \pname{ } uses this
-structure to report the resource consumption on a per-subsystem basis. For
-example, \pname{ } can report the number of CPU cycles used by VFS. This differs
-from current approaches that typically fall into two categories: 1) resource
-consumption is reported for an entire system call, however this lacks the
-resolution to determine the cause of the bottleneck 2) per-function consumption,
-such as performed by ftrace, which has a high performance overhead, and a high
-level of information that necessitates post-processing. Our approach allows us
-to give performance characteristics at a level whereby information can be used
-without post-processing, but with a high degree of granularity. Moreover, code
-paths changing subsystem is more rare than function calls, so we read counters
-less often, thereby achieving a lower overhead.
+logical filesystems, block devices. A complete list of these can be consulted in
+the Linux Kernel Map.\footnote{\url{http://www.makelinux.net/kernel_map/}}
 
-To identify subsystems we perform inter-procedural static analysis of the
+\pname{ } uses this structure to report the resource consumption on a
+per-subsystem basis. 
+
+%\lnote{(lc525): see par end} This differs from current approaches that typically fall
+%into two categories: \textit{per-process} resource consumption, which lacks the
+%resolution for determining the cause of bottlenecks and \textit{per-function}
+%consumption, such as performed by ftrace. This has a high performance overhead
+%(up to 3x in some situations), and produces lots of data requiring
+%post-processing to extract usable information. 
+%\lnote{(lc525): questionable whether we should have this here,
+%we have mentioned before how we differ from others}
+
+%Our approach allows us to give performance characteristics at a
+%level whereby information can be used without post-processing, but with a high
+%degree of granularity. Moreover, code paths changing subsystem is more rare than
+%function calls, so we read counters less often, thereby achieving a lower
+%overhead.
+
+\vspace{1em}
+\lstset{style=customc, captionpos=b}
+\begin{lstlisting}[caption={Sample configuration file defining a custom subsystem},label={lst:config}]
+global {
+  subsystem_whitelist: net_link_layer
+}
+
+subsystem net_link_layer {
+  boundary:
+    probe dev_queue_xmit {
+      arg    : skb
+      capture: {
+        name: net_buf_enq,
+        val : &skb->dev->qdisc
+      }
+    },
+    probe qdisk_restart {
+      arg    : dev
+      capture: {
+        name: net_buf_deq,
+        val : &dev->qdisc
+      }
+    }
+  metrics: cycles
+  map_async: match(net_buf_deq, net_buf_enq)
+}
+\end{lstlisting}
+
+To identify subsystems, we perform inter-procedural static analysis of the
 currently-running kernel. We identify all call instructions in the kernel's
-binary, and determine which function the callee and the caller belong to. Each
-function is categorised into one of the subsystems in the Linux Kernel Map using
-predominantly its source location. Where the call moves from one subsystem to
-another, we consider that to be a subsystem boundary. When changing subsystem,
-the cost of the call, and return instructions could arguably be accounted to
-either the caller's subsystem or the callee's. We attribute the cost of the call
-instruction to the caller and the return to the callee. This scheme allows us to
-insert probes entirely in the callee. Whilst the number of callsites that change
-subsystem is larger than the number of entry points into a subsystem, our
-approach has no false-positives whereby we execute code whilst remaining in a
-subsystem. Had we inserted probes into the caller, any callsites in the same
-subsystem would have executed extra code, reducing performance. Whilst inserting
-more probes has a higher startup cost, there is no runtime cost of unused probes
-and there is no increase in codesize from inserting unused probes.
+binary, and determine to which function the callee and the caller belong to. Each
+function is then categorized into one of the subsystems in the Linux Kernel Map,
+predominantly based on its source file location. We mark the function calls that
+are made from within one subsystem to another, and we consider them to be part
+of the subsystem boundary. 
 
+Besides the subsystems identified automatically this way, we allow users to
+influence the process through configuration files such as the one presented in
+Listing~\ref{lst:config}. Here, the users can remove subsystems detected
+automatically or add their own. The example shows how the network link layer
+could be defined as a separate subsystem, generating probes for when packets are
+enqueued/dequeued from device buffers.
 
-Whilst we only apply our analysis to the Linux kernel, we believe that it could
-be applied to any binary with a modular, directory-based structure to identify
+When passing control flow between subsystems, the cost of the call and return
+instructions could arguably be accounted to either the caller's subsystem or the
+callee's. We attribute the cost of the call instruction to the caller and the
+return to the callee. This scheme allows us to insert probes entirely in the
+callee. 
+
+Whilst the number of call sites that change subsystem is larger than the
+number of entry points into a subsystem, our approach has no false-positives
+whereby we execute code whilst remaining in a subsystem. Had we inserted probes
+into the caller, any call sites in the same subsystem would have executed extra
+code, reducing performance. Whilst inserting more probes has a higher startup
+cost, there is no runtime cost of unused probes and there is no increase in
+code size from inserting unused probes.
+
+Even if we have only applied our analysis to the Linux kernel, we believe that it could
+be extended to any binary with a modular, directory-based structure to identify
 subsystems, provided that there is limited whole-program inter-procedural
 analysis that aggressively inlines across translation units. In particular, we
 do not require source-code, or recompilation of the kernel to identify
-subsystems.
+subsystems \lnote{(lc525): well, if we categorize based on source file location,
+how can we say we don't require the source code?}.
 
 % Todo fn pointers
 % Can be done on any kernel, without the need for source or recompilation.
 
-
 \subsection{Kernel Tracing Infrastructure}
 
-\begin{figure}[ht!] \centering \includegraphics[width=\columnwidth]{sys_design}
-\caption{Primary user-space/kernel-space interactions detailed. Resource
+\begin{figure}[ht!] 
+	\centering 
+	\includegraphics[width=1.1\columnwidth]{sys_design}
+	\caption{Primary user-space/kernel-space interactions detailed. Resource
 accounting data is requested by applications for specific system calls and is
 then available for reading (zero-copy) from kernel buffer regions mmap-ed into
-the current address space. } \label{fig:design} \end{figure}
+the current address space. } 
+	\label{fig:design}
+\end{figure}
 
+\subsubsection{Measuring asynchronous effects}
 \pname{ }, unlike existing approaches to performance measurement, reports the
 asynchronous cost of performing a system call. For instance the true cost of
 performing a write is made up of both the cost of the synchronous part of the
@@ -245,7 +345,10 @@ Trace-point idenfitication - CScope, call site vs function.
 
 Moving from ST to KProbes (more dynamic).
 
-\subsection{User space API} Interface definition.
+\subsection{User space API} 
+A bitfield in the response lets the user know what data is available for consumption
+
+Interface definition.
 
 Discussion around automatically adding this (compiler).
 

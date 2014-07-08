@@ -4,9 +4,16 @@
 #include "config.h"
 #include "costs.h"
 
+#define FILL_MM 0
+#define FILL_NET 1
+#define FILL_FS 2
+#define FILL_GLOBAL 3
+
+static struct accounting *acct;
+
 int _create_shared_mem(void);
 
-int _fill_struct(long, long, struct accounting *);
+int _fill_struct(long, long, struct accounting *, long);
 
 struct accounting * _should_acct(pid_t pid, int syscall_nr);
 

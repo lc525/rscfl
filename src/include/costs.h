@@ -30,21 +30,21 @@
 #ifndef _SYSCALL_COST_H_
 #define _SYSCALL_COST_H_
 
-#include <linux/tcp.h>
-
 #ifdef __KERNEL__
 #include <linux/types.h>
+#include <linux/tcp.h>
 #else
 #include <sys/types.h>
+#include <netinet/tcp.h>
 #endif
 
-#ifndef BIT
-#define BIT(x) 1U << x
+#ifndef RBIT
+#define RBIT(x) 1U << x
 #endif
 
 #define ALL_BITS(x) (1U << (x + 1)) - 1
-#define u32 unsigned int
-#define u64 unsigned long long
+#define ru32 unsigned int
+#define ru64 unsigned long long
 
 #define RSCFL_ACCT_USE_BIT 0
 
@@ -62,32 +62,32 @@
  * when registering interest in system call resource accounting, as a filter.
  */
 typedef enum {
-  SYS              = BIT(0),
-  SYS_DEV          = BIT(1),
-  SYS_HW           = BIT(2),
-  SYS_IO           = BIT(3),
+  SYS              = RBIT(0),
+  SYS_DEV          = RBIT(1),
+  SYS_HW           = RBIT(2),
+  SYS_IO           = RBIT(3),
 
-  PROC             = BIT(4),
-  PROC_THR         = BIT(5),
-  PROC_SYNC        = BIT(6),
-  PROC_SCHED       = BIT(7),
-  PROC_IRQ         = BIT(8),
+  PROC             = RBIT(4),
+  PROC_THR         = RBIT(5),
+  PROC_SYNC        = RBIT(6),
+  PROC_SCHED       = RBIT(7),
+  PROC_IRQ         = RBIT(8),
 
-  MEM              = BIT(9),
-  MEM_VIRT         = BIT(10),
-  MEM_MAP          = BIT(11),
-  MEM_PAGE         = BIT(12),
+  MEM              = RBIT(9),
+  MEM_VIRT         = RBIT(10),
+  MEM_MAP          = RBIT(11),
+  MEM_PAGE         = RBIT(12),
 
-  STORAGE          = BIT(13),
-  STORAGE_VFS      = BIT(14),
-  STORAGE_CACHE    = BIT(15),
-  STORAGE_FS       = BIT(16),
-  STORAGE_HW       = BIT(17),
+  STORAGE          = RBIT(13),
+  STORAGE_VFS      = RBIT(14),
+  STORAGE_CACHE    = RBIT(15),
+  STORAGE_FS       = RBIT(16),
+  STORAGE_HW       = RBIT(17),
 
-  NET              = BIT(18),
-  NET_SOCK         = BIT(19),
-  NET_PROTO        = BIT(20),
-  NET_HW           = BIT(21),
+  NET              = RBIT(18),
+  NET_SOCK         = RBIT(19),
+  NET_PROTO        = RBIT(20),
+  NET_HW           = RBIT(21),
 
   ALL              = ALL_BITS(21)
 } resource;
@@ -98,9 +98,9 @@ typedef struct {
 } rscfl_syscall_id_t;
 
 struct cost_bitmap {
-  u32 primary; // logical OR between multiple resource elements
+  ru32 primary; // logical OR between multiple resource elements
 #ifdef STAGE_2
-  u64 ext;     // here for future extension
+  ru64 ext;     // here for future extension
 #endif
 };
 
@@ -115,10 +115,10 @@ struct cost_bitmap {
  *
  */
 struct acct_CPU {
-  u64 cycles;
-  u64 branch_mispredictions; //count
-  u64 instructions; //count
-  u64 wall_clock_time;
+  ru64 cycles;
+  ru64 branch_mispredictions; //count
+  ru64 instructions; //count
+  ru64 wall_clock_time;
 };
 
 
@@ -129,25 +129,37 @@ struct acct_Proc {
 };
 
 struct acct_Mem {
-  u64 alloc;
-  u64 freed;
+  ru64 alloc;
+  ru64 freed;
 };
 
 struct acct_Storage {
-  u64 avg_bandwidth;
-  u64 io_wait;
-  u64 seeks;
+  ru64 avg_bandwidth;
+  ru64 io_wait;
+  ru64 seeks;
 };
 
+struct acct_mm {
+  ru64 cycles;
+};
+
+struct acct_fs {
+  ru64 cycles;
+};
+
+struct acct_net {
+  ru64 cycles;
+};
+
+/*
 struct acct_Net {
-  struct tcp_info stats;
+  //struct tcp_info stats;
 };
-
-
+*/
 
 union accounting_component {
   struct acct_Storage storage;
-  struct acct_Net network;
+  //struct acct_Net network;
 };
 
 struct accounting {
@@ -158,6 +170,10 @@ struct accounting {
 
   rscfl_syscall_id_t syscall_id;
   volatile long unsigned int in_use;
+
+  struct acct_mm mm;
+  struct acct_fs fs;
+  struct acct_net net;
 
 #ifdef STAGE_2
   accounting_component[3] kunit_acct;

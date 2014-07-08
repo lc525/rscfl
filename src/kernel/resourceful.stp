@@ -7,12 +7,11 @@
 #include "res_kernel/res_comm.h"
 #include "res_kernel/probes.h"
 
-struct accounting *acct;
-
 %}
 
-global cycles=0
+global cycles = 0
 global wall_clock_time
+global probe_nest = 0;
 
 probe begin
 {
@@ -52,15 +51,16 @@ function should_acct()
   return should_acct_(pid(), -1);
 }
 
-
-function fill_struct(vfs:long, wall_clock_time:long)
+function fill_struct(vfs:long, wall_clock_time:long, fill_type:long)
 %{
-  _fill_struct(STAP_ARG_vfs, STAP_ARG_wall_clock_time, acct);
+  debugk("Nest %lld\n", global(s_probe_nest));
+  _fill_struct(STAP_ARG_vfs, STAP_ARG_wall_clock_time, acct, STAP_ARG_fill_type);
 %}
 
 function clear_acct_next(pid:long, syscall_nr:long)
 %{
   acct = NULL;
+  _clear_acct_next(STAP_ARG_pid, STAP_ARG_syscall_nr);
 %}
 
 function acct_now:long()
@@ -68,19 +68,256 @@ function acct_now:long()
   STAP_RETVALUE = (acct != NULL);
 %}
 
-probe kernel.function("sys_socket").return
+/*
+* PROBES: accept
+*/
+
+/*
+* NET
+*/
+probe kernel.function("sys_accept").call
 {
-  if (acct_now()) {
-    fill_struct(get_cycles() - cycles, gettimeofday_us() - wall_clock_time);
-    clear_acct_next(pid(), -1);
+  %{printk("Sys_accept cl\n")%}
+  start = gettimeofday_us()
+  if(should_acct()) {
+    probe_nest++;
+    cycles = get_cycles();
+    wall_clock_time = start;
   }
 }
 
-probe kernel.function("sys_socket").call
+probe kernel.function("sys_accept").return
 {
+  if (acct_now()) {
+    fill_struct(get_cycles() - cycles, gettimeofday_us() - wall_clock_time,
+    %{FILL_NET%});
+    probe_nest -= 1;
+    if(probe_nest == 0){
+      clear_acct_next(pid(), -1);
+    }
+  }
+}
+
+probe kernel.function("sock_alloc_file").call
+{
+  %{printk("sock_alloc_file cl\n")%}
   start = gettimeofday_us()
-  if (should_acct()) {
+  if(should_acct()) {
+    probe_nest++;
     cycles = get_cycles();
     wall_clock_time = start;
+  }
+}
+
+probe kernel.function("sock_alloc_file").return
+{
+  if (acct_now()) {
+    fill_struct(get_cycles() - cycles, gettimeofday_us() - wall_clock_time,
+    %{FILL_NET%});
+    probe_nest -= 1;
+    if(probe_nest == 0){
+      clear_acct_next(pid(), -1);
+    }
+  }
+}
+
+probe kernel.function("inet_accept").call
+{
+  %{printk("inet_accept cl\n")%}
+  start = gettimeofday_us()
+  if(should_acct()) {
+    probe_nest++;
+    cycles = get_cycles();
+    wall_clock_time = start;
+  }
+}
+
+probe kernel.function("inet_accept").return
+{
+  if (acct_now()) {
+    fill_struct(get_cycles() - cycles, gettimeofday_us() - wall_clock_time,
+    %{FILL_NET%});
+    probe_nest -= 1;
+    if(probe_nest == 0){
+      clear_acct_next(pid(), -1);
+    }
+  }
+}
+
+/*
+* FS
+*/
+probe kernel.function("new_inode_pseudo").call
+{
+  %{printk("new_inode_pseudo cl\n")%}
+  start = gettimeofday_us()
+  if(should_acct()) {
+    probe_nest++;
+    cycles = get_cycles();
+    wall_clock_time = start;
+  }
+}
+
+probe kernel.function("new_inode_pseudo").return
+{
+  if (acct_now()) {
+    fill_struct(get_cycles() - cycles, gettimeofday_us() - wall_clock_time,
+    %{FILL_FS%});
+    probe_nest -= 1;
+    if(probe_nest == 0){
+      clear_acct_next(pid(), -1);
+    }
+  }
+}
+
+probe kernel.function("get_unused_fd_flags").call
+{
+  %{printk("get_unused_fd_flags cl\n")%}
+  start = gettimeofday_us()
+  if(should_acct()) {
+    probe_nest++;
+    cycles = get_cycles();
+    wall_clock_time = start;
+  }
+}
+
+probe kernel.function("get_unused_fd_flags").return
+{
+  if (acct_now()) {
+    fill_struct(get_cycles() - cycles, gettimeofday_us() - wall_clock_time,
+    %{FILL_FS%});
+    probe_nest -= 1;
+    if(probe_nest == 0){
+      clear_acct_next(pid(), -1);
+    }
+  }
+}
+
+probe kernel.function("mntget").call
+{
+  %{printk("mntget cl\n")%}
+  start = gettimeofday_us()
+  if(should_acct()) {
+    probe_nest++;
+    cycles = get_cycles();
+    wall_clock_time = start;
+  }
+}
+
+probe kernel.function("mntget").return
+{
+  if (acct_now()) {
+    fill_struct(get_cycles() - cycles, gettimeofday_us() - wall_clock_time,
+    %{FILL_FS%});
+    probe_nest -= 1;
+    if(probe_nest == 0){
+      clear_acct_next(pid(), -1);
+    }
+  }
+}
+
+/*
+* MM
+*/
+probe kernel.function("kmem_cache_alloc").call
+{
+  %{printk("kmem_cache_alloc cl\n")%}
+  start = gettimeofday_us()
+  if(should_acct()) {
+    probe_nest++;
+    cycles = get_cycles();
+    wall_clock_time = start;
+  }
+}
+
+probe kernel.function("kmem_cache_alloc").return
+{
+  if (acct_now()) {
+    fill_struct(get_cycles() - cycles, gettimeofday_us() - wall_clock_time,
+    %{FILL_MM%});
+    probe_nest -= 1;
+    if(probe_nest == 0){
+      clear_acct_next(pid(), -1);
+    }
+  }
+}
+
+
+
+
+
+/*
+* PROBES: sendfile
+*/
+
+/* FS */
+probe kernel.function("sys_sendfile").call
+{
+  %{printk("Sys_sendfile cl\n")%}
+  start = gettimeofday_us()
+  if (should_acct()) {
+    probe_nest++;
+    cycles = get_cycles()
+    wall_clock_time = start
+  }
+}
+
+probe kernel.function("sys_sendfile").return
+{
+  if (acct_now()) {
+    fill_struct(get_cycles() - cycles, gettimeofday_us() - wall_clock_time,
+    %{FILL_FS%})
+    probe_nest -= 1;
+    if(probe_nest == 0){
+      clear_acct_next(pid(), -1);
+    }
+  }
+}
+
+/* MM */
+probe kernel.function("__kmalloc").call
+{
+  %{printk("__kmalloc cl\n")%}
+  start = gettimeofday_us()
+  if (should_acct()) {
+    probe_nest++;
+    cycles = get_cycles()
+    wall_clock_time = start;
+  }
+}
+
+probe kernel.function("__kmalloc").return
+{
+  if (acct_now()) {
+    fill_struct(get_cycles() - cycles, gettimeofday_us() - wall_clock_time,
+    %{FILL_MM%})
+    probe_nest -= 1;
+    if(probe_nest == 0){
+      clear_acct_next(pid(), -1);
+    }
+  }
+}
+
+/* NET */
+probe kernel.function("sock_sendpage").call
+{
+  %{printk("Sock_sendpage cl\n")%}
+  start = gettimeofday_us()
+  if (should_acct()) {
+    probe_nest++;
+    cycles = get_cycles()
+    wall_clock_time = start
+  }
+}
+
+probe kernel.function("sock_sendpage").return
+{
+  if (acct_now()) {
+    fill_struct(get_cycles() - cycles, gettimeofday_us() - wall_clock_time,
+    %{FILL_NET%})
+    probe_nest -= 1;
+    if(probe_nest == 0){
+      clear_acct_next(pid(), -1);
+    }
   }
 }

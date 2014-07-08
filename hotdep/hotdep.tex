@@ -2,6 +2,7 @@
 \usepackage{usenix,epsfig,authblk}
 \usepackage{xcolor}
 \usepackage{hyperref}
+\usepackage{graphicx}
 
 \newcommand{\pname}{Resourceful}
 \newcommand{\lnote}[1]{\textcolor{red}{[\textit{#1}]}} %notes
@@ -38,6 +39,7 @@
 We outline the design and prototype implementation of \pname, a tool that allows fine-grained (system call level) resource accounting for the Linux kernel. The system can account for both synchronous and asynchronous CPU, memory and IO costs of given application calls, while incurring a low overhead. \lnote{to be completed...}
 
 \section{Introduction}
+%TODO(lc525): modify in accordance to Andy's comments
 Any system experiencing high contention on particular resources will show more variability in its behavior, becoming less predictable in terms of performance and failure rates \cite{?}. This is why resource consumption metrics like CPU, memory or IO are often used as a proxy for system behavior and health, in both human-driven and automated processes (e.g. by an engineer evaluating increased tail latency causes or a distributed scheduler making decisions about task migration).
 
 However, low resource usage is not desirable, either: there has been a constant push for increasing server utilization and reducing running costs in modern datacenters. Those are typically achieved through service aggregation, where multiplexing several applications on a single physical host is done either through hypervisor-based virtualization (VM's), lightweight virtualization (containers), or by running multiple services on the same OS, depending on the required level of isolation, SLAs, etc. 
@@ -61,11 +63,10 @@ Moving towards this goal, we outline the design and implementation of \pname, a 
 Our current prototype implementation focuses on the Linux kernel, but the overall design is general enough to allow for implementation in hypervisors and extension to other codebases. The main contributions \lnote{add as per Andy's suggestions}
 
 \section{\pname: System Design}
-\pname's design is centered on enabling applications full control over measuring resource consumption of system calls, without imposing prohibitive overheads. In user-space, \pname{ } provides a library allowing applications to select the calls for which accounting should take place and to read the results after the required information was gathered on the kernel side. Each result provides a detailed image of resource usage, grouped per kernel subsystem. For example, the result of a system call being accounted contains total CPU cycles, wall clock time and memory allocated/deallocated during that call, but the same metrics are recorded for each of the subsystems touched during that call (total CPU cycles spent in the Network subsystem, total cycles spent in VFS, alongside subsystem-specific metrics such as bytes sent/received, number of retransmissions, IO queue size, disk writes, etc.). The application can select exactly which of those metrics are recorded and can also perform custom aggregations across multiple system calls.
+\pname's gives applications full control over measuring resource consumption of system calls, without imposing prohibitive overheads. The framework allowing this has three main components: (i) a measurement configuration component that analyzes the current kernel in order to identify minimal instrumentation probe points and subsystem boundaries (the level at which aggregation takes place), guided by a user-provided configuration; (ii) a kernel module responsible for inserting those probes into the kernel and efficiently activating them when applications request resource consumption data and (iii) a user-space library exposing an API that applications can use to express interest in the resource consumption of particular system calls and to read the results after the required information was gathered on the kernel side.
 
-In order to support the features of the library, \pname{ } requires a specialized kernel module to be loaded
+Each resource accounting structure read back provides detailed metrics grouped per kernel subsystem (as determined by the first component). For example, the result of a system call being accounted contains total CPU cycles, wall clock time and memory allocated/deallocated during that call, but the same metrics are recorded for each of the subsystems touched during that call (total CPU cycles spent in the Network subsystem, total cycles spent in VFS alongside subsystem-specific metrics such as bytes sent/received, number of retransmissions, IO queue size, disk writes, etc.). The application can select exactly which of those metrics are recorded and can also perform custom aggregations across multiple system calls.
 
-\pname{ } has three components: (i) a measurement configuration component that analyzes the current kernel in order to identify subsystem boundaries (e.g. Network, VFS, Memory, etc.) and determines optimal probe points for accounting in each of them; (ii) a kernel module responsible for inserting those probes into the kernel and activating them at the request of applications and (iii) a user-space library offering an API through which applications pinpoint system calls for which resource accounting is desired, set up custom aggregation and read the results once they exposed by the kernel module. 
 \subsection{Kernel Subsystem Identification}
 
 The Linux kernel has a modular structure of \emph{subsystems}, such as VFS, logical filesystems, block devices, which are described by the Linux Kernel Map.\footnote{\url{http://www.makelinux.net/kernel_map/}}
@@ -96,15 +97,22 @@ In particular, we do not require source-code, or recompilation of the kernel to 
 
 \subsection{Kernel Tracing Infrastructure}
 
-\pname{ }, unlike existing approaches to performance measurement, reports the asynchronous cost of performing a systemcall.
-For instance the true cost of performing a write is made up of both the cost of the synchronous part of the syscall, and the latent cost of sync-ing the data to disk.
+\begin{figure}[ht!]
+    \centering
+	\includegraphics[width=\columnwidth]{sys_design}
+    \caption{Primary user-space/kernel-space interactions detailed. Resource accounting data is requested by applications for specific system calls and is then available for reading (zero-copy) from kernel buffer regions mmap-ed into the current address space. }
+    \label{fig:design}
+\end{figure}
+
+\pname{ }, unlike existing approaches to performance measurement, reports the asynchronous cost of performing a system call.
+For instance the true cost of performing a write is made up of both the cost of the synchronous part of the system call, and the latent cost of syncing the data to disk.
 This absolute cost of performing a write that flushes buffers, or performing a sync will be higher than a write that is immediately buffered.
-We argue that without reporting this amortised, asynchronous cost, performance monitoring APIs give an incomplete representation of system consumption.
+We argue that without reporting this amortized, asynchronous cost, performance monitoring APIs give an incomplete representation of system consumption.
 
 \pname{ } performs accounting for asynchronous kernel effects by observing that Linux provides a number of abstractions for performing asynchronous work: \emph{timers}, \emph{tasklets}, and \emph{interrupts}.
 \lnote{How have we implemented this?}
 
-\panme{ } is primarily a kernel-accounting framework, so whilst further coallescing, and buffering may be present in hardware, we do not account for this.
+\pname{ } is primarily a kernel-accounting framework, so whilst further coalescing, and buffering may be present in hardware, we do not account for this.
 
 % Async / Sync tracing (multiple layers, kworkers etc).
 
@@ -155,10 +163,7 @@ Declarative Expressiveness
 
 \section{Acknowledgments}
 
-A polite author always includes acknowledgments.  Thank everyone,
-especially those who funded the work.
-
-
+We thank everyone, and especially those who have funded our work.
 
 {\footnotesize \bibliographystyle{acm}
 \bibliography{hotdep}}

@@ -1,6 +1,7 @@
 \documentclass[letterpaper,twocolumn,10pt]{article}
 \usepackage{usenix,epsfig,authblk}
 \usepackage{xcolor}
+\usepackage{hyperref}
 
 \newcommand{\pname}{Resourceful}
 \newcommand{\lnote}[1]{\textcolor{red}{[\textit{#1}]}} %notes
@@ -64,8 +65,46 @@ From the perspective of an application, \pname{} is a shared library
 
 \pname{ } has three components: (i) a measurement configuration component that analyzes the current kernel in order to identify subsystem boundaries (e.g. Network, VFS, Memory, etc.) and determines optimal probe points for accounting in each of them; (ii) a kernel module responsible for inserting those probes into the kernel and activating them at the request of applications and (iii) a user-space library offering an API through which applications pinpoint system calls for which resource accounting is desired, set up custom aggregation and read the results once they exposed by the kernel module. 
 \subsection{Kernel Subsystem Identification}
+
+The Linux kernel has a modular structure of \emph{subsystems}, such as VFS, logical filesystems, block devices, which are described by the Linux Kernel Map.\footnote{\url{http://www.makelinux.net/kernel_map/}}
+\pname{ } uses this structure to report the resource consumption on a per-subsystem basis.
+For example, \pname{ } can report the number of CPU cycles used by VFS.
+This differs from current approaches that typically fall into two categories: 1) resource consumption is reported for an entire system call, however this lacks the resolution to determine the cause of the bottleneck 2) per-function consumption, such as performed by ftrace, which has a high performance overhead, and a high level of information that necessitates post-processing.
+Our approach allows us to give performance characteristics at a level whereby information can be used without post-processing, but with a high degree of granularity.
+Moreover, code paths changing subsystem is more rare than function calls, so we read counters less often, thereby achieving a lower overhead.
+
+To identify subsystems we perform inter-procedural static analysis of the currently-running kernel.
+We identify all call instructions in the kernel's binary, and determine which function the callee and the caller belong to.
+Each function is categorised into one of the subsystems in the Linux Kernel Map using predominantly its source location.
+Where the call moves from one subsystem to another, we consider that to be a subsystem boundary.
+When changing subsystem, the cost of the call, and return instructions could arguably be accounted to either the caller's subsystem or the callee's.
+We attribute the cost of the call instruction to the caller and the return to the callee.
+This scheme allows us to insert probes entirely in the callee.
+Whilst the number of callsites that change subsystem is larger than the number of entry points into a subsystem, our approach has no false-positives whereby we execute code whilst remaining in a subsystem.
+Had we inserted probes into the caller, any callsites in the same subsystem would have executed extra code, reducing performance.
+Whilst inserting more probes has a higher startup cost, there is no runtime cost of unused probes and there is no increase in codesize from inserting unused probes.
+
+
+Whilst we only apply our analysis to the Linux kernel, we believe that it could be applied to any binary with a modular, directory-based structure to identify subsystems, provided that there is limited whole-program inter-procedural analysis that aggressively inlines across translation units.
+In particular, we do not require source-code, or recompilation of the kernel to identify subsystems.
+
+% Todo fn pointers
+% Can be done on any kernel, without the need for source or recompilation.
+
+
 \subsection{Kernel Tracing Infrastructure}
-Async / Sync tracing (multiple layers, kworkers etc).
+
+\pname{ }, unlike existing approaches to performance measurement, reports the asynchronous cost of performing a systemcall.
+For instance the true cost of performing a write is made up of both the cost of the synchronous part of the syscall, and the latent cost of sync-ing the data to disk.
+This absolute cost of performing a write that flushes buffers, or performing a sync will be higher than a write that is immediately buffered.
+We argue that without reporting this amortised, asynchronous cost, performance monitoring APIs give an incomplete representation of system consumption.
+
+\pname{ } performs accounting for asynchronous kernel effects by observing that Linux provides a number of abstractions for performing asynchronous work: \emph{timers}, \emph{tasklets}, and \emph{interrupts}.
+\lnote{How have we implemented this?}
+
+\panme{ } is primarily a kernel-accounting framework, so whilst further coallescing, and buffering may be present in hardware, we do not account for this.
+
+% Async / Sync tracing (multiple layers, kworkers etc).
 
 Call granularity tracing.
 

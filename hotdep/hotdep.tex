@@ -85,36 +85,43 @@ asynchronous CPU, memory and IO costs of given application calls, while
 incurring a low overhead. \lnote{to be completed...}
 
 \section{Introduction} 
-%TODO(lc525): modify in accordance to Andy's comments
+Virtualization has become the norm for increasing server utilization in modern
+datacenters. However, multiplexing numerous services on the same physical host
+(either by running processes, OS containers or full-fledged VMs) means that the
+chances of experiencing high contention on particular resources grow. This
+translates into more variability in system behavior, and less predictability in
+terms of performance and failure rates \cite{?}.
 
-Any system experiencing high contention on particular resources will show more
-variability in its behavior, becoming less predictable in terms of performance
-and failure rates \cite{?}. This is why resource consumption metrics like CPU,
-memory or IO are often used as a proxy for system behavior and health, in both
-human-driven and automated processes (e.g. by an engineer evaluating increased
-tail latency causes or a distributed scheduler making decisions about task
-migration).
+Because the entities managing hardware resources (the hypervisor and/or the OS
+kernel) are by design seen as black boxes by any process executing on top, it is
+difficult to assess any side effects that a running process might have upon
+other processes sharing the same resources. Those side effects could manifest as
+performance degradation (for example, in cache trashing and IO storms) or
+changes in the output of the system (fewer results returned, loss of precision
+if running timeout-based processing algorithms).
 
-However, low resource usage is not desirable, either: there has been a constant
-push for increasing server utilization and reducing running costs in modern
-datacenters. Those are typically achieved through service aggregation, where
-multiplexing several applications on a single physical host is done either
-through hypervisor-based virtualization (VM's), lightweight virtualization
-(containers), or by running multiple services on the same OS, depending on the
-required level of isolation, SLAs, etc. %\lnote{In order to lower overheads, it
-% seems likely that lighter-weight OS-based virtualization solutions such as
-% containers will become more common.}
-Here, the entities managing hardware resources (the hypervisor and/or the OS
-kernel) are by design seen as black boxes by any process executing on top. This
-makes it difficult to assess any side effects that a running process might have
-upon other processes sharing the same resources. Those side effects could
-manifest as performance degradation (for example, in cache trashing and IO
-storms) or changes in the output of the system (fewer results returned, loss of
-precision if running timeout-based processing algorithms).
+%Any system experiencing high contention on particular resources will show more
+%variability in its behavior, becoming less predictable in terms of performance
+%and failure rates \cite{?}. This is why resource consumption metrics like CPU,
+%memory or IO are often used as a proxy for system behavior and health, in both
+%human-driven and automated processes (e.g. by an engineer evaluating increased
+%tail latency causes or a distributed scheduler making decisions about task
+%migration).
 
+%However, low resource usage is not desirable, either: there has been a constant
+%push for increasing server utilization and reducing running costs in modern
+%datacenters. Those are typically achieved through service aggregation, where
+%multiplexing several applications on a single physical host is done either
+%through hypervisor-based virtualization (VM's), lightweight virtualization
+%(containers), or by running multiple services on the same OS, depending on the
+%required level of isolation, SLAs, etc. %\lnote{In order to lower overheads, it
+%% seems likely that lighter-weight OS-based virtualization solutions such as
+%% containers will become more common.}
 
 Accurate resource accounting data is needed to measure, understand and mitigate
-those implicit interractions.
+those implicit interactions. To this end, we are introducing \pname, a framework that provides configurable
+resource utilization measurements to applications interested in monitoring their
+footprint in the context of overall resource consumption
 
 %As more services will start sharing the same hardware resources, the importance
 %of measuring and understanding both the causes and consequences of such
@@ -144,12 +151,12 @@ such as \texttt{ftrace}, are often limited to debugging scenarios because of the
 they introduce.
 
 (ii) \textbf{Accounting for resources consumed asynchronously:} not all the
-effects of a given call occur during its execution. A very simple example here
+effects of a given system call occur during its execution. A very simple example here
 is a process writing data to disk: while the application makes multiple calls to
 \texttt{write(...)} on a particular file descriptor, there might be no immediate
 IO activity on disk because the kernel uses a buffer cache. The actual disk IO
 will occur asynchronously (dependent on the IO scheduler, the expiration of a
-default flushing interval, an explicit call to \texttt{fsync}, etc). Simply
+default flushing interval, an explicit call to \texttt{fsync}). Simply
 recording resource consumption metrics before and after a \texttt{write(...)}
 call will not capture the full cost. The Linux kernel has multiple ways of
 executing such asynchronous tasks (timers, tasklets, workqueues, software
@@ -167,11 +174,8 @@ can not collaborate in avoiding resource contention when running concurrent
 workloads (this is the usual model where applications have the illusion of
 exclusive resource ownership).
 
-In this paper we describe \pname, a framework that provides configurable
-resource utilization measurements to applications interested in monitoring their
-footprint in the context of overall resource consumption. \pname{ }addresses
-the issues above through selective kernel probing, allowing data collection
-down to the granularity of system calls. 
+\pname{ }addresses the issues above through selective kernel probing, allowing
+data collection down to the granularity of system calls.
 
 The main contributions of this paper are: 
 
@@ -431,7 +435,8 @@ to \texttt{mmap} resource accounting buffers of other processes. This paves the 
 react to concurrent workloads (for example, by throttling or delaying their own operations). 
 \lnote{Discussion around automatically adding this (compiler).}
 
-\section{Prototype Implementation} 
+\section{Prototype Implementation}
+\lnote{shoud we call this "preliminary results"?} 
 We have developed the kernel subsystem identification and resource accounting
 prototypes separately, with the purpose of showing the feasibility of the design
 and gathering preliminary overhead data.
@@ -439,7 +444,7 @@ and gathering preliminary overhead data.
 At the moment, the kernel module uses SystemTap to manually set probes for the
 network, memory and filesystem kernel sub-systems.
 
-In order to understand the overhead introduced by \pname{ },we have modified
+In order to understand the overhead introduced by \pname, we have modified
 \textit{lighttpd} to link with our user-space library and do resource accounting
 for each socket accept/send/receive. At runtime, lighttpd is configured to serve
 a number of static files for performing end-to-end latency and throughput tests.
@@ -463,9 +468,20 @@ An in-depth evaluation is planned as future work.
 
 In our throughput test, we observe \lnote{add throughput results}
 
+\begin{table}[ht!]
+    \begin{tabular}{|l|l|l|}
+    \hline
+    lighttpd         & base & \pname \\ \hline
+    Throughput (Avg) & ~    & ~           \\
+    Throughput (Min) & ~    & ~           \\ \hline
+    \end{tabular}
+    \caption{Change in throughput when enabling \pname{ } for lighttpd}
+    \label{tbl:throughput} 
+\end{table}
 
+\section{Related Work} 
 
-\section{Related Work} Existing tracing / profiling systems. (Maybe a chart
+Existing tracing / profiling systems. (Maybe a chart
 outlining differences).
 
 FTrace, SystemTap (raw) / DTrace, Perf.
@@ -481,7 +497,5 @@ instrumentation overhead, Generalisability, Declarative Expressiveness
 We thank everyone, and especially those who have funded our work.
 
 {\footnotesize \bibliographystyle{acm} \bibliography{hotdep}}
-
-
 
 \end{document}

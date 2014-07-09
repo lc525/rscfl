@@ -315,11 +315,16 @@ directory-based structure.
 % Todo fn pointers
 % Can be done on any kernel, without the need for source or recompilation.
 
-\subsection{Kernel Tracing Infrastructure}
+\subsection{Kernel Accounting Infrastructure}
 
 Having identified the minimum number of probe points required for measuring per-subsystem
 resource consumption, a kernel module has the job of inserting those probes at runtime.
 For the Linux kernel, this can be achieved using the existing kprobes mechanism.
+
+When run, each kprobe will record a snapshot of resource consumption metrics according
+to the subsystem in which the probed function resides. For gathering actual data, we
+use existing kernel mechanisms: \texttt{perf\_events} for reading PMU data, structures
+that contain statistics such as \texttt{tcp\_info}, etc.
 
 Besides making sure that those probes run and snapshot resource consumption statistics
 when required, the kernel module also needs to efficiently store this information
@@ -419,27 +424,38 @@ filters, but this now specifies which subsystems the system call has actually to
 
 \lnote{Discussion around automatically adding this (compiler).}
 
-\section{Prototype Implementation and Evaluation} Manual, cross-layer approach
-while we implement the compiler based approach Implemented purely to show that
-runtime overhead is small enough to not be a major issue Use coarse-grained
-approach, using existing toold (kprobes, interrupt driven etc) Cross-layer
-capture [Implentation details and results]
+\section{Prototype Implementation} 
+We have developed the kernel subsystem identification and resource accounting
+prototypes separately, with the purpose of showing the feasibility of the design
+and gathering preliminary overhead data.
 
-Describe use case (lighttpd).\newline End-to-end example of use of resourceful.
-Show this is useful. `We show how this is useful.'
+At the moment, the kernel module uses SystemTap to manually set probes for the
+network, memory and filesystem kernel sub-systems.
 
+In order to understand the overhead introduced by \pname{ },we have modified
+\textit{lighttpd} to link with our user-space library and do resource accounting
+for each socket accept/send/receive. At runtime, lighttpd is configured to serve
+a number of static files for performing end-to-end latency and throughput tests.
+
+To understand overhead, we first look at the distribution of latencies and
+compare a vanilla lighttpd binary with the one that runs resource accounting
+using \pname. As observed in Figure~\ref{fig:experiment1}, the median latency increases by 5.4\%
+when resource accounting is active. The tail latency is also slightly increased, with the 99th percentile
+growing by 11.1\%. 
+
+Importantly, the overall characteristics of the latency distribution stay the same:
+we see 3 local maximums and the overall shape remains similar. This suggests that even with the overhead
+of measuring resource consumption, one could still observe the latency characteristics of the underlying system.
+An in-depth evaluation is planned as future work.
 \begin{figure}[ht!] 
 	\centering 
-	\includegraphics[width=1.1\columnwidth]{dist_and_fit}
+	\includegraphics[width=\columnwidth]{dist_and_fit}
 	\caption{Change in latency distribution when enabling \pname{ }for lighttpd} 
 	\label{fig:experiment1}
 \end{figure}
 
-Overhead evaluation.\newline Space / time overhead. Mem. consumed. Time o/h of
-various workloads.
+In our throughput test, we observe \lnote{add throughput results}
 
-Latency and throughput degradation.\newline For instrumented lighttpd. For
-something else running at the same time.
 
 
 \section{Related Work} Existing tracing / profiling systems. (Maybe a chart

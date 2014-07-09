@@ -359,20 +359,35 @@ reporting the amortized, asynchronous cost, performance monitoring APIs give an
 incomplete representation of system resource consumption.
 
 The solution for tracking the calls that have caused a given asynchronous task
-hinges on the observation that a link between two operations can only
-exist if the kernel code maintains some data structure shared by both. Buffers
-in which data is enqueued and later dequeued asynchronously (flushed) and timers
-started by a function for running a given task when reaching zero are
-just two examples. Tracking the lifetime of those shared structures is sufficient for 
+hinges on the observation that a link between two operations can only exist if
+the kernel code maintains some data structure shared by both. \textit{Buffers}
+in which data is enqueued and later dequeued asynchronously (flushed) and
+\textit{timers} started by a function for running a given task when reaching
+zero are just two examples. Tracking the lifetime of those shared structures and
+any actions performed on them is sufficient for determining the accounting
+buffers to which resource consumption should be written to. 
 
+When multiple system calls are amortized over the same asynchronous operation
+(the example of multiple writes being buffered and then flushed to disk once),
+the resources consumed by the flush will have to be divided amongst all the
+initial system calls, following an attribution strategy. For buffered writes,
+the simplest strategy is to divide the costs proportional to the size of each
+write.
 
-\pname{ } performs accounting for asynchronous kernel effects by observing that
+\pname{ }performs accounting for asynchronous kernel operations by observing that
 Linux provides a number of abstractions for performing asynchronous work:
-\emph{timers}, \emph{tasklets}, and \emph{interrupts}.
+\emph{timers}, \emph{tasklets}, \emph{workqueues} and \emph{interrupts}. Each of
+those is characterized by particular shared data structures, and the framework
+will index their addresses in order to track the operation that triggered their
+execution. 
 
-\pname{ } is primarily a kernel-accounting framework, so whilst further
-coalescing, and buffering may be present in hardware, we do not account for
-this.
+Custom asynchronous accounting can also be set up:
+Listing~\ref{lst:config} shows how network scheduler buffers (the qdisc buffer)
+can be tracked across enqueue/dequeue operations: when the
+\texttt{dev\_queue\_xmit} probe is hit (synchronously), \pname{ }will store the
+address of the qdisc buffer. A following \texttt{qdisc\_restart} probe being hit
+on an asynchronous path will match on the address of the qdisc buffer to assign
+resource consumption to the initial accounting buffer.
 
 % Async / Sync tracing (multiple layers, kworkers etc).
 %Call granularity tracing.

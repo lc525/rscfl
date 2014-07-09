@@ -119,9 +119,10 @@ if running timeout-based processing algorithms).
 %% containers will become more common.}
 
 Accurate resource accounting data is needed to measure, understand and mitigate
-those implicit interactions. To this end, we are introducing \pname, a framework that provides configurable
-resource utilization measurements to applications interested in monitoring their
-footprint in the context of overall resource consumption
+those implicit interactions. To this end, we are introducing \pname, a framework
+that provides configurable resource utilization measurements at system call
+granularity to applications interested in monitoring their footprint in the
+context of overall resource consumption.
 
 %As more services will start sharing the same hardware resources, the importance
 %of measuring and understanding both the causes and consequences of such
@@ -451,9 +452,10 @@ a number of static files for performing end-to-end latency and throughput tests.
 
 To understand overhead, we first look at the distribution of latencies and
 compare a vanilla lighttpd binary with the one that runs resource accounting
-using \pname. As observed in Figure~\ref{fig:experiment1}, the median latency increases by 5.4\%
-when resource accounting is active. The tail latency is also slightly increased, with the 99th percentile
-growing by 11.1\%. 
+using \pname, for 10.000 sequential requests issued using \texttt{http\_ping}. As
+observed in Figure~\ref{fig:experiment1}, the median latency increases by 5.4\%
+when resource accounting is active. The tail latency is also slightly increased,
+with the 99th percentile growing by 11.1\%.
 
 Importantly, the overall characteristics of the latency distribution stay the same:
 we see three local maxima and the overall shape remains similar. This suggests that even with the overhead
@@ -469,6 +471,7 @@ An in-depth evaluation is planned as future work.
 In our throughput test, we observe \lnote{add throughput results}
 
 \begin{table}[ht!]
+	\centering 
     \begin{tabular}{|l|l|l|}
     \hline
     lighttpd         & base & \pname \\ \hline

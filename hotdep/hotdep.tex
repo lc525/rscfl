@@ -408,11 +408,15 @@ the other functions in identifying the locations of mmaped buffers.
 Before a system call of interest, the developer must call
 \texttt{acct\_next(...)}. This will write an entry to the control device marking
 the fact that the kernel infrastructure must track resource consumption for the
-next call. Of course, multiple variants of \texttt{acct\_next} exist, in case
-the developer needs accounting for the next \textit{n} system calls, or just
-needs to start/stop accounting at specific points in the application.
-\texttt{acct\_next} also allows the user to pass in a bit array in order to
-filter-out uninteresting kernel sub-systems from the result.
+next system call comming from that \texttt{pid}. Multiple variants of
+\texttt{acct\_next} exist, in case the developer needs accounting for the next
+\textit{n} system calls, or just needs to start/stop accounting at specific
+points in the application. \texttt{acct\_next} also allows the user to pass in a
+bit array in order to filter-out uninteresting kernel sub-systems from the
+result. Custom aggregation can be set up by passing an integer token
+(arbitrarily chosen by the user) to multiple \texttt{acct\_next} calls. The data
+for all the calls with a given token value will be aggregated in the same
+accounting structure.
 %The same bit array will be updated to match the actual results when reading them.
 
 The third API call, \texttt{acct\_read}, allows zero-copy reads of accounting
@@ -422,6 +426,9 @@ recorded. The returned data structure contains the same bit array used to apply
 filters, but this now specifies which subsystems the system call has actually touched
 (in this way, the application knows which elements of the structure contain valid data).
 
+An API extension which we have not yet implemented in our prototype will allow applications
+to \texttt{mmap} resource accounting buffers of other processes. This paves the way for applications that
+react to concurrent workloads (for example, by throttling or delaying their own operations). 
 \lnote{Discussion around automatically adding this (compiler).}
 
 \section{Prototype Implementation} 

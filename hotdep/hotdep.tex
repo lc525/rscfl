@@ -350,7 +350,7 @@ called once for every thread of the application: on each mmap a new buffer is al
 on the kernel side to hold resource accounting data for system calls made from that thread.
 
 On hitting a probe, the module needs to determine the corresponding accounting
-buffer for writing resource consumption data. An index that links given pids to
+buffer for writing resource consumption data. An index that links given \texttt{pids} to
 their corresponding buffers is maintained in per-cpu hash tables for this
 purpose. \pname{ } intercepts calls to scheduler functions in order to maintain
 those indexes up-to-date for each cpu.
@@ -375,24 +375,24 @@ buffers to which resource consumption should be written to.
 When multiple system calls are amortized over the same asynchronous operation
 (the example of multiple writes being buffered and then flushed to disk once),
 the resources consumed by the flush will have to be divided amongst all the
-initial system calls, following an attribution strategy. For buffered writes,
+initial system calls, following an \textit{attribution strategy}. For buffered writes,
 the simplest strategy is to divide the costs proportional to the size of each
 write.
 
-\pname{ }performs accounting for asynchronous kernel operations by observing that
-Linux provides a number of abstractions for performing asynchronous work:
+\pname{ }performs accounting for asynchronous kernel operations by observing
+that Linux provides a number of abstractions for performing asynchronous work:
 \emph{timers}, \emph{tasklets}, \emph{workqueues} and \emph{interrupts}. Each of
 those is characterized by particular shared data structures, and the framework
-will index their addresses in order to track the operation that triggered their
-execution. 
+will index their addresses in order to track the operation that triggered the
+asynchronous execution.
 
-Custom asynchronous accounting can also be set up:
-Listing~\ref{lst:config} shows how network scheduler buffers (the qdisc buffer)
-can be tracked across enqueue/dequeue operations: when the
-\texttt{dev\_queue\_xmit} probe is hit (synchronously), \pname{ }will store the
-address of the qdisc buffer. A following \texttt{qdisc\_restart} probe being hit
-on an asynchronous path will match on the address of the qdisc buffer to assign
-resource consumption to the initial accounting buffer.
+Custom asynchronous accounting can also be set up: Listing~\ref{lst:config}
+shows how network scheduler buffers (the qdisc buffer) can be tracked across
+enqueue/dequeue operations: when the \texttt{dev\_queue\_xmit} probe is hit
+(synchronously), \pname{ }will store the address of the qdisc buffer. A
+following \texttt{qdisc\_restart} probe being hit on an asynchronous path will
+match on the address of the qdisc buffer and, based on this, determine the
+correct accounting structure that should be filled.
 
 % Async / Sync tracing (multiple layers, kworkers etc).
 %Call granularity tracing.
@@ -444,12 +444,12 @@ when resource accounting is active. The tail latency is also slightly increased,
 growing by 11.1\%. 
 
 Importantly, the overall characteristics of the latency distribution stay the same:
-we see 3 local maximums and the overall shape remains similar. This suggests that even with the overhead
+we see three local maxima and the overall shape remains similar. This suggests that even with the overhead
 of measuring resource consumption, one could still observe the latency characteristics of the underlying system.
 An in-depth evaluation is planned as future work.
 \begin{figure}[ht!] 
 	\centering 
-	\includegraphics[width=\columnwidth]{dist_and_fit}
+	\includegraphics[width=\columnwidth]{dist_and_fit2}
 	\caption{Change in latency distribution when enabling \pname{ }for lighttpd} 
 	\label{fig:experiment1}
 \end{figure}

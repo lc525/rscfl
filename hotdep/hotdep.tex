@@ -169,7 +169,7 @@ exclusive resource ownership).
 
 In this paper we describe \pname, a framework that provides configurable
 resource utilization measurements to applications interested in monitoring their
-footprint in the context of overall resource consumption. \pname{ } addresses
+footprint in the context of overall resource consumption. \pname{ }addresses
 the issues above through selective kernel probing, allowing data collection
 down to the granularity of system calls. 
 
@@ -191,7 +191,11 @@ implementation.
 
 Our current implementation focuses on gathering resource usage data from the
 Linux kernel.  However, the overall design is general enough to allow for
-implementation in hypervisors and extension to other codebases.
+implementation in hypervisors and extension to other codebases. 
+% set up reasonable expectations:
+In this paper, we aim to show that it is possible to run a system tracking
+resource consumption based on our design with reasonable overhead (\textless 10\%). A
+full investigation on the accuracy of the recorded data remains as future work.
 
 
 \section{\pname: System Design} 
@@ -340,36 +344,40 @@ devices are mmap-ed into the local address space. The \texttt{init()} function s
 called once for every thread of the application: on each mmap a new buffer is allocated
 on the kernel side to hold resource accounting data for system calls made from that thread.
 
-The kernel module manages the list of buffers by intercepting scheduler operations: on each
-task switch it needs to look for the accounting buffer of the task that starts running. An index
+On hitting a probe, the module needs to determine the corresponding accounting
+buffer for writing resource consumption data. An index that links given pids to
+their corresponding buffers is maintained in per-cpu hash tables for this
+purpose. \pname{ } intercepts calls to scheduler functions in order to maintain
+those indexes up-to-date for each cpu.
 
+\subsubsection{Measuring Asynchronous Effects}
+Unlike existing approaches, \pname{} also reports the costs incurred
+asynchronously after making a system call. As described in our example
+use case, the absolute cost of performing a write that flushes buffers will be
+higher than a write that is immediately buffered. We argue that without
+reporting the amortized, asynchronous cost, performance monitoring APIs give an
+incomplete representation of system resource consumption.
 
-\subsubsection{Measuring asynchronous effects}
-\pname{ }, unlike existing approaches to performance measurement, reports the
-asynchronous cost of performing a system call. For instance the true cost of
-performing a write is made up of both the cost of the synchronous part of the
-system call, and the latent cost of syncing the data to disk. This absolute cost
-of performing a write that flushes buffers, or performing a sync will be higher
-than a write that is immediately buffered. We argue that without reporting this
-amortized, asynchronous cost, performance monitoring APIs give an incomplete
-representation of system consumption.
+The solution for tracking the calls that have caused a given asynchronous task
+hinges on the observation that a link between two operations can only
+exist if the kernel code maintains some data structure shared by both. Buffers
+in which data is enqueued and later dequeued asynchronously (flushed) and timers
+started by a function for running a given task when reaching zero are
+just two examples. Tracking the lifetime of those shared structures is sufficient for 
+
 
 \pname{ } performs accounting for asynchronous kernel effects by observing that
 Linux provides a number of abstractions for performing asynchronous work:
-\emph{timers}, \emph{tasklets}, and \emph{interrupts}. \lnote{How have we
-implemented this?}
+\emph{timers}, \emph{tasklets}, and \emph{interrupts}.
 
 \pname{ } is primarily a kernel-accounting framework, so whilst further
 coalescing, and buffering may be present in hardware, we do not account for
 this.
 
 % Async / Sync tracing (multiple layers, kworkers etc).
-
-Call granularity tracing.
-
-Trace-point idenfitication - CScope, call site vs function.
-
-Moving from ST to KProbes (more dynamic).
+%Call granularity tracing.
+%Trace-point idenfitication - CScope, call site vs function.
+%Moving from ST to KProbes (more dynamic).
 
 \subsection{User space API} 
 A bitfield in the response lets the user know what data is available for consumption
@@ -389,6 +397,13 @@ Show this is useful. `We show how this is useful.'
 
 Overhead evaluation.\newline Space / time overhead. Mem. consumed. Time o/h of
 various workloads.
+
+\begin{figure}[ht!] 
+	\centering 
+	\includegraphics[width=1.1\columnwidth]{dist_and_fit}
+	\caption{Change in latency distribution when enabling \pname{ }for lighttpd} 
+	\label{fig:experiment1}
+\end{figure}
 
 Latency and throughput degradation.\newline For instrumented lighttpd. For
 something else running at the same time.

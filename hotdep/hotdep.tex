@@ -85,20 +85,21 @@ asynchronous CPU, memory and IO costs of given application calls, while
 incurring a low overhead. \lnote{to be completed...}
 
 \section{Introduction} 
-Virtualization has become the norm for increasing server utilization in modern
-datacenters. However, multiplexing numerous services on the same physical host
-(either by running processes, OS containers or full-fledged VMs) means that the
-chances of experiencing high contention on particular resources grow. This
-translates into more variability in system behavior, and less predictability in
-terms of performance and failure rates \cite{?}.
+Multiplexing numerous services on the same physical host is a popular method of
+increasing machine utilisation. This is typically achieved through operating
+system process separation, light-weight virtualisation using containers or
+virtualisation. However, running numerous services on the same physical host
+increases the chance of experiencing high contention on particular resources.
+This translates into greater variability in system behavior, and lower
+predictability in terms of performance and failure rates \cite{?}.
 
 Because the entities managing hardware resources (the hypervisor and/or the OS
 kernel) are by design seen as black boxes by any process executing on top, it is
 difficult to assess any side effects that a running process might have upon
-other processes sharing the same resources. Those side effects could manifest as
-performance degradation (for example, in cache trashing and IO storms) or
+other processes sharing the same resources. Theses side effects can manifest as
+performance degradation, for example in cache thrashing and IO storms, or
 changes in the output of the system (fewer results returned, loss of precision
-if running timeout-based processing algorithms).
+in timeout-based processing algorithms).
 
 %Any system experiencing high contention on particular resources will show more
 %variability in its behavior, becoming less predictable in terms of performance
@@ -119,7 +120,7 @@ if running timeout-based processing algorithms).
 %% containers will become more common.}
 
 Accurate resource accounting data is needed to measure, understand and mitigate
-those implicit interactions. To this end, we are introducing \pname, a framework
+these implicit interactions. To this end, we present \pname, a framework
 that provides configurable resource utilization measurements at system call
 granularity to applications interested in monitoring their footprint in the
 context of overall resource consumption.
@@ -132,7 +133,7 @@ context of overall resource consumption.
 
 It is possible to make coarse-grained measurements in terms of
 \textit{aggregate} resource consumption using existing profiling and monitoring
-tools. Linux kernels provide mechanisms such as the \texttt{getrusage()} call
+tools. The Linux kernel provides mechanisms such as the \texttt{getrusage()} call
 (small number of fixed statistics), \texttt{perf} (for reading performance
 counters), and \texttt{ftrace}. Specialized tools such as \texttt{iotop} or
 \texttt{netstat} use information exposed through the \texttt{$\backslash$proc}
@@ -142,7 +143,7 @@ short in the following important dimensions:
 
 (i) \textbf{Accounting granularity and aggregation:} most of the mechanisms
 above can only obtain system-wide or per-process statistics. Therefore, it is
-difficult to understand the contribution of a particular process
+difficult to understand the contribution of a particular process'
 \textit{activity} towards the total resource consumption. For example, if one
 wishes to diagnose occasional high latency responses from a server, then
 per-process aggregated data cannot help. Instead, fine-grained information is
@@ -154,14 +155,14 @@ they introduce.
 (ii) \textbf{Accounting for resources consumed asynchronously:} not all the
 effects of a given system call occur during its execution. A very simple example here
 is a process writing data to disk: while the application makes multiple calls to
-\texttt{write(...)} on a particular file descriptor, there might be no immediate
-IO activity on disk because the kernel uses a buffer cache. The actual disk IO
-will occur asynchronously (dependent on the IO scheduler, the expiration of a
-default flushing interval, an explicit call to \texttt{fsync}). Simply
-recording resource consumption metrics before and after a \texttt{write(...)}
+\texttt{write(...)} on a particular file descriptor, there may be no immediate
+IO activity on disk because of the kernel's use of a buffer cache. The actual disk IO
+will occur asynchronously, depending on the IO scheduler, the expiration of a
+default flushing interval, an explicit call to \texttt{fsync}. Simply
+recording resource consumption metrics before and after a \texttt{write}
 call will not capture the full cost. The Linux kernel has multiple ways of
-executing such asynchronous tasks (timers, tasklets, workqueues, software
-interrupts), and understanding when they run because of particular application
+executing asynchronous tasks (timers, tasklets, workqueues, software
+interrupts) and understanding when they run because of particular application
 actions is important in explaining shared resource usage. There are no existing
 tools allowing this type of investigation.
 
@@ -172,8 +173,8 @@ processes have no control over what is being recorded and how, and the final
 output is a log that needs to be processed in order to extract relevant data.
 The applications themselves never have direct access to this data, and therefore
 can not collaborate in avoiding resource contention when running concurrent
-workloads (this is the usual model where applications have the illusion of
-exclusive resource ownership).
+workloads, a usual model where applications are given the illusion of exclusive
+resource ownership.
 
 \pname{ }addresses the issues above through selective kernel probing, allowing
 data collection down to the granularity of system calls.
@@ -182,12 +183,12 @@ The main contributions of this paper are:
 
 \begin{itemize} 
 \item Describing an architecture that allows applications to gather fine-grained
-(system call level) resource consumption data broken down per kernel subsystem,
+(system call level) resource consumption data, broken down per kernel subsystem,
 with low overhead.
 \item Presenting a method for automatically identifying kernel subsystem
 boundaries and the minimal number of required instrumentation probe points,
 using static analysis.
-\item Presenting a method for attributing resource consumption of asynchronous
+\item A framework for attributing resource consumption of asynchronous
 tasks to the calls that triggered their execution.
 \item Measuring overheads introduced by accounting for socket
 accept/send/receive resource consumption in lighttpd, based on our prototype
@@ -211,7 +212,7 @@ this has three main components: (i) \textit{measurement configuration:} this
 analyzes the current kernel in order to identify minimal instrumentation probe
 points and subsystem boundaries (the level at which aggregation takes place),
 guided by a user-provided configuration; (ii) \textit{a kernel module} responsible for
-inserting those probes into the kernel and efficiently activating them when
+inserting these probes into the kernel and efficiently activating them when
 applications request resource consumption data and (iii) \textit{a user-space library}
 exposing an API that applications can use to express interest in the resource
 consumption of particular system calls and to read the results after the
@@ -221,25 +222,23 @@ Each resource accounting result provides detailed metrics grouped per kernel
 subsystem (as configured by the first component of \pname). For example, the data recorded
 for one system call would contain total CPU cycles, wall clock time and memory
 allocated/deallocated, but the same metrics are recorded for each of the
-subsystems touched during that call (total CPU cycles spent in the Network
+subsystems touched during that call, for example total CPU cycles spent in the Network
 subsystem, total cycles spent in VFS and subsystem-specific metrics such as
-bytes sent/received, number of retransmissions, IO queue size, disk writes,
-etc.). The application can select exactly which of those metrics are recorded
+bytes sent/received, number of retransmissions, IO queue size, disk writes. The application can select exactly which of those metrics are recorded
 and can also perform custom aggregations across multiple system calls.
 
 \subsection{Kernel Subsystem Identification}
-The point of reporting resource consumption aggregated per subsystem is having a
-more detailed view of what happens inside the kernel. Given a socket
-\texttt{send(...)} operation, for example, the application can look at the
-breakdown of latency: was most of the time spent in the network stack? was the
-packet delayed by the scheduler moving the task on a different core? or perhaps
-most of the time was spent reading data from a file descriptor on disk (in a 
-\texttt{sendfile} call).
+By reporting resource consumption aggregated by subsystem, Resourceful provides
+a more detailed view of what happens inside the kernel. For example,  Given a
+socket \texttt{send(...)} operation, the application can look at the breakdown
+of latency and answer questions such as: was most of the time spent in the
+network stack? Was the packet delayed by the scheduler moving the task on a
+different core? Or was most of the time was spent reading data from a file
+descriptor on disk, in a \texttt{sendfile} call for instance.
  
 The Linux kernel has a modular structure of \emph{subsystems}, such as VFS,
 logical filesystems, block devices. A complete list of these can be consulted in
 the Linux Kernel Map.\footnote{\url{http://www.makelinux.net/kernel_map/}}
-
 \pname{ }uses this logical structure for reporting the resource consumption on a
 per-subsystem basis. 
 
@@ -294,7 +293,7 @@ subsystem net_link_layer {
 }
 \end{lstlisting}
 
-Instrumentation probes need to be inserted around the place where such a boundary
+Instrumentation probes can then be inserted around the place where such a boundary
 function is called. Concretely, if the \texttt{SyS\_socket} function (from the
 Network subsystem) calls \texttt{kmalloc} (from the Memory subsystem), we need
 to add probes surrounding the call site of \texttt{kmalloc} within
@@ -308,7 +307,7 @@ is no increase in code size from inserting unused probes.
 
 Besides the subsystems identified automatically this way, we allow users to
 influence the process through configuration files such as the one presented in
-Listing~\ref{lst:config}. Here, the users can remove subsystems detected
+Listing~\ref{lst:config}. Here, users can remove subsystems detected
 automatically or add their own. The example shows how the network link layer
 could be defined as a separate subsystem, generating probes for when packets are
 enqueued/dequeued from device buffers.
@@ -328,8 +327,8 @@ For the Linux kernel, this can be achieved using the existing kprobes mechanism.
 
 When run, each kprobe will record a snapshot of resource consumption metrics according
 to the subsystem in which the probed function resides. For gathering actual data, we
-use existing kernel mechanisms: \texttt{perf\_events} for reading PMU data, structures
-that contain statistics such as \texttt{tcp\_info}, etc.
+use existing kernel mechanisms such as, \texttt{perf\_events} for reading PMU
+data and structures that contain statistics, \texttt{tcp\_info} for example.
 
 Besides making sure that those probes run and snapshot resource consumption statistics
 when required, the kernel module also needs to efficiently store this information
@@ -348,11 +347,12 @@ the current address space. }
 
 On initialization, the kernel module creates two character devices: a data
 device (\texttt{/dev/rscfl}) for resource accounting information and a control
-device (\texttt{/dev/r\_ctl}) for communication between the user space and the module. When
-applications linking with the \pname{ }library call \texttt{init()}, the two
-devices are mmap-ed into the local address space. The \texttt{init()} function should be
-called once for every thread of the application: on each mmap a new buffer is allocated
-on the kernel side to hold resource accounting data for system calls made from that thread.
+device (\texttt{/dev/r\_ctl}) for communication between the user space and the
+module. When applications linking with the \pname{ }library call
+\texttt{init()}, the two devices are mmap-ed into the local address space. The
+\texttt{init()} function is called once for every thread of the application. On
+each mmap a new buffer is allocated on the kernel side to hold resource
+accounting data for system calls made from that thread.
 
 On hitting a probe, the module needs to determine the corresponding accounting
 buffer for writing resource consumption data. An index that links given \texttt{pids} to
@@ -387,7 +387,7 @@ write.
 \pname{ }performs accounting for asynchronous kernel operations by observing
 that Linux provides a number of abstractions for performing asynchronous work:
 \emph{timers}, \emph{tasklets}, \emph{workqueues} and \emph{interrupts}. Each of
-those is characterized by particular shared data structures, and the framework
+these is characterized by particular shared data structures, and the framework
 will index their addresses in order to track the operation that triggered the
 asynchronous execution.
 
@@ -410,7 +410,7 @@ in Figure~\ref{fig:design}. \texttt{init()} must be called by the application on
 every thread that needs resource consumption data, and returns a handle used by
 the other functions in identifying the locations of mmaped buffers. 
 
-Before a system call of interest, the developer must call
+Before a system call of interest, the developer calls
 \texttt{acct\_next(...)}. This will write an entry to the control device marking
 the fact that the kernel infrastructure must track resource consumption for the
 next system call comming from that \texttt{pid}. Multiple variants of
@@ -433,7 +433,8 @@ filters, but this now specifies which subsystems the system call has actually to
 
 An API extension which we have not yet implemented in our prototype will allow applications
 to \texttt{mmap} resource accounting buffers of other processes. This paves the way for applications that
-react to concurrent workloads (for example, by throttling or delaying their own operations). 
+react to concurrent workloads, by throttling or delaying their own
+operations for example.
 \lnote{Discussion around automatically adding this (compiler).}
 
 \section{Prototype Implementation}

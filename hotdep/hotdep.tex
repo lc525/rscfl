@@ -394,12 +394,30 @@ resource consumption to the initial accounting buffer.
 %Trace-point idenfitication - CScope, call site vs function.
 %Moving from ST to KProbes (more dynamic).
 
-\subsection{User space API} 
-A bitfield in the response lets the user know what data is available for consumption
+\subsection{User space API}
+The core of \pname{ }user's space API is formed by the three functions presented
+in Figure~\ref{fig:design}. \texttt{init()} must be called by the application on
+every thread that needs resource consumption data, and returns a handle used by
+the other functions in identifying the locations of mmaped buffers. 
 
-Interface definition.
+Before a system call of interest, the developer must call
+\texttt{acct\_next(...)}. This will write an entry to the control device marking
+the fact that the kernel infrastructure must track resource consumption for the
+next call. Of course, multiple variants of \texttt{acct\_next} exist, in case
+the developer needs accounting for the next \textit{n} system calls, or just
+needs to start/stop accounting at specific points in the application.
+\texttt{acct\_next} also allows the user to pass in a bit array in order to
+filter-out uninteresting kernel sub-systems from the result.
+%The same bit array will be updated to match the actual results when reading them.
 
-Discussion around automatically adding this (compiler).
+The third API call, \texttt{acct\_read}, allows zero-copy reads of accounting
+data from the kernel. Synchronous costs can be read immediately, and a callback
+can be set up for running when the asynchronous part of the cost has also been
+recorded. The returned data structure contains the same bit array used to apply
+filters, but this now specifies which subsystems the system call has actually touched
+(in this way, the application knows which elements of the structure contain valid data).
+
+\lnote{Discussion around automatically adding this (compiler).}
 
 \section{Prototype Implementation and Evaluation} Manual, cross-layer approach
 while we implement the compiler based approach Implemented purely to show that
@@ -410,15 +428,15 @@ capture [Implentation details and results]
 Describe use case (lighttpd).\newline End-to-end example of use of resourceful.
 Show this is useful. `We show how this is useful.'
 
-Overhead evaluation.\newline Space / time overhead. Mem. consumed. Time o/h of
-various workloads.
-
 \begin{figure}[ht!] 
 	\centering 
 	\includegraphics[width=1.1\columnwidth]{dist_and_fit}
 	\caption{Change in latency distribution when enabling \pname{ }for lighttpd} 
 	\label{fig:experiment1}
 \end{figure}
+
+Overhead evaluation.\newline Space / time overhead. Mem. consumed. Time o/h of
+various workloads.
 
 Latency and throughput degradation.\newline For instrumented lighttpd. For
 something else running at the same time.

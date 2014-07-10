@@ -86,17 +86,18 @@ incurring a low overhead. \lnote{to be completed...}
 
 \section{Introduction} 
 Multiplexing numerous services on the same physical host is a popular method of
-increasing machine utilisation. This is typically achieved through operating
-system process separation, light-weight virtualisation using containers or
-virtualisation. However, running numerous services on the same physical host
-increases the chance of experiencing high contention on particular resources.
-This translates into greater variability in system behavior, and lower
-predictability in terms of performance and failure rates \cite{?}.
+increasing machine utilization. This is typically achieved through operating
+system process separation, light-weight virtualization using containers or
+hypervisor-based virtualization (VM's). However, running numerous services on
+the same physical host increases the chance of experiencing high contention on
+particular resources. This translates into greater variability in system
+behavior, and lower predictability in terms of performance and failure rates
+\cite{?}.
 
 Because the entities managing hardware resources (the hypervisor and/or the OS
 kernel) are by design seen as black boxes by any process executing on top, it is
 difficult to assess any side effects that a running process might have upon
-other processes sharing the same resources. Theses side effects can manifest as
+other processes sharing the same resources. These side effects can manifest as
 performance degradation, for example in cache thrashing and IO storms, or
 changes in the output of the system (fewer results returned, loss of precision
 in timeout-based processing algorithms).
@@ -173,7 +174,7 @@ processes have no control over what is being recorded and how, and the final
 output is a log that needs to be processed in order to extract relevant data.
 The applications themselves never have direct access to this data, and therefore
 can not collaborate in avoiding resource contention when running concurrent
-workloads, a usual model where applications are given the illusion of exclusive
+workloads. Instead, applications are given the illusion of exclusive
 resource ownership.
 
 \pname{ }addresses the issues above through selective kernel probing, allowing
@@ -219,13 +220,14 @@ consumption of particular system calls and to read the results after the
 required information was gathered on the kernel side.
 
 Each resource accounting result provides detailed metrics grouped per kernel
-subsystem (as configured by the first component of \pname). For example, the data recorded
-for one system call would contain total CPU cycles, wall clock time and memory
-allocated/deallocated, but the same metrics are recorded for each of the
-subsystems touched during that call, for example total CPU cycles spent in the Network
-subsystem, total cycles spent in VFS and subsystem-specific metrics such as
-bytes sent/received, number of retransmissions, IO queue size, disk writes. The application can select exactly which of those metrics are recorded
-and can also perform custom aggregations across multiple system calls.
+subsystem (as configured by the first component of \pname). For example, the
+data recorded for one system call would contain total CPU cycles, wall clock
+time and memory allocated/deallocated, but the same metrics are recorded for
+each of the subsystems touched during that call: total CPU cycles spent in the
+Network subsystem, total cycles spent in VFS and subsystem-specific metrics such
+as bytes sent/received, number of retransmissions, IO queue size, disk writes.
+The application can select exactly which of those metrics are recorded and can
+also perform custom aggregations across multiple system calls.
 
 \subsection{Kernel Subsystem Identification}
 By reporting resource consumption aggregated by subsystem, Resourceful provides
@@ -234,7 +236,7 @@ socket \texttt{send(...)} operation, the application can look at the breakdown
 of latency and answer questions such as: was most of the time spent in the
 network stack? Was the packet delayed by the scheduler moving the task on a
 different core? Or was most of the time was spent reading data from a file
-descriptor on disk, in a \texttt{sendfile} call for instance.
+descriptor on disk, in a \texttt{sendfile} call.
  
 The Linux kernel has a modular structure of \emph{subsystems}, such as VFS,
 logical filesystems, block devices. A complete list of these can be consulted in

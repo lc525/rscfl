@@ -85,17 +85,16 @@ asynchronous CPU, memory and IO costs of given application calls, while
 incurring a low overhead. \lnote{to be completed...}
 
 \section{Introduction} 
-Multiplexing numerous services on the same physical host is a popular method of
+Multiplexing services on to the same physical host is a common method of
 increasing machine utilization. This is typically achieved through operating
-system process separation, light-weight virtualization using containers or
-hypervisor-based virtualization (VM's). However, running numerous services on
-the same physical host increases the chance of experiencing high contention on
-particular resources. This translates into greater variability in system
-behavior, and lower predictability in terms of performance and failure rates
-\cite{?}.
+system process separation, containerization or hypervisor-based virtualization
+(VM's). However, depending on the workloads of the colocated services, the
+increase in utilization may also cause increased contention for system
+resources. This translates into greater variability in system behavior, and
+lower predictability in terms of performance and failure rates \cite{?}.
 
-Because the entities managing hardware resources (the hypervisor and/or the OS
-kernel) are by design seen as black boxes by any process executing on top, it is
+By design, the entities managing hardware resources (the hypervisor and/or the OS
+kernel) are seen as black boxes by any process executing on top. This makes it
 difficult to assess any side effects that a running process might have upon
 other processes sharing the same resources. These side effects can manifest as
 performance degradation, for example in cache thrashing and IO storms, or
@@ -120,10 +119,12 @@ in timeout-based processing algorithms).
 %% seems likely that lighter-weight OS-based virtualization solutions such as
 %% containers will become more common.}
 
-Accurate resource accounting data is needed to measure, understand and mitigate
-these implicit interactions. To this end, we present \pname, a framework
-that provides configurable resource utilization measurements at system call
-granularity to applications interested in monitoring their footprint in the
+A greater ability to mitigate these effects is needed in order to further drive
+utilization up while maintaining the desired quality of service. The first step
+for this is measuring and understanding the implicit interactions between
+services sharing the same physical resources. To this end, we present \pname, a
+framework that provides configurable resource utilization measurements at system
+call granularity to applications interested in monitoring their footprint in the
 context of overall resource consumption.
 
 %As more services will start sharing the same hardware resources, the importance
@@ -137,7 +138,7 @@ It is possible to make coarse-grained measurements in terms of
 tools. The Linux kernel provides mechanisms such as the \texttt{getrusage()} call
 (small number of fixed statistics), \texttt{perf} (for reading performance
 counters), and \texttt{ftrace}. Specialized tools such as \texttt{iotop} or
-\texttt{netstat} use information exposed through the \texttt{$\backslash$proc}
+\texttt{netstat} use information exposed through the \texttt{$/$proc}
 virtual filesystem, while more general-purpose tools like SystemTap allow the
 user to write scripts that can gather similar data. However, these methods fall
 short in the following important dimensions:
@@ -200,7 +201,7 @@ Our current implementation focuses on gathering resource usage data from the
 Linux kernel.  However, the overall design is general enough to allow for
 implementation in hypervisors and extension to other codebases. 
 % set up reasonable expectations:
-In this paper, we aim to show that it is possible to run a system tracking
+In this paper, we show that it is possible to run a system tracking
 resource consumption based on our design with reasonable overhead (\textless 10\%). A
 full investigation on the accuracy of the recorded data remains as future work.
 
@@ -208,26 +209,26 @@ full investigation on the accuracy of the recorded data remains as future work.
 \section{\pname: System Design} 
 
 \pname{ }gives applications full control over measuring resource consumption of
-system calls, without imposing prohibitive overheads. The framework allowing
-this has three main components: (i) \textit{measurement configuration:} this
-analyzes the current kernel in order to identify minimal instrumentation probe
-points and subsystem boundaries (the level at which aggregation takes place),
-guided by a user-provided configuration; (ii) \textit{a kernel module} responsible for
-inserting these probes into the kernel and efficiently activating them when
-applications request resource consumption data and (iii) \textit{a user-space library}
-exposing an API that applications can use to express interest in the resource
-consumption of particular system calls and to read the results after the
-required information was gathered on the kernel side.
+system calls, without imposing prohibitive overheads. The framework has three
+main components: (i) \textit{measurement configuration:} this analyzes the
+current kernel in order to identify a minimal set of instrumentation probe points and
+subsystem boundaries (the level at which aggregation takes place), guided by a
+user-provided configuration; (ii) \textit{a kernel module} responsible for
+inserting these probes into the kernel and activating them when
+applications request resource consumption data and (iii) \textit{a user-space
+library} exposing an API that applications can use to express interest in the
+resource consumption of particular system calls and to read the results after
+the required information was gathered on the kernel side.
 
-Each resource accounting result provides detailed metrics grouped per kernel
-subsystem (as configured by the first component of \pname). For example, the
-data recorded for one system call would contain total CPU cycles, wall clock
-time and memory allocated/deallocated, but the same metrics are recorded for
-each of the subsystems touched during that call: total CPU cycles spent in the
-Network subsystem, total cycles spent in VFS and subsystem-specific metrics such
-as bytes sent/received, number of retransmissions, IO queue size, disk writes.
-The application can select exactly which of those metrics are recorded and can
-also perform custom aggregations across multiple system calls.
+Each resource accounting result provides detailed metrics grouped by kernel
+subsystem. For example, the data recorded for one system call would contain
+total CPU cycles, wall clock time and memory allocated/deallocated, but the same
+metrics are recorded for each of the subsystems touched during that call: total
+CPU cycles spent in the Network subsystem, total cycles spent in VFS and
+subsystem-specific metrics such as bytes sent/received, number of
+retransmissions, IO queue size, disk writes. The application can select exactly
+which of those metrics are recorded and can also perform custom aggregations
+across multiple system calls.
 
 \subsection{Kernel Subsystem Identification}
 By reporting resource consumption aggregated by subsystem, Resourceful provides
@@ -325,7 +326,7 @@ directory-based structure.
 
 Having identified the minimum number of probe points required for measuring per-subsystem
 resource consumption, a kernel module has the job of inserting those probes at runtime.
-For the Linux kernel, this can be achieved using the existing kprobes mechanism.
+For the Linux kernel, this can be achieved using kprobes.
 
 When run, each kprobe will record a snapshot of resource consumption metrics according
 to the subsystem in which the probed function resides. For gathering actual data, we
@@ -338,7 +339,8 @@ and make it accessible to user-space applications. We provide an overall schemat
 how this works in Figure~\ref{fig:design}.
 
 \begin{figure}[ht!] 
-	\centering 
+	\centering
+	\hspace*{-0.05\columnwidth} 
 	\includegraphics[width=1.1\columnwidth]{sys_design}
 	\caption{Primary user-space/kernel-space interactions detailed. Resource
 accounting data is requested by applications for specific system calls and is
@@ -364,11 +366,11 @@ those indexes up-to-date for each cpu.
 
 \subsubsection{Measuring Asynchronous Effects}
 Unlike existing approaches, \pname{} also reports the costs incurred
-asynchronously after making a system call. As described in our example
-use case, the absolute cost of performing a write that flushes buffers will be
-higher than a write that is immediately buffered. We argue that without
-reporting the amortized, asynchronous cost, performance monitoring APIs give an
-incomplete representation of system resource consumption.
+asynchronously after making a system call. As described in our example use case,
+the absolute cost of performing a write that flushes buffers will be higher than
+a write that is immediately buffered. Without reporting the amortized,
+asynchronous cost, performance monitoring APIs give an incomplete representation
+of system resource consumption.
 
 The solution for tracking the calls that have caused a given asynchronous task
 hinges on the observation that a link between two operations can only exist if
@@ -455,7 +457,7 @@ a number of static files for performing end-to-end latency and throughput tests.
 
 To understand overhead, we first look at the distribution of latencies and
 compare a vanilla lighttpd binary with the one that runs resource accounting
-using \pname, for 10.000 sequential requests issued using \texttt{http\_ping}. As
+using \pname, for 10\,000 sequential requests issued using \texttt{http\_ping}. As
 observed in Figure~\ref{fig:experiment1}, the median latency increases by 5.4\%
 when resource accounting is active. The tail latency is also slightly increased,
 with the 99th percentile growing by 11.1\%.
@@ -465,9 +467,12 @@ we see three local maxima and the overall shape remains similar. This suggests t
 of measuring resource consumption, one could still observe the latency characteristics of the underlying system.
 An in-depth evaluation is planned as future work.
 \begin{figure}[ht!] 
-	\centering 
-	\includegraphics[width=\columnwidth]{dist_and_fit2}
-	\caption{Change in latency distribution when enabling \pname{ }for lighttpd} 
+	\centering
+	\hspace*{-0.05\columnwidth} 
+	\def\svgwidth{\columnwidth}
+	\input{dist_and_fit2.pdf_tex}
+	%\includegraphics[width=1.1\columnwidth]{dist_and_fit2}
+	\caption{Normalized latency histograms showing changes in latency distribution when enabling \pname{ }for lighttpd} 
 	\label{fig:experiment1}
 \end{figure}
 

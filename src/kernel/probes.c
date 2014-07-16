@@ -1,5 +1,5 @@
-#include "res_kernel/stap_shim.h"
-#include "res_kernel/res_comm.h"
+#include "rscfl/kernel/stap_shim.h"
+#include "rscfl/kernel/res_comm.h"
 
 int probes_init(void)
 {

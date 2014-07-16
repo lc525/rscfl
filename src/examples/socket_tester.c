@@ -1,8 +1,8 @@
 #include <errno.h>
 #include <stdio.h>
 #include <sys/socket.h>
-#include <res_user/res_api.h>
-#include <costs.h>
+#include <rscfl/user/res_api.h>
+#include <rscfl/costs.h>
 
 int main(int argc, char *argv[])
 {

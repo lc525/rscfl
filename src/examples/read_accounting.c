@@ -1,5 +1,6 @@
 #define BIT(x) 1U << x
-#include "costs.h"
+#include "rscfl/costs.h"
+
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>

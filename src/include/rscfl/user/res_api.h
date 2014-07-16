@@ -1,7 +1,7 @@
 #ifndef _RES_API_H_
 #define _RES_API_H_
 
-#include <costs.h>
+#include "rscfl/costs.h"
 
 typedef struct {
   char *buf;
@@ -9,6 +9,8 @@ typedef struct {
 } * rscfl_handle;
 
 rscfl_handle rscfl_init();
+
+rscfl_handle rscfl_get_handle();
 
 int rscfl_acct_next(rscfl_handle);
 

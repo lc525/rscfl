@@ -1,7 +1,7 @@
-#include "config.h"
-#include "costs.h"
-#include "res_kernel/res_comm.h"
-#include "res_kernel/stap_shim.h"
+#include "rscfl/config.h"
+#include "rscfl/costs.h"
+#include "rscfl/kernel/res_comm.h"
+#include "rscfl/kernel/stap_shim.h"
 
 #include <linux/module.h>
 #include <linux/netlink.h>

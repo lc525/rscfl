@@ -3,8 +3,8 @@
 #include <netdb.h>
 #include <stdio.h>
 #include <sys/socket.h>
-#include <res_user/res_api.h>
-#include <costs.h>
+#include <rscfl/user/res_api.h>
+#include <rscfl/costs.h>
 #include <string.h>
 #include <netinet/in.h>
 #include <stdlib.h>

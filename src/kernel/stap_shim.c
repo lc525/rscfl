@@ -1,6 +1,6 @@
-#include "res_kernel/stap_shim.h"
-#include "res_common.h"
-#include "costs.h"
+#include "rscfl/kernel/stap_shim.h"
+#include "rscfl/res_common.h"
+#include "rscfl/costs.h"
 
 /*
 #include <asm/byteorder.h>

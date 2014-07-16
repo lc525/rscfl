@@ -1,8 +1,8 @@
 #ifndef _KO_RESOURCEFUL_H_
 #define _KO_RESOURCEFUL_H_
 
-#include "config.h"
-#include "costs.h"
+#include "rscfl/config.h"
+#include "rscfl/costs.h"
 
 #define FILL_MM 0
 #define FILL_NET 1

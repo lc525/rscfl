@@ -1,7 +1,7 @@
-#include "config.h"
-#include "costs.h"
-#include "res_user/res_api.h"
-#include "res_common.h"
+#include "rscfl/config.h"
+#include "rscfl/costs.h"
+#include "rscfl/user/res_api.h"
+#include "rscfl/res_common.h"
 
 #include <linux/netlink.h>
 #include <linux/types.h>
@@ -24,6 +24,10 @@ static struct nlmsghdr *nlh = NULL;
 static struct iovec iov;
 static int sock_fd;
 static struct msghdr msg;
+
+// THIS IS HERE ONLY FOR THE HOTDEP PAPER
+// TODO(lc525): remove
+__thread rscfl_handle handle = NULL;
 
 rscfl_handle rscfl_init()
 {
@@ -63,6 +67,13 @@ error:
     free(relay_f_data);
   }
   return NULL;
+}
+
+rscfl_handle rscfl_get_handle() {
+  if (handle == NULL) {
+    handle = rscfl_init();
+  }
+  return handle;
 }
 
 int rscfl_acct_next(rscfl_handle relay_f_data)

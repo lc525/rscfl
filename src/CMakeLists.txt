@@ -84,7 +84,7 @@ configure_project(
   ${PROJECT_MINOR_VERSION}
   ${PROJECT_PATCH_VERSION}
   ${CMAKE_CURRENT_SOURCE_DIR}/include
-  ${CMAKE_CURRENT_BINARY_DIR}
+  ${CMAKE_CURRENT_BINARY_DIR}/rscfl
 )
 
 set(GEN_INCLUDE_DIR ${PROJECT_BINARY_DIR}
@@ -119,10 +119,10 @@ set (stap_SOURCES
 )
 
 set (stap_DEPS # if any of those files change, the stap ko is rebuilt
-  ${PROJECT_INCLUDE_DIR}/res_kernel/stap_shim.h
-  ${PROJECT_INCLUDE_DIR}/res_kernel/probes.h
-  ${PROJECT_INCLUDE_DIR}/costs.h
-  ${PROJECT_BINARY_DIR}/config.h
+  ${PROJECT_INCLUDE_DIR}/rscfl/kernel/stap_shim.h
+  ${PROJECT_INCLUDE_DIR}/rscfl/kernel/probes.h
+  ${PROJECT_INCLUDE_DIR}/rscfl/costs.h
+  ${PROJECT_BINARY_DIR}/rscfl/config.h
 )
 
 file(MAKE_DIRECTORY ${stap_OUT_DIR})

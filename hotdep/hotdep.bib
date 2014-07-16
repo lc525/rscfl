@@ -1,0 +1,81 @@
+@inproceedings{magpieosdi,
+ author = {Barham, Paul and Donnelly, Austin and Isaacs, Rebecca and Mortier, Richard},
+ title = {Using Magpie for Request Extraction and Workload Modelling},
+ booktitle = {Proceedings of the 6th Conference on Symposium on Opearting Systems Design \& Implementation - Volume 6},
+ series = {OSDI'04},
+ year = {2004},
+ location = {San Francisco, CA},
+ pages = {18--18},
+ numpages = {1},
+ url = {http://dl.acm.org/citation.cfm?id=1251254.1251272},
+ acmid = {1251272},
+ publisher = {USENIX Association},
+ address = {Berkeley, CA, USA},
+} 
+
+@techreport{dapper,
+title = {Dapper, a Large-Scale Distributed Systems Tracing Infrastructure},
+author  = {Benjamin H. Sigelman and Luiz André Barroso and Mike Burrows and Pat Stephenson and Manoj Plakal and Donald Beaver and Saul Jaspan and Chandan Shanbhag},
+year  = 2010,
+URL = {http://research.google.com/archive/papers/dapper-2010-1.pdf},
+institution = {Google, Inc.}
+}
+
+@inproceedings{xtrace,
+ author = {Fonseca, Rodrigo and Porter, George and Katz, Randy H. and Shenker, Scott and Stoica, Ion},
+ title = {X-trace: A Pervasive Network Tracing Framework},
+ booktitle = {Proceedings of the 4th USENIX Conference on Networked Systems Design \&\#38; Implementation},
+ series = {NSDI'07},
+ year = {2007},
+ location = {Cambridge, MA},
+ pages = {20--20},
+ numpages = {1},
+ url = {http://dl.acm.org/citation.cfm?id=1973430.1973450},
+ acmid = {1973450},
+ publisher = {USENIX Association},
+ address = {Berkeley, CA, USA},
+} 
+
+@Inproceedings {fay,
+abstract     = {<p>Fay is a flexible platform for the efficient collection, processing, and
+                analysis of software execution traces. Fay provides dynamic tracing through use
+                of runtime instrumentation and distributed aggregation within machines and across
+                clusters. At the lowest level, Fay can be safely extended with new tracing
+                primitives, including even untrusted, fully-optimized machine code, and Fay can
+                be applied to running user-mode or kernel-mode software without compromising
+                system stability. At the highest level, Fay provides a unified, declarative means
+                of specifying what events to trace, as well as the aggregation, processing, and
+                analysis of those events.</p>
+
+                <p>We have implemented the Fay tracing platform for Windows and integrated it
+                with two powerful, expressive systems for distributed programming. Our
+                implementation is easy to use, can be applied to unmodified production systems,
+                and provides primitives that allow the overhead of tracing to be greatly reduced,
+                compared to previous dynamic tracing platforms. To show the generality of Fay
+                tracing, we reimplement, in experiments, a range of tracing strategies and
+                several custom mechanisms from existing tracing frameworks.</p>
+
+                <p>Fay shows that modern techniques for high-level querying and data-parallel
+                processing of disaggregated data streams are well suited to comprehensive
+                monitoring of software execution in distributed systems. Revisiting a lesson from
+                the late 1960’s [15], Fay also demonstrates the efficiency and extensibility
+                benefits of using safe, statically-verified machine code as the basis for
+                low-level execution tracing. Finally, Fay establishes that, by automatically
+                deriving optimized query plans and code for safe extensions, the expressiveness
+                and performance of high-level tracing queries can equal or even surpass that of
+                specialized monitoring tools.</p>},
+author       = {{\'U}lfar Erlingsson and Marcus Peinado and Simon Peter and Mihai Budiu},
+booktitle    = {ACM Symposium on Operating Systems Principles (SOSP)},
+month        = {October},
+publisher    = {ACM},
+title        = {Fay: Extensible Distributed Tracing from Kernels to Clusters},
+url          = {http://research.microsoft.com/apps/pubs/default.aspx?id=153686},
+year         = {2011},
+}
+
+@inproceedings{ostrowski,
+title = {Diagnosing Latency in Multi-Tier Black-Box Services},
+author  = {Krzysztof Ostrowski and Gideon Mann and Mark Sandler},
+year  = 2011,
+booktitle = {5th Workshop on Large Scale Distributed Systems and Middleware (LADIS 2011)}
+}

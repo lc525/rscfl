@@ -492,13 +492,49 @@ In our throughput test, we observe \lnote{add throughput results}
 
 \section{Related Work} 
 
-Existing tracing / profiling systems. (Maybe a chart
-outlining differences).
+%Existing tracing / profiling systems. (Maybe a chart
+%outlining differences).
 
-FTrace, SystemTap (raw) / DTrace, Perf.
+%FTrace, SystemTap (raw) / DTrace, Perf.
 
-Existing use of tracing for dependability.\newline Root-cause analysis.
-Debugging. Performance monitoring - how do we compare to top?
+%Existing use of tracing for dependability.\newline Root-cause analysis.
+%Debugging. Performance monitoring - how do we compare to top?
+
+Many existing tracing and profiling tools only instrument a thin layer of the
+target system. For example Dapper \cite{dapper} makes use of instruments in an
+RPC library and X-Trace \cite{xtrace} modifies only the protocol and network
+stacks. Whilst these tools are able to provide detailed information about their
+respective instrumented layers, they treat much of surrounding system as a
+black-box. \pname{ } differs from these by allowing any part of a target system
+to be profiled whilst only incurring a low-overhead.  
+
+\pname{ } allows the user to pre-define the subsystem boundries they are
+interested in as well as the data-structures associated with any asynchronous
+actions. A similar method is used by Magpie \cite{magpieosdi} where users are
+required to provide a definition of the expected system behaviour, in order to
+correlate the events recorded and produce realistic workload models. Although
+available in \pname{ }, a sub-system definition is not a requirement, as these
+can be constructed automatically. 
+
+The primary method of interacting with \pname{ } is through its user-space API.
+Other systems such as \cite{fay} go some way towards providing a programatic
+interface to trace and profile data, but are still limited to a post-hoc
+evaluation. \pname{}'s API allows trace data to be retireved and evaluated in
+line with the target processes execution. This gives the programmer much
+broader knowledge of how the kernel is behaving under their program and allows
+them to make more informed decisions.
+
+One useful feature to have when designing a dependible system is being able to
+accurately predict the future. The system described by Ostrowski et al
+\cite{ostrowski} provides methods for users to carry out what-if analysis on
+existing trace data. \pname{ } not only provides the primitives to build such a
+system but allows the user to make decisions and take action at run-time when
+provided with the results of a what-if senario.
+
+%something about the use of tracing and profiling in dependible systems
+
+%systems left to talk about: Causeway, Racetrack, AJAX Scope, Triage, FALCON,
+%X-Ray, GWP, Weatherman, Nirvana & iDNA
 
 \section{Conclusion} Open Challenges:\\ Accuracy and preciseness, Low
 instrumentation overhead, Generalisability, Declarative Expressiveness

@@ -16,7 +16,8 @@
 #include <unistd.h>
 
 //#define NO_RELAY_ACCTS 40960 / sizeof(struct accounting)
-#define NO_RELAY_ACCTS 40
+#define NO_RELAY_ACCTS ACCT_REG_SZ
+#define MMAP_SZ sizeof(struct accounting) * ACCT_REG_SZ
 #define MAX_PAYLOAD 1024 /* maximum payload size*/
 
 static struct sockaddr_nl src_addr, dest_addr;
@@ -62,7 +63,7 @@ rscfl_handle rscfl_init()
 error:
   if (relay_f_data) {
     if (relay_f_data->buf) {
-      munmap(relay_f_data->buf, SUBBUF_SIZE);
+      munmap(relay_f_data->buf, MMAP_SZ);
     }
     free(relay_f_data);
   }

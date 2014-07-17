@@ -16,7 +16,7 @@
 #include <asm/atomic.h>
 
 //#define BUF_SIZE 40960  // need to think about this
-#define BUF_SIZE sizeof(struct accounting) * 40
+#define BUF_SIZE sizeof(struct accounting) * ACCT_REG_SZ
 #define RSCFL_MAJOR 90
 #define RSCFL_MINOR 0
 

@@ -9,13 +9,11 @@
 #define FILL_FS 2
 #define FILL_GLOBAL 3
 
-static struct accounting *acct;
-
 int _create_shared_mem(void);
 
 int _fill_struct(long, long, struct accounting *, long);
 
-struct accounting * _should_acct(pid_t pid, int syscall_nr);
+int _should_acct(pid_t pid, int syscall_nr, struct accounting**, int probe_nest, const char* name);
 
 int acct_next(pid_t, int);
 

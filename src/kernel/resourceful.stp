@@ -7,6 +7,8 @@
 #include "rscfl/kernel/res_comm.h"
 #include "rscfl/kernel/probes.h"
 
+struct accounting *acct = NULL;
+
 %}
 
 global cycles = 0
@@ -30,6 +32,11 @@ probe end
   }
 }
 
+function kpid:long()
+%{
+  STAP_RETVALUE = current->pid;
+%}
+
 function probes_start:long()
 %{
   STAP_RETVALUE = probes_init();
@@ -40,15 +47,15 @@ function probes_end()
   STAP_RETVALUE = probes_cleanup();
 %}
 
-function should_acct_:long(pid:long, syscall_nr:long)
+function should_acct_:long(pid:long, syscall_nr:long, name:string)
 %{
-  acct = _should_acct(STAP_ARG_pid, STAP_ARG_syscall_nr);
-  STAP_RETVALUE = (acct != NULL);
+  int res = _should_acct(STAP_ARG_pid, STAP_ARG_syscall_nr, &acct, global(s_probe_nest), STAP_ARG_name);
+  STAP_RETVALUE = res;
 %}
 
 function should_acct()
 {
-  return should_acct_(pid(), -1);
+  return should_acct_(kpid(), -1, probefunc());
 }
 
 function fill_struct(vfs:long, wall_clock_time:long, fill_type:long)
@@ -60,12 +67,13 @@ function fill_struct(vfs:long, wall_clock_time:long, fill_type:long)
 function clear_acct_next(pid:long, syscall_nr:long)
 %{
   acct = NULL;
+  debugk("clear!\n");
   _clear_acct_next(STAP_ARG_pid, STAP_ARG_syscall_nr);
 %}
 
 function acct_now:long()
 %{
-  STAP_RETVALUE = (acct != NULL);
+  STAP_RETVALUE = (acct != NULL && acct->syscall_id.pid == current->pid);
 %}
 
 /*
@@ -77,7 +85,7 @@ function acct_now:long()
 */
 probe kernel.function("sys_accept").call
 {
-  %{printk("Sys_accept cl\n")%}
+//  %{printk("Sys_accept cl\n")%}
   start = gettimeofday_us()
   if(should_acct()) {
     probe_nest++;
@@ -93,14 +101,14 @@ probe kernel.function("sys_accept").return
     %{FILL_NET%});
     probe_nest -= 1;
     if(probe_nest == 0){
-      clear_acct_next(pid(), -1);
+      clear_acct_next(kpid(), -1);
     }
   }
 }
 
 probe kernel.function("sock_alloc_file").call
 {
-  %{printk("sock_alloc_file cl\n")%}
+//  %{printk("sock_alloc_file cl\n")%}
   start = gettimeofday_us()
   if(should_acct()) {
     probe_nest++;
@@ -116,14 +124,14 @@ probe kernel.function("sock_alloc_file").return
     %{FILL_NET%});
     probe_nest -= 1;
     if(probe_nest == 0){
-      clear_acct_next(pid(), -1);
+      clear_acct_next(kpid(), -1);
     }
   }
 }
 
 probe kernel.function("inet_accept").call
 {
-  %{printk("inet_accept cl\n")%}
+//  %{printk("inet_accept cl\n")%}
   start = gettimeofday_us()
   if(should_acct()) {
     probe_nest++;
@@ -139,7 +147,7 @@ probe kernel.function("inet_accept").return
     %{FILL_NET%});
     probe_nest -= 1;
     if(probe_nest == 0){
-      clear_acct_next(pid(), -1);
+      clear_acct_next(kpid(), -1);
     }
   }
 }
@@ -149,7 +157,7 @@ probe kernel.function("inet_accept").return
 */
 probe kernel.function("new_inode_pseudo").call
 {
-  %{printk("new_inode_pseudo cl\n")%}
+//  %{printk("new_inode_pseudo cl\n")%}
   start = gettimeofday_us()
   if(should_acct()) {
     probe_nest++;
@@ -165,14 +173,14 @@ probe kernel.function("new_inode_pseudo").return
     %{FILL_FS%});
     probe_nest -= 1;
     if(probe_nest == 0){
-      clear_acct_next(pid(), -1);
+      clear_acct_next(kpid(), -1);
     }
   }
 }
 
 probe kernel.function("get_unused_fd_flags").call
 {
-  %{printk("get_unused_fd_flags cl\n")%}
+//  %{printk("get_unused_fd_flags cl\n")%}
   start = gettimeofday_us()
   if(should_acct()) {
     probe_nest++;
@@ -188,14 +196,14 @@ probe kernel.function("get_unused_fd_flags").return
     %{FILL_FS%});
     probe_nest -= 1;
     if(probe_nest == 0){
-      clear_acct_next(pid(), -1);
+      clear_acct_next(kpid(), -1);
     }
   }
 }
 
 probe kernel.function("mntget").call
 {
-  %{printk("mntget cl\n")%}
+//  %{printk("mntget cl\n")%}
   start = gettimeofday_us()
   if(should_acct()) {
     probe_nest++;
@@ -211,7 +219,7 @@ probe kernel.function("mntget").return
     %{FILL_FS%});
     probe_nest -= 1;
     if(probe_nest == 0){
-      clear_acct_next(pid(), -1);
+      clear_acct_next(kpid(), -1);
     }
   }
 }
@@ -221,7 +229,7 @@ probe kernel.function("mntget").return
 */
 probe kernel.function("kmem_cache_alloc").call
 {
-  %{printk("kmem_cache_alloc cl\n")%}
+//  %{printk("kmem_cache_alloc cl\n")%}
   start = gettimeofday_us()
   if(should_acct()) {
     probe_nest++;
@@ -237,7 +245,7 @@ probe kernel.function("kmem_cache_alloc").return
     %{FILL_MM%});
     probe_nest -= 1;
     if(probe_nest == 0){
-      clear_acct_next(pid(), -1);
+      clear_acct_next(kpid(), -1);
     }
   }
 }
@@ -253,7 +261,7 @@ probe kernel.function("kmem_cache_alloc").return
 /* FS */
 probe kernel.function("sys_sendfile").call
 {
-  %{printk("Sys_sendfile cl\n")%}
+//  %{printk("Sys_sendfile cl\n")%}
   start = gettimeofday_us()
   if (should_acct()) {
     probe_nest++;
@@ -269,7 +277,7 @@ probe kernel.function("sys_sendfile").return
     %{FILL_FS%})
     probe_nest -= 1;
     if(probe_nest == 0){
-      clear_acct_next(pid(), -1);
+      clear_acct_next(kpid(), -1);
     }
   }
 }
@@ -277,7 +285,7 @@ probe kernel.function("sys_sendfile").return
 /* MM */
 probe kernel.function("__kmalloc").call
 {
-  %{printk("__kmalloc cl\n")%}
+//  %{printk("__kmalloc cl\n")%}
   start = gettimeofday_us()
   if (should_acct()) {
     probe_nest++;
@@ -293,7 +301,7 @@ probe kernel.function("__kmalloc").return
     %{FILL_MM%})
     probe_nest -= 1;
     if(probe_nest == 0){
-      clear_acct_next(pid(), -1);
+      clear_acct_next(kpid(), -1);
     }
   }
 }
@@ -301,7 +309,7 @@ probe kernel.function("__kmalloc").return
 /* NET */
 probe kernel.function("sock_sendpage").call
 {
-  %{printk("Sock_sendpage cl\n")%}
+//  %{printk("Sock_sendpage cl\n")%}
   start = gettimeofday_us()
   if (should_acct()) {
     probe_nest++;
@@ -317,7 +325,7 @@ probe kernel.function("sock_sendpage").return
     %{FILL_NET%})
     probe_nest -= 1;
     if(probe_nest == 0){
-      clear_acct_next(pid(), -1);
+      clear_acct_next(kpid(), -1);
     }
   }
 }

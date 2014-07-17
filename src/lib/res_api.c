@@ -34,7 +34,7 @@ __thread rscfl_handle handle = NULL;
 rscfl_handle rscfl_init()
 {
 
-  printf("NO_RELAY_ACCTS %d MMAP_SZ %d\n", NO_RELAY_ACCTS, MMAP_SZ);
+  printf("NO_RELAY_ACCTS %d MMAP_SZ %lu\n", NO_RELAY_ACCTS, MMAP_SZ);
 
   struct stat sb;
   int fd = open("/dev/rscfl", O_RDWR);

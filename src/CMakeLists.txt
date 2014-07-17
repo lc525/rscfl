@@ -123,6 +123,7 @@ set (stap_DEPS # if any of those files change, the stap ko is rebuilt
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/probes.h
   ${PROJECT_INCLUDE_DIR}/rscfl/costs.h
   ${PROJECT_BINARY_DIR}/rscfl/config.h
+  ${PROJECT_SOURCE_DIR}/resourceful.stp
 )
 
 file(MAKE_DIRECTORY ${stap_OUT_DIR})

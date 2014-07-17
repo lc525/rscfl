@@ -17,11 +17,13 @@ static const unsigned int PATCH_VERSION = 0x@PATCH_VERSION@;
 static const char VERSION[] = "@VERSION@";
 
 // resourceful kernel module parameters:
-#define SUBBUF_SIZE 262144
-#define N_SUBBUFS 4
+//#define SUBBUF_SIZE 262144
+//#define N_SUBBUFS 4
 
 // communication parameters
 #define NETLINK_USER 31
+
+#define LG_PAGE_SIZE 12
 
 #endif
 

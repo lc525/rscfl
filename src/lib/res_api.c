@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>  // malloc builtin; avoids debug compilation warning
 #include <sys/socket.h>
+#include <sys/syscall.h>
 #include <fcntl.h>
 #include <string.h>
 #include <sys/mman.h>
@@ -33,7 +34,7 @@ __thread rscfl_handle handle = NULL;
 rscfl_handle rscfl_init()
 {
 
-  printf("NO_RELAY_ACCTS %d\n", NO_RELAY_ACCTS);
+  printf("NO_RELAY_ACCTS %d MMAP_SZ %d\n", NO_RELAY_ACCTS, MMAP_SZ);
 
   struct stat sb;
   int fd = open("/dev/rscfl", O_RDWR);
@@ -46,8 +47,6 @@ rscfl_handle rscfl_init()
     goto error;
   }
 
-
-  // mmap a chunk of data the size of all of the sub-buffers (def in config.h)
   relay_f_data->buf = mmap(NULL, 4096, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
   if (relay_f_data == MAP_FAILED) {
     goto error;
@@ -87,7 +86,7 @@ int rscfl_acct_next(rscfl_handle relay_f_data)
 
   memset(&src_addr, 0, sizeof(src_addr));
   src_addr.nl_family = AF_NETLINK;
-  src_addr.nl_pid = getpid(); /* self pid */
+  src_addr.nl_pid = (long int)syscall(__NR_gettid); /* self pid */
 
   if (rc = bind(sock_fd, (struct sockaddr *)&src_addr, sizeof(src_addr))) {
     return rc;
@@ -130,10 +129,10 @@ int rscfl_read_acct(rscfl_handle relay_f_data, struct accounting *acct)
   struct accounting *relay_acct = (struct accounting *) relay_f_data->buf;
   if (relay_acct != NULL) {
     while (i < NO_RELAY_ACCTS) {
-      printf("relay_acct: %p - in use: %lu\n", (void *)relay_acct, relay_acct->in_use);
+//      printf("relay_acct: %p - in use: %lu\n", (void *)relay_acct, relay_acct->in_use);
       if (relay_acct->in_use == 1) {
         if (relay_acct->syscall_id.id == (relay_f_data->lst_syscall.id -1)) {
-          printf("API read_acct from %p (syscall_id:%ld) pos:%d\n", (void*)relay_acct, relay_f_data->lst_syscall.id-1, i);
+//          printf("API read_acct from %p (syscall_id:%ld) pos:%d\n", (void*)relay_acct, relay_f_data->lst_syscall.id-1, i);
           memcpy(acct, relay_acct, sizeof(struct accounting));
           relay_acct->in_use = 0;
           return 0;

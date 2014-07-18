@@ -170,9 +170,9 @@ scheduler, the expiration of a default flushing interval, or on the application
 making an explicit call to \texttt{fsync}. Simply recording resource consumption
 metrics before and after a \texttt{write} call will not capture its full cost.
 This shows that in order to fully explain shared resource usage, one needs to
-take into account asynchronous effects and assign the costs of running them (trough timers, tasklets,
-workqueues, software interrupts) to original causes. There are no existing tools allowing this type
-of investigation.
+take into account asynchronous effects and assign the costs of running them
+(trough timers, tasklets, workqueues, software interrupts) to original causes.
+There are no existing tools allowing this type of investigation.
 
 (iii) \textbf{Online analysis and feedback:} with the exception of
 \texttt{getrusage()}, most kernel-level resource accounting mechanisms available
@@ -183,9 +183,11 @@ The applications themselves never have direct access to this data, and therefore
 can not adapt in real time to other workloads running concurrently. Instead,
 applications are given the illusion of exclusive resource ownership.
 
-The difficulty in providing the OS (or hypervisor) support for dealing
-with those issues can be attributed to the high overhead introduced by fine grained measurements and to the challenge of tracking causal dependencies between pieces of code executed at this level.
-\pname{ }addresses those problems through \emph{selective} kernel probing, informed by static binary and code analysis.
+The difficulty in providing the OS (or hypervisor) support for dealing with
+those issues can be attributed to the high overhead introduced by fine grained
+measurements and to the challenge of tracking causal dependencies between pieces
+of code executed at this level. \pname{ }addresses those problems through
+\emph{selective} kernel probing, informed by static binary and code analysis.
 
 The main contributions of this paper are: 
 

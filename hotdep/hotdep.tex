@@ -79,27 +79,34 @@ of Cambridge, UK\\ \texttt{\{firstname.lastname\}@cl.cam.ac.uk}}
 
 
 \subsection*{Abstract}
- We outline the design and prototype implementation of \pname, a tool that
- allows fine-grained (system call level) resource accounting for the Linux
- kernel. The system can account for both synchronous and asynchronous costs of
- given application calls, while incurring a low overhead.
+The drive to increase server utilization in modern datacenters creates more
+opportunities for resource contention and unwanted interactions between
+services. However, given current isolation models, a process doesn't have an
+image of the resources it consumes when performing a particular task, nor does
+it have an understanding of how it might be influenced by other tasks running on
+the same physical machine. In this paper, we take the first steps towards making
+applications resource-aware: our proposed system, \pname, offers a low-overhead
+mechanism for measuring resource consumption data at system call granularity,
+while accounting for costs incurred both synchronously and asynchronously after
+a given call.
 
 \section{Introduction} 
-Multiplexing services on to the same physical host is a common method of
-increasing machine utilization. This is typically achieved through operating
-system process separation, containerization or hypervisor-based virtualization
-(VM's). However, depending on the workloads of the colocated services, the
-increase in utilization may also cause increased contention for system
-resources. This translates into greater variability in system behavior, and
-lower predictability in terms of performance and failure rates \cite{?}.
+Running multiple services on the same physical host, multiplexed over a pool of
+shared resources, is a common method of increasing machine utilization. This is
+typically achieved through operating system process separation, containerization
+or hypervisor-based virtualization (VM's). However, depending on the workloads
+of the colocated services, the increase in utilization may also increase
+contention on system resources. This translates into greater variability in
+system behavior, and lower predictability in terms of performance and failure
+rates \cite{dean2013}.
 
-By design, the entities managing hardware resources (the hypervisor and/or the OS
-kernel) are seen as black boxes by any process executing on top. This makes it
-difficult to assess any side effects that a running process might have upon
-other processes sharing the same resources. These side effects can manifest as
-performance degradation, for example in cache thrashing and IO storms, or
-changes in the output of the system (fewer results returned, loss of precision
-in timeout-based processing algorithms).
+By design, the control planes managing hardware resources (the hypervisor and/or
+the OS kernel) are seen as black boxes by any applications executing on top.
+This means that there is no direct way for a single process to detect or query
+whether its execution is affected by resource contention (cache trashing, IO
+storms). Furthermore, it is difficult to diagnose and recover from side effects
+of performance degradation caused by contention (fewer results returned, loss of
+precision in timeout-based processing algorithms).
 
 %Any system experiencing high contention on particular resources will show more
 %variability in its behavior, becoming less predictable in terms of performance
@@ -119,13 +126,12 @@ in timeout-based processing algorithms).
 %% seems likely that lighter-weight OS-based virtualization solutions such as
 %% containers will become more common.}
 
-A greater ability to mitigate these effects is needed in order to further drive
-utilization up while maintaining the desired quality of service. The first step
-for this is measuring and understanding the implicit interactions between
-services sharing the same physical resources. To this end, we present \pname, a
-framework that provides configurable resource utilization measurements at system
-call granularity to applications interested in monitoring their footprint in the
-context of overall resource consumption.
+The first step towards enabling applications to measure and react to periods of
+resource contention during their execution is giving them the ability to query
+detailed resource consumption data on the actions they perform. To this end, we
+present \pname, a framework that provides configurable resource utilization
+measurements at system call granularity to applications interested in monitoring
+their footprint in the context of overall resource consumption.
 
 %As more services will start sharing the same hardware resources, the importance
 %of measuring and understanding both the causes and consequences of such
@@ -135,7 +141,7 @@ context of overall resource consumption.
 
 It is possible to make coarse-grained measurements in terms of
 \textit{aggregate} resource consumption using existing profiling and monitoring
-tools. The Linux kernel provides mechanisms such as the \texttt{getrusage()} call
+tools. For example, the Linux kernel provides mechanisms such as the \texttt{getrusage()} call
 (small number of fixed statistics), \texttt{perf} (for reading performance
 counters), and \texttt{ftrace}. Specialized tools such as \texttt{iotop} or
 \texttt{netstat} use information exposed through the \texttt{$/$proc}
@@ -155,18 +161,18 @@ such as \texttt{ftrace}, are often limited to debugging scenarios because of the
 they introduce.
 
 (ii) \textbf{Accounting for resources consumed asynchronously:} not all the
-effects of a given system call occur during its execution. A very simple example here
-is a process writing data to disk: while the application makes multiple calls to
-\texttt{write(...)} on a particular file descriptor, there may be no immediate
-IO activity on disk because of the kernel's use of a buffer cache. The actual disk IO
-will occur asynchronously, depending on the IO scheduler, the expiration of a
-default flushing interval, an explicit call to \texttt{fsync}. Simply
-recording resource consumption metrics before and after a \texttt{write}
-call will not capture the full cost. The Linux kernel has multiple ways of
-executing asynchronous tasks (timers, tasklets, workqueues, software
-interrupts) and understanding when they run because of particular application
-actions is important in explaining shared resource usage. There are no existing
-tools allowing this type of investigation.
+effects of a given system call occur during its execution. A very simple example
+here is a process writing data to disk: while the application makes multiple
+calls to \texttt{write(...)} on a particular file descriptor, there may be no
+immediate IO activity on disk because of the kernel's use of a buffer cache. The
+actual submission to hardware will occur asynchronously, depending on the IO
+scheduler, the expiration of a default flushing interval, or on the application
+making an explicit call to \texttt{fsync}. Simply recording resource consumption
+metrics before and after a \texttt{write} call will not capture its full cost.
+This shows that in order to fully explain shared resource usage, one needs to
+take into account asynchronous effects and assign the costs of running them (trough timers, tasklets,
+workqueues, software interrupts) to original causes. There are no existing tools allowing this type
+of investigation.
 
 (iii) \textbf{Online analysis and feedback:} with the exception of
 \texttt{getrusage()}, most kernel-level resource accounting mechanisms available
@@ -174,12 +180,12 @@ are designed for debugging or offline analysis scenarios --- the monitored
 processes have no control over what is being recorded and how, and the final
 output is a log that needs to be processed in order to extract relevant data.
 The applications themselves never have direct access to this data, and therefore
-can not collaborate in avoiding resource contention when running concurrent
-workloads. Instead, applications are given the illusion of exclusive
-resource ownership.
+can not adapt in real time to other workloads running concurrently. Instead,
+applications are given the illusion of exclusive resource ownership.
 
-\pname{ }addresses the issues above through selective kernel probing, allowing
-data collection down to the granularity of system calls.
+The difficulty in providing the OS (or hypervisor) support for dealing
+with those issues can be attributed to the high overhead introduced by fine grained measurements and to the challenge of tracking causal dependencies between pieces of code executed at this level.
+\pname{ }addresses those problems through \emph{selective} kernel probing, informed by static binary and code analysis.
 
 The main contributions of this paper are: 
 
@@ -192,18 +198,18 @@ boundaries and the minimal number of required instrumentation probe points,
 using static analysis.
 \item A framework for attributing resource consumption of asynchronous
 tasks to the calls that triggered their execution.
-\item Measuring overheads introduced by accounting for socket
-accept/send/receive resource consumption in lighttpd, based on our prototype
-implementation.
 \end{itemize}
 
 Our current implementation focuses on gathering resource usage data from the
 Linux kernel.  However, the overall design is general enough to allow for
 implementation in hypervisors and extension to other codebases. 
 % set up reasonable expectations:
-In this paper, we show that it is possible to run a system tracking
-resource consumption based on our design with reasonable overhead (\textless 10\%). A
-full investigation on the accuracy of the recorded data remains as future work.
+
+In this paper, we show that it is possible to run a system tracking resource
+consumption based on our design with reasonable overhead (\textless 10\%). The
+overheads are measured by accounting for socket accept/send/receive resource
+consumption in a real application (lighttpd). A full
+investigation on the accuracy of the recorded data remains as future work.
 
 
 \section{\pname: System Design} 
@@ -222,7 +228,7 @@ the required information was gathered on the kernel side.
 
 Each resource accounting result provides detailed metrics grouped by kernel
 subsystem. For example, the data recorded for one system call would contain
-total CPU cycles, wall clock time and memory allocated/deallocated, but the same
+total CPU cycles, wall clock time and memory costs, but the same
 metrics are recorded for each of the subsystems touched during that call: total
 CPU cycles spent in the Network subsystem, total cycles spent in VFS and
 subsystem-specific metrics such as bytes sent/received, number of
@@ -439,10 +445,8 @@ An API extension which we have not yet implemented in our prototype will allow a
 to \texttt{mmap} resource accounting buffers of other processes. This paves the way for applications that
 react to concurrent workloads, by throttling or delaying their own
 operations for example.
-\lnote{Discussion around automatically adding this (compiler).}
 
 \section{Initial Results}
-\lnote{shoud we call this "Prototype Implementation"?} 
 We have developed the kernel subsystem identification and resource accounting
 prototypes separately, with the purpose of showing the feasibility of the design
 and gathering preliminary overhead data.
@@ -476,15 +480,15 @@ An in-depth evaluation is planned as future work.
 	\label{fig:experiment1}
 \end{figure}
 
-In our throughput test, we observe \lnote{add throughput results}
+As shown in Table~\ref{fig:design}, the lighttpd throughput (as measured by \texttt{http\_load}) also suffers only minor changes (<10\%) when enabling \pname.
 
 \begin{table}[ht!]
 	\centering 
     \begin{tabular}{|l|l|l|}
     \hline
     lighttpd         & base & \pname \\ \hline
-    Throughput (Avg) & ~    & ~           \\
-    Throughput (Min) & ~    & ~           \\ \hline
+    Throughput (Avg) & 10 Mb/s & 9.8 Mb/s\\
+    Throughput (Min) & 3 Mb/s  & 2 Mb/s\\ \hline
     \end{tabular}
     \caption{Change in throughput when enabling \pname{ } for lighttpd}
     \label{tbl:throughput} 

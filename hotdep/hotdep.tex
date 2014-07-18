@@ -547,7 +547,7 @@ provided with the results of a what-if scenario.
 
 \section{Conclusion} 
 Measuring resource consumption at a fine-grained level is extremely useful in
-understanding the behavior of a system and it's interactions with the runtime
+understanding the behavior of a system and its interactions with the runtime
 environment. However, the main problem with measurements like these is the
 \emph{probe effect} they introduce. The main purpose of our developed prototype
 is showing that it is feasible to obtain fine-grained accounting data without
@@ -560,15 +560,10 @@ A number of challenges remain as future work: (i) evaluating the precision and
 accuracy of the resulting data, characterizing the limits of our system -- this
 would allow \pname{ }to be used for setting fine-grained quotas (ii) exploring
 whether some user-space instrumentation can be automatically added using either
-compiler-based methods or binary rewriting. (iii) extending \pname{ } to the hypervisor level.
-
-\lnote{(lc525): other ideas (tick if you like them, some may be stupid:)}
-\begin{enumerate}
-\item exploring interactions between containers (the limits of the isolation they provide)
-\item allow applications to trade resources (I'll give you some IO if you'll give me some memory)
-\item deciding when to offload actions to other machines vs running them locally (e.g if there is to much local IO activity it might be faster to do RPCs)
-\end{enumerate}
-\lnote{(lc525): we need to cite that kernel scalability paper showing that a significant ammount of time is spent in the kernel}
+compiler-based methods or binary rewriting. (iii) extending \pname{ } to the
+hypervisor level. Longer term, we envision applications coordinating their
+resource usage or even trading resources based on given policies, using the
+same fine-grained accounting mechanisms.
 
 {\footnotesize \bibliographystyle{acm} \bibliography{hotdep}}
 

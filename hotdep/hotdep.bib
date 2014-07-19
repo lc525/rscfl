@@ -98,3 +98,56 @@ author  = {Krzysztof Ostrowski and Gideon Mann and Mark Sandler},
 year  = 2011,
 booktitle = {5th Workshop on Large Scale Distributed Systems and Middleware (LADIS 2011)}
 }
+
+@inproceedings{boyd2010analysis,
+  title={An analysis of Linux scalability to many cores},
+  author={Boyd-Wickizer, Silas and Clements, Austin T and Mao, Yandong and Pesterev, Aleksey and Kaashoek, M Frans and Morris, Robert and Zeldovich, Nickolai},
+  year={2010},
+  booktitle    = {USENIX Symposium on Operating Systems Design and Implementation (OSDI)},
+  publisher={USENIX Association}
+}
+
+@TechReport {dogar2014,
+abstract     = {<p>Most data center applications perform rich and complex tasks (e.g., executing
+                a search query or generating a user’s wall). From a network perspective, these
+                tasks typically comprise multiple flows, which traverse different parts of the
+                network at potentially different times. Existing network resource allocation
+                schemes, however, treat all these flows in isolation – rather than as part of a
+                task – and therefore only optimize flow-level metrics.</p>
+
+                <p>In this paper, we show that task-aware network scheduling, which groups flows
+                of a task and schedules them together, can reduce both the average as well as
+                tail completion time for typical data center applications. Based on the network
+                footprint of real applications, we motivate the use of a scheduling policy that
+                dynamically adapts the level of multiplexing in the network. To apply task-aware
+                scheduling to online applications with small (sub-second) tasks, we design and
+                implement Baraat, a decentralized task-aware scheduling system. Through
+                experiments with Memcached on a small testbed and large-scale simulations, we
+                show that Baraat can reduce tail task completion times by 60{\%} for data analytics
+                workloads and 40{\%} for search workloads compared to existing mechanisms.</p>},
+author       = {Fahad Dogar and Thomas Karagiannis and Hitesh Ballani and Ant Rowstron},
+month        = {September},
+number       = {MSR-TR-2013-96},
+title        = {Decentralized Task-Aware Scheduling for Data Center Networks},
+url          = {http://research.microsoft.com/apps/pubs/default.aspx?id=201494},
+year         = {2013},
+}
+
+@inproceedings{ShiAuction2014,
+ author = {Shi, Weijie and Zhang, Linquan and Wu, Chuan and Li, Zongpeng and Lau, Francis C.M.},
+ title = {An Online Auction Framework for Dynamic Resource Provisioning in Cloud Computing},
+ booktitle = {The 2014 ACM International Conference on Measurement and Modeling of Computer Systems},
+ series = {SIGMETRICS '14},
+ year = {2014},
+ isbn = {978-1-4503-2789-3},
+ location = {Austin, Texas, USA},
+ pages = {71--83},
+ numpages = {13},
+ url = {http://doi.acm.org/10.1145/2591971.2591980},
+ doi = {10.1145/2591971.2591980},
+ acmid = {2591980},
+ publisher = {ACM},
+ address = {New York, NY, USA},
+ keywords = {cloud computing, combinatorial auction, online algorithms, pricing, resource allocation, truthful mechanisms},
+}
+

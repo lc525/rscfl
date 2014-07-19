@@ -80,14 +80,14 @@ of Cambridge, UK\\ \texttt{\{firstname.lastname\}@cl.cam.ac.uk}}
 
 \subsection*{Abstract}
 Increasing server utilization in modern datacenters also increases the
-likelihood of physical resource contention and unexpected behavior due to
+likelihood of contention on physical resources and unexpected behavior due to
 side-effects from interfering applications. Existing resource accounting
-mechanisms are too coarse grained for allowing services to track the causes of
-such variations. We make the case for measuring resource consumption at
-system-call level and outline the design of \emph{Resourceful}, a system that
-offers applications the ability of querying this data at runtime with low
-overhead, accounting for costs incurred both synchronously and asynchronously
-after a given call.
+mechanisms are too coarse-grained for allowing services to track the causes of
+such variations in their execution. We make the case for measuring resource
+consumption at system-call level and outline the design of \emph{Resourceful}, a
+system that offers applications the ability of querying this data at runtime
+with low overhead, accounting for costs incurred both synchronously and
+asynchronously after a given call.
 
 \section{Introduction} 
 Running multiple services on the same physical host, multiplexed over a pool of
@@ -137,16 +137,21 @@ their footprint in the context of overall resource consumption.
 %variations in the properties of the system will increase. This justifies the
 %need for gathering accurate resource accounting data \lnote{at the
 %hypervisor/kernel level?}.
+For actions performed completely in user space, applications can already be
+instrumented to monitor their own execution. In contrast, once a system call is
+made, they no longer have any control or visibility into what happens at kernel
+level in terms of resource consumption. However, many applications end up
+spending a significant percentage of their time in the
+kernel~\cite{boyd2010analysis}.
 
-It is possible to make coarse-grained measurements in terms of
+It is possible to make coarse-grained measurements at this level in terms of
 \textit{aggregate} resource consumption using existing profiling and monitoring
-tools. For example, the Linux kernel provides mechanisms such as the \texttt{getrusage()} call
-(small number of fixed statistics), \texttt{perf} (for reading performance
-counters), and \texttt{ftrace}. Specialized tools such as \texttt{iotop} or
-\texttt{netstat} use information exposed through the \texttt{$/$proc}
-virtual filesystem, while more general-purpose tools like SystemTap allow the
-user to write scripts that can gather similar data. However, current methods fall
-short in the following important dimensions:
+tools. For example, the Linux kernel provides mechanisms such as the
+\texttt{getrusage()} call, \texttt{perf}, and \texttt{ftrace}. Other tools such
+as \texttt{iotop} or \texttt{netstat} use information exposed through
+\texttt{$/$proc}, and SystemTap allows the user to write scripts that can gather
+similar data. However, current methods fall short in the following important
+dimensions:
 
 (i) \textbf{Accounting granularity and aggregation:} The mechanisms
 above can only obtain system-wide or per-process statistics. Therefore, it is
@@ -163,30 +168,28 @@ they introduce.
 effects of a given system call occur during its execution. A very simple example
 here is a process writing data to disk: while the application makes multiple
 calls to \texttt{write()} on a particular file descriptor, there may be no
-immediate I/O activity on disk because of the kernel's use of a buffer cache. The
-actual submission to hardware will occur asynchronously, depending on the I/O
-scheduler, the expiration of a default flushing interval, or on the application
-making an explicit call to \texttt{fsync}. Simply recording resource consumption
-metrics before and after a \texttt{write} call will not capture its full cost.
-This shows that in order to fully explain shared resource usage, one needs to
-take into account asynchronous effects and assign the costs of running them
-(through timers, tasklets, workqueues, software interrupts) to original causes.
-There are no existing tools supplying this type of investigation.
+immediate I/O activity on disk because of the kernel's use of a buffer cache.
+The actual submission to hardware will occur asynchronously, depending on the
+I/O scheduler, the expiration of a flushing interval, or on an explicit call to
+\texttt{fsync}. Simply recording resource consumption metrics before and after a
+\texttt{write} call will not capture its full cost. In order to fully explain
+shared resource usage, one needs to take into account asynchronous effects and
+assign the costs of running them to original causes. There are no existing tools
+supporting this type of investigation.
 
 (iii) \textbf{Online analysis and feedback:} with the exception of
 \texttt{getrusage()}, most kernel-level resource accounting mechanisms available
-are designed for debugging or offline analysis scenarios --- the monitored
-processes have no control over what is being recorded and how, and the final
-output is a log that needs to be processed in order to extract relevant data.
-The applications themselves never have direct access to this data, and therefore
-cannot adapt in real time to other workloads running concurrently. Instead,
+are designed for debugging or offline analysis scenarios -- the final output is
+a log that needs to be processed in order to extract relevant data. The
+applications themselves never have access to this data while running, and
+therefore cannot adapt in real time to other concurrent workloads. Instead,
 applications are given the illusion of exclusive resource ownership.
 
 The difficulty in providing the OS support for dealing with those issues can be
-attributed to the high overhead introduced by fine grained measurements and to
-the challenge of tracking causal dependencies between pieces of code executed at
-this level. \pname{ }addresses those problems through \emph{selective} kernel
-probing, informed by static binary and code analysis.
+attributed to the high overhead that is typically introduced by fine grained
+measurements and to the challenge of tracking causal dependencies between pieces
+of code executed by the kernel. \pname{ }addresses these problems through
+\emph{selective} kernel probing, informed by static binary and code analysis.
 
 The main contributions of this paper are: 
 
@@ -207,24 +210,24 @@ implementation in hypervisors and extension to other codebases.
 % set up reasonable expectations:
 
 In this paper, we show that it is possible to run a system tracking resource
-consumption based on our design with reasonable overhead (\textless 10\%). The
-overheads are measured by accounting for socket accept/send/receive resource
-consumption in a real application (lighttpd). A full
-investigation on the accuracy of the recorded data remains as future work.
+consumption based on our design with reasonable overhead. Our initial experiments
+consider accounting for socket accept/send/receive resource consumption in a
+real application (lighttpd). A full investigation on the accuracy of the
+recorded data remains as future work.
 
 
 \section{\pname: System Design} 
+Fine-grained accounting is required in cases where developers need insights into the way applications behave or interact with each other: for example, one might want to understand the cost of a client request, either on a single host or over a distributed system; this implies being able to aggregate data at sub-process granularity (summing over the calls that were made to service that request). On high latency requests, there is a need of diagnosing causes: What is different from the low latency case? Were there unintended interactions between the server and other co-located applications? Where was most of the time spent?
 
-Considering the design of a system that allows applications to measure the resources
-consumed by a given function call, 
+The same fine-grained resource usage data can be used in improving user-level scheduling, or application coordination: applications could take such decisions based on the current state, for example by task-level coalescing of requests~\cite{dogar2014}, or could trade resources similar to auction frameworks~\cite{ShiAuction2014}. 
 
-\pname{ }gives applications full control over measuring resource consumption of
-system calls, without imposing prohibitive overheads. The framework has three
-main components: (i) \textit{measurement configuration:} this analyzes the
-current kernel in order to identify a minimal set of instrumentation probe points and
-subsystem boundaries (the level at which aggregation takes place), guided by a
-user-provided configuration; (ii) \textit{a kernel module} responsible for
-inserting these probes into the kernel and activating them when
+With those use cases in mind, \pname{ }is designed to give applications full
+control over measuring resource consumption of system calls. The framework has
+three main components: (i) \textit{measurement configuration:} this analyzes the
+current kernel in order to identify a minimal set of instrumentation probe
+points and subsystem boundaries (the level at which aggregation takes place),
+guided by a user-provided configuration; (ii) \textit{a kernel module}
+responsible for inserting these probes into the kernel and activating them when
 applications request resource consumption data and (iii) \textit{a user-space
 library} exposing an API that applications can use to express interest in the
 resource consumption of particular system calls and to read the results after
@@ -240,20 +243,20 @@ retransmissions, IO queue size, disk writes. The application can select exactly
 which of those metrics are recorded and can also perform custom aggregations
 across multiple system calls.
 
-\subsection{Kernel Subsystem Identification}
 By reporting resource consumption aggregated by subsystem, Resourceful provides
-a more detailed view of what happens inside the kernel. For example,  Given a
+a more detailed view of what happens inside the kernel. For example, given a
 socket \texttt{send()} operation, the application can look at the breakdown
-of latency and answer questions such as: was most of the time spent in the
+of latency and answer questions such as: Was most of the time spent in the
 network stack? Was the packet delayed by the scheduler moving the task on a
-different core? Or was most of the time was spent reading data from a file
-descriptor on disk, in a \texttt{sendfile} call.
- 
+different core?
+
+\subsection{Kernel Subsystem Identification}
+
 The Linux kernel has a modular structure of \emph{subsystems}, such as VFS,
 logical filesystems, block devices. A complete list of these can be consulted in
 the Linux Kernel Map.\footnote{\url{http://www.makelinux.net/kernel_map/}}
-\pname{ }uses this logical structure for reporting the resource consumption on a
-per-subsystem basis. 
+\pname{ }uses this logical structure in identifying suitable probing points for
+reporting the resource consumption on a per-subsystem basis.
 
 %\lnote{(lc525): see par end} This differs from current approaches that typically fall
 %into two categories: \textit{per-process} resource consumption, which lacks the
@@ -306,24 +309,25 @@ subsystem net_link_layer {
 }
 \end{lstlisting}
 
-Instrumentation probes are then inserted around the place where such a boundary
-function is called. Concretely, if the \texttt{sys\_socket} function (from the
-Network subsystem) calls \texttt{kmalloc} (from the Memory subsystem), we need
-to add probes surrounding the call site of \texttt{kmalloc} within
-\texttt{Sys\_socket}. Even if this means we could potentially be setting
-numerous probes (a function such as kmalloc is called often), it is the
-only way to avoid false positives: setting the probes inside \texttt{kmalloc}
-would mean probing it even when it's not on a subsystem boundary (any call to
-\texttt{kmalloc} from within the Memory subsystem). Whilst inserting more probes
-has a higher startup cost, there is no runtime cost of unused probes and there
-is no increase in code size from inserting unused probes.
+Instrumentation probes are then inserted around the locations where such
+boundary functions are called. Concretely, if the \texttt{sys\_socket} function
+(from the Network subsystem) calls \texttt{kmalloc} (from the Memory subsystem),
+we need to add probes surrounding the call site of \texttt{kmalloc} within
+\texttt{sys\_socket}. Even if this means we could potentially be setting
+numerous probes (a function such as kmalloc is called often), it is the only way
+to avoid false positives: setting the probes inside \texttt{kmalloc} would mean
+probing more often than necessary: any call to \texttt{kmalloc} would be probed,
+even when it's not on a subsystem boundary (e.g any call to \texttt{kmalloc} from
+within the Memory subsystem). Whilst inserting more probes has a higher startup
+cost, there is no runtime cost of unused probes and there is no increase in code
+size from inserting unused probes.
 
 Besides the subsystems identified automatically this way, we allow users to
 influence the process through configuration files such as the one presented in
 Listing~\ref{lst:config}. Here, users can remove subsystems detected
 automatically or add their own. The example shows how the network link layer
 could be defined as a separate subsystem, generating probes for when packets are
-enqueued/dequeued from device buffers.
+enqueued or dequeued from device buffers.
 
 So far, we have applied our analysis to the Linux kernel. However, this
 approach can be extended to any codebase where modules are organized using a
@@ -350,7 +354,7 @@ how this works in Figure~\ref{fig:design}.
 
 \begin{figure}[ht!] 
 	\centering
-	\hspace*{-0.05\columnwidth} 
+	\hspace*{-0.1\columnwidth} 
 	\includegraphics[width=1.1\columnwidth]{sys_design}
 	\caption{Primary user-space/kernel-space interactions detailed. Resource
 accounting data is requested by applications for specific system calls and is
@@ -411,8 +415,8 @@ shows how network scheduler buffers (the qdisc buffer) can be tracked across
 enqueue/dequeue operations: when the \texttt{dev\_queue\_xmit} probe is hit
 (synchronously), \pname{ }will store the address of the qdisc buffer. A
 following \texttt{qdisc\_restart} probe being hit on an asynchronous path will
-match on the address of the qdisc buffer and, based on this, determine the
-correct accounting structure that should be filled.
+match on the address of the qdisc buffer and search the index for the correct
+accounting structure that should be filled.
 
 % Async / Sync tracing (multiple layers, kworkers etc).
 %Call granularity tracing.

@@ -147,8 +147,8 @@ kernel~\cite{boyd2010analysis}.
 It is possible to make coarse-grained measurements at this level in terms of
 \textit{aggregate} resource consumption using existing profiling and monitoring
 tools. For example, the Linux kernel provides mechanisms such as the
-\texttt{getrusage()} call, \texttt{perf}, and \texttt{ftrace}. Other tools such
-as \texttt{iotop} or \texttt{netstat} use information exposed through
+\texttt{getrusage()}\footnote{\url{http://www.gnu.org/software/libc/manual/html_node/Resource-Usage.html}} call, \texttt{perf}\footnote{\url{https://perf.wiki.kernel.org/index.php/Main_Page}}, and \texttt{ftrace}\footnote{\url{https://www.kernel.org/doc/Documentation/trace/ftrace.txt}}. Other tools such
+as \texttt{iotop}\footnote{\url{http://guichaz.free.fr/iotop/}} or \texttt{netstat}\footnote{\url{http://linux.die.net/man/8/netstat}} use information exposed through
 \texttt{$/$proc}, and SystemTap allows the user to write scripts that can gather
 similar data. However, current methods fall short in the following important
 dimensions:
@@ -221,7 +221,7 @@ Fine-grained accounting is required in cases where developers need insights into
 
 The same fine-grained resource usage data can be used in improving user-level scheduling, or application coordination: applications could take such decisions based on the current state, for example by task-level coalescing of requests~\cite{dogar2014}, or could trade resources similar to auction frameworks~\cite{ShiAuction2014}. 
 
-With those use cases in mind, \pname{ }is designed to give applications full
+With these use cases in mind, \pname{ }is designed to give applications full
 control over measuring resource consumption of system calls. The framework has
 three main components: (i) \textit{measurement configuration:} this analyzes the
 current kernel in order to identify a minimal set of instrumentation probe
@@ -235,8 +235,8 @@ the required information was gathered on the kernel side.
 
 Each resource accounting result provides detailed metrics grouped by kernel
 subsystem. For example, the data recorded for one system call would contain
-total CPU cycles, wall clock time and memory costs, but those
-values are then broken down per each functional subsystem touched during that call: total
+total CPU cycles, wall clock time and memory costs, but these
+values are further broken down for each functional subsystem touched during that call: total
 CPU cycles spent in the Network subsystem, total cycles spent in VFS and
 subsystem-specific metrics such as bytes sent/received, number of
 retransmissions, IO queue size, disk writes. The application can select exactly
@@ -245,7 +245,7 @@ across multiple system calls.
 
 By reporting resource consumption aggregated by subsystem, Resourceful provides
 a more detailed view of what happens inside the kernel. For example, given a
-socket \texttt{send()} operation, the application can look at the breakdown
+socket \texttt{send()} operation, the application can view the breakdown
 of latency and answer questions such as: Was most of the time spent in the
 network stack? Was the packet delayed by the scheduler moving the task on a
 different core?
@@ -253,9 +253,8 @@ different core?
 \subsection{Kernel Subsystem Identification}
 
 The Linux kernel has a modular structure of \emph{subsystems}, such as VFS,
-logical filesystems, block devices. A complete list of these can be consulted in
-the Linux Kernel Map.\footnote{\url{http://www.makelinux.net/kernel_map/}}
-\pname{ }uses this logical structure in identifying suitable probing points for
+logical filesystems, block devices. A complete list of these can be found in
+the Linux Kernel Map.\footnote{\url{http://www.makelinux.net/kernel_map/}} \pname{ }uses this logical structure in identifying suitable probing points for
 reporting the resource consumption on a per-subsystem basis.
 
 %\lnote{(lc525): see par end} This differs from current approaches that typically fall
@@ -340,7 +339,7 @@ directory-based structure.
 
 Having identified the minimum number of probe points required for measuring per-subsystem
 resource consumption, a kernel module has the job of inserting those probes at runtime.
-For the Linux kernel, this can be achieved using kprobes.
+For the Linux kernel, this can be achieved using kprobes.\footnote{\url{https://www.kernel.org/doc/Documentation/kprobes.txt}}
 
 When triggered, each kprobe will record a snapshot of resource consumption metrics according
 to the subsystem in which the probed function resides. For gathering actual data, we
@@ -367,7 +366,7 @@ On initialization, the kernel module creates two character devices: a data
 device (\texttt{/dev/rscfl}) for resource accounting information and a control
 device (\texttt{/dev/r\_ctl}) for communication between user space and the
 module. When applications linking with the \pname{ }library call
-\texttt{init()}, the two devices are mmap-ed into the local address space. This
+\texttt{init()}, the two devices are mmap-ed into their local address space. This
 is done for each application thread, and the corresponding \texttt{mmap}
 allocates a new buffer on the kernel side to hold resource accounting data for
 system calls made from that thread.
@@ -460,7 +459,7 @@ We have developed the kernel subsystem identification and resource accounting
 prototypes separately, with the purpose of showcasing the feasibility of the design
 and gathering preliminary overhead data.
 
-At the moment, the kernel module uses SystemTap to manually set probes for the
+At the moment, the kernel module uses SystemTap to manually set kprobes for the
 network, memory and filesystem kernel sub-systems.
 
 In order to understand the overhead introduced by \pname, we have modified

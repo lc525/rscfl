@@ -348,7 +348,7 @@ For the Linux kernel, this can be achieved using kprobes.\footnote{\url{https://
 
 When triggered, each kprobe will record a snapshot of resource consumption metrics according
 to the subsystem in which the probed function resides. For gathering actual data, we
-use existing kernel mechanisms such as \texttt{perf\_events} for reading PMU
+use existing kernel mechanisms such as \texttt{perf\_events} for reading CPU Performance Monitoring Unit (PMU)
 data or structures that contain statistics, like \texttt{tcp\_info}.
 
 Besides making sure that those probes run and snapshot resource consumption statistics

@@ -154,8 +154,8 @@ It is possible to make coarse-grained measurements at this level in terms of
 tools. For example, the Linux kernel provides mechanisms such as the
 \texttt{getrusage()}\footnote{\url{http://www.gnu.org/software/libc/manual/html_node/Resource-Usage.html}} call, \texttt{perf}\footnote{\url{https://perf.wiki.kernel.org/index.php/Main_Page}}, and \texttt{ftrace}\footnote{\url{https://www.kernel.org/doc/Documentation/trace/ftrace.txt}}. Other tools such
 as \texttt{iotop}\footnote{\url{http://guichaz.free.fr/iotop/}} or \texttt{netstat}\footnote{\url{http://linux.die.net/man/8/netstat}} use information exposed through
-\texttt{$/$proc}. Finally, another approach taken by DTrace \cite{dtrace} and SystemTap \cite{systap} allows the user to write scripts that can gather
-similar data manually. However, current methods fall short in the following important
+\texttt{$/$proc}, while DTrace \cite{dtrace} and SystemTap \cite{systap} allow the user to write scripts that can gather
+similar data. However, current methods fall short in the following important
 dimensions:
 
 (i) \textbf{Accounting granularity and aggregation:} The mechanisms

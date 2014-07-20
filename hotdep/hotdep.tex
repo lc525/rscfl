@@ -99,7 +99,7 @@ Running multiple services on the same physical host, multiplexed over a pool of
 shared resources, is a common method for increasing machine utilization. This is
 typically achieved through operating system process separation, containerization
 or hypervisor-based virtualization. However, depending on the workloads
-of the colocated services, the increase in utilization may also increase
+of the collocated services, the increase in utilization may also increase
 contention on system resources. This translates into greater variability in
 system behavior, and lower predictability in terms of performance and failure
 rates \cite{dean2013}.
@@ -537,9 +537,9 @@ it is sample-based, meaning it makes a trade-off between sample rate and visibil
 to be continually profiled whilst only incurring a low-overhead.  
 
 Other tracing systems such as Magpie \cite{magpieosdi} require the user to
-provide a definition of the expected system behaviour in order for it to
+provide a definition of the expected system behavior in order for it to
 correctly correlate events. Similarly in \pname{} we allow the user to manually
-define the subsystem boundries they are interested in profiling although this
+define the subsystem boundaries they are interested in profiling although this
 can be automatically generated for them, reducing the time required to use the
 tool. 
 
@@ -549,7 +549,7 @@ interface to trace and profile data, but are still limited to a post-hoc
 evaluation. \pname{}'s API allows trace data to be retrieved and evaluated in
 line with the target processes execution. This runtime availability of resource
 consumption data give a much richer view of how the application and kernel are
-performning, allowing for more informed decisions to be made. 
+performing, allowing for more informed decisions to be made. 
 
 One useful feature to have when designing a dependable system is being able to
 accurately predict the future. The system described by Ostrowski et al

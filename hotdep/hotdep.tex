@@ -353,7 +353,7 @@ how this works in Figure~\ref{fig:design}.
 
 \begin{figure}[ht!] 
 	\centering
-	\hspace*{-0.1\columnwidth} 
+	\hspace*{-0.07\columnwidth} 
 	\includegraphics[width=1.1\columnwidth]{sys_design}
 	\caption{Primary user-space/kernel-space interactions detailed. Resource
 accounting data is requested by applications for specific system calls and is
@@ -488,8 +488,8 @@ same: we see two local maxima and the overall shape remains similar. This
 suggests that even with the overhead of measuring resource consumption, one
 would still observe the latency characteristics of the underlying system. 
 
-Table~\ref{fig:design} shows the drop in throughput ({\raise.17ex\hbox{$\scriptstyle\sim$}}30\%) averaged over 10
-runs when doing 100k sequential requests using \texttt{http\_load}. This should
+Table~\ref{fig:design} shows the drop in throughput ({\raise.17ex\hbox{$\scriptstyle\sim$}}31\%) averaged over 10
+runs when doing 100k sequential requests for small files using \texttt{http\_load}. This should
 be seen as an overhead upper-bound, as we have not yet performed any
 optimizations on the system as a whole. An in-depth evaluation is planned as
 future work.

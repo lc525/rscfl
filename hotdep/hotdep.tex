@@ -536,11 +536,12 @@ it is sample-based, meaning it makes a trade-off between sample rate and visibil
 \pname{ } differs from these by allowing any part of a target system
 to be continually profiled whilst only incurring a low-overhead.  
 
-\pname{} allows the user to optionally pre-define the subsystem boundaries they are
-interested in as well as the data-structures associated with any asynchronous
-actions. A similar method is used by Magpie \cite{magpieosdi} where users are
-required to provide a definition of the expected system behavior, in order to
-correlate the events recorded and produce realistic workload models.
+Other tracing systems such as Magpie \cite{magpieosdi} require the user to
+provide a definition of the expected system behaviour in order for it to
+correctly correlate events. Similarly in \pname{} we allow the user to manually
+define the subsystem boundries they are interested in profiling although this
+can be automatically generated for them, reducing the time required to use the
+tool. 
 
 The primary method of interacting with \pname{} is through its user-space API.
 Other systems such as Fay \cite{fay} go some way towards providing a programmatic

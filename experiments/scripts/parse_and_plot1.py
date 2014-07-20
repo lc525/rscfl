@@ -45,17 +45,14 @@ def plot_dist(clean, instr):
         overhead_nn = ((instr_nn - clean_nn) / clean_nn) * 100
         textstr = '$\Delta\mathrm{median }=%.2f$%%\n$\Delta\mathrm{average }=%.2f$%%\n$\Delta\mathrm{99^{th}percentile }=%.2f$%%'%(overhead_med, overhead_avg, overhead_nn)
 
-        subfig = fig.add_subplot(211)
+        subfig = fig.add_subplot(111)
         clean_n, clean_bins, clean_patches = subfig.hist(clean, 1500, color='green', normed=True, label='lighttpd', alpha=0.8)
         c_bsz = clean_bins[2] - clean_bins[1]
         instr_range = np.max(instr) - np.min(instr)
         instr_bins_nr = int(np.ceil(instr_range / c_bsz))
-        subfig2 = fig.add_subplot(212)
-        instr_n, instr_bins, instr_patches = subfig2.hist(instr, clean_bins, color='blue', normed=True, label='lighttpd + Resourceful', alpha=0.6)
+        instr_n, instr_bins, instr_patches = subfig.hist(instr, clean_bins, color='blue', normed=True, label='lighttpd + Resourceful', alpha=0.6)
         subfig.set_xlim(1.6,3)
-        subfig2.set_xlim(1.6,3)
         subfig.set_ylim(0,7)
-        subfig2.set_ylim(0,7)
         #fig.delaxes(subfig)
 
         #edge_ix = 500
@@ -82,9 +79,8 @@ def plot_dist(clean, instr):
         ##subfig_2.set_xlim(2,4)
         ##subfig_2.set_ylim(0,1)
         subfig.legend(loc="upper left")
-        subfig2.legend(loc="upper left")
 
-        subfig2.text(0.98, 0.97, textstr, transform=subfig2.transAxes,
+        subfig.text(0.98, 0.97, textstr, transform=subfig.transAxes,
                       verticalalignment='top', horizontalalignment='right', bbox=dict(fc="w", pad=10), fontsize=17)
         plt.xlabel('Latency (ms)', fontsize=17)
         plt.ylabel('Frequency Density', fontsize=17)

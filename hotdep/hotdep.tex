@@ -525,29 +525,30 @@ target system. For example Dapper \cite{dapper} makes use of instruments in an
 RPC library and X-Trace \cite{xtrace} modifies only the protocol and network
 stacks. Whilst these tools are able to provide detailed information about their
 respective instrumented layers, they treat much of surrounding system as a
-black-box. \pname{ } differs from these by allowing any part of a target system
-to be profiled whilst only incurring a low-overhead.  
+black-box. The Google-Wide Profiling tool \cite{gwp} attempts to overcome this 
+narrow view by profiling the entire target system, but instead of being continuous 
+it is sample-based, meaning it makes a trade-off between sample rate and visibility. 
+\pname{ } differs from these by allowing any part of a target system
+to be continually profiled whilst only incurring a low-overhead.  
 
-\pname{ } allows the user to pre-define the subsystem boundaries they are
+\pname{} allows the user to optionally pre-define the subsystem boundaries they are
 interested in as well as the data-structures associated with any asynchronous
 actions. A similar method is used by Magpie \cite{magpieosdi} where users are
 required to provide a definition of the expected system behavior, in order to
-correlate the events recorded and produce realistic workload models. Although
-available in \pname{ }, a sub-system definition is not a requirement, as these
-can be constructed automatically. 
+correlate the events recorded and produce realistic workload models.
 
-The primary method of interacting with \pname{ } is through its user-space API.
-Other systems such as \cite{fay} go some way towards providing a programmatic
+The primary method of interacting with \pname{} is through its user-space API.
+Other systems such as Fay \cite{fay} go some way towards providing a programmatic
 interface to trace and profile data, but are still limited to a post-hoc
 evaluation. \pname{}'s API allows trace data to be retrieved and evaluated in
-line with the target processes execution. This gives the programmer much
-broader knowledge of how the kernel is behaving when running their program and allows
-them to make more informed decisions.
+line with the target processes execution. This runtime availability of resource
+consumption data give a much richer view of how the application and kernel are
+performning, allowing for more informed decisions to be made. 
 
 One useful feature to have when designing a dependable system is being able to
 accurately predict the future. The system described by Ostrowski et al
 \cite{ostrowski} provides methods for users to carry out what-if analysis on
-existing trace data. \pname{ } not only provides the primitives to build such a
+existing trace data. \pname{} not only provides the primitives to build such a
 system but allows the user to make decisions and take action at run-time when
 provided with the results of a what-if scenario.
 

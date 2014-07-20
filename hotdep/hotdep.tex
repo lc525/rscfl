@@ -4,11 +4,16 @@
 \usepackage{hyperref}
 \usepackage{graphicx}
 \usepackage{listings}
+\usepackage{titlesec}
 
 \newcommand{\pname}{Resourceful}
 \newcommand{\lnote}[1]{\textcolor{red}{[\textit{#1}]}} %notes
 \newcommand*\aorder[1][\value{footnote}]{\footnotemark[#1]}
 \renewcommand\Authsep{\hskip 1cm} \renewcommand\Authands{\hskip 1cm}
+
+\titlespacing\section{0pt}{8pt plus 4pt minus 2pt}{3pt plus 2pt minus 2pt}
+\titlespacing\subsection{0pt}{8pt plus 4pt minus 2pt}{3pt plus 2pt minus 2pt}
+\setlength{\textfloatsep}{8pt plus 1.0pt minus 2.0pt}
 
 \colorlet{punct}{red!60!black}
 \definecolor{background}{HTML}{EEEEEE}
@@ -353,7 +358,7 @@ how this works in Figure~\ref{fig:design}.
 
 \begin{figure}[ht!] 
 	\centering
-	\hspace*{-0.1\columnwidth} 
+	\hspace*{-0.07\columnwidth} 
 	\includegraphics[width=1.1\columnwidth]{sys_design}
 	\caption{Primary user-space/kernel-space interactions detailed. Resource
 accounting data is requested by applications for specific system calls and is
@@ -378,7 +383,7 @@ tables for this purpose, avoiding locks on the critical path. \pname{ }
 intercepts calls to scheduler functions in order to maintain those indexes
 up-to-date for each cpu.
 
-\subsubsection{Accounting for Asynchronous Resource Consumption}
+\subsubsection*{Accounting for Asynchronous Resource Consumption}
 As described in our initial example, the total cost of performing a buffered
 write should also consider the asynchronous operation committing the data to
 disk. Unlike existing approaches, \pname{} separately reports the resources
@@ -470,9 +475,9 @@ a number of static files for performing end-to-end latency and throughput tests.
 To characterize overhead, we first look at the distribution of latencies and
 compare a vanilla lighttpd binary with the one that runs resource accounting
 using \pname, for 10{\kern 0.12em}000 sequential requests issued using \texttt{http\_ping}. As
-observed in Figure~\ref{fig:experiment1}, the median latency increases by 5.4\%
+observed in Figure~\ref{fig:experiment1}, the median latency increases by 3.9\%
 when resource accounting is active. The tail latency is also slightly increased,
-with the 99th percentile growing by 11.1\%.
+with the 99th percentile growing by 7.66\%.
 \begin{figure}[ht!] 
 	\centering
 	\hspace*{-0.05\columnwidth} 
@@ -484,12 +489,12 @@ with the 99th percentile growing by 11.1\%.
 \end{figure}
 
 Importantly, the overall characteristics of the latency distribution stay the
-same: we see three local maxima and the overall shape remains similar. This
+same: we see two local maxima and the overall shape remains similar. This
 suggests that even with the overhead of measuring resource consumption, one
 would still observe the latency characteristics of the underlying system. 
 
-Table~\ref{fig:design} shows the drop in throughput ({\raise.17ex\hbox{$\scriptstyle\sim$}}30\%) averaged over 10
-runs when doing 100k sequential requests using \texttt{http\_load}. This should
+Table~\ref{fig:design} shows the drop in throughput ({\raise.17ex\hbox{$\scriptstyle\sim$}}31\%) averaged over 10
+runs when doing 100k sequential requests for small files using \texttt{http\_load}. This should
 be seen as an overhead upper-bound, as we have not yet performed any
 optimizations on the system as a whole. An in-depth evaluation is planned as
 future work.

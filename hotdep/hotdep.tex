@@ -470,9 +470,9 @@ a number of static files for performing end-to-end latency and throughput tests.
 To characterize overhead, we first look at the distribution of latencies and
 compare a vanilla lighttpd binary with the one that runs resource accounting
 using \pname, for 10{\kern 0.12em}000 sequential requests issued using \texttt{http\_ping}. As
-observed in Figure~\ref{fig:experiment1}, the median latency increases by 5.4\%
+observed in Figure~\ref{fig:experiment1}, the median latency increases by 3.9\%
 when resource accounting is active. The tail latency is also slightly increased,
-with the 99th percentile growing by 11.1\%.
+with the 99th percentile growing by 7.66\%.
 \begin{figure}[ht!] 
 	\centering
 	\hspace*{-0.05\columnwidth} 
@@ -484,7 +484,7 @@ with the 99th percentile growing by 11.1\%.
 \end{figure}
 
 Importantly, the overall characteristics of the latency distribution stay the
-same: we see three local maxima and the overall shape remains similar. This
+same: we see two local maxima and the overall shape remains similar. This
 suggests that even with the overhead of measuring resource consumption, one
 would still observe the latency characteristics of the underlying system. 
 

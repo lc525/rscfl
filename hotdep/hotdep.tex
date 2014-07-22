@@ -346,7 +346,7 @@ Having identified the minimum number of probe points required for measuring per-
 resource consumption, a kernel module has the job of inserting those probes at runtime.
 For the Linux kernel, this can be achieved using kprobes.\footnote{\url{https://www.kernel.org/doc/Documentation/kprobes.txt}}
 
-When triggered, each kprobe will record a snapshot of resource consumption metrics according
+When triggered, each kprobe records a snapshot of resource consumption metrics according
 to the subsystem in which the probed function resides. For gathering actual data, we
 use existing kernel mechanisms such as \texttt{perf\_events} for reading CPU Performance Monitoring Unit (PMU)
 data or structures that contain statistics, like \texttt{tcp\_info}.
@@ -537,11 +537,9 @@ it is sample-based, meaning it makes a trade-off between sample rate and visibil
 to be continually profiled whilst only incurring a low-overhead.  
 
 Other tracing systems such as Magpie \cite{magpieosdi} require the user to
-provide a definition of the expected system behavior in order for it to
-correctly correlate events. Similarly in \pname{} we allow the user to manually
-define the subsystem boundaries they are interested in profiling although this
-can be automatically generated for them, reducing the time required to use the
-tool. 
+provide a definition of the expected system structure in order for it to
+correctly correlate events. \pname{} automatically identifies subsystem
+boundaries, although those can also be manually configured by the user.
 
 The primary method of interacting with \pname{} is through its user-space API.
 Other systems such as Fay \cite{fay} go some way towards providing a programmatic

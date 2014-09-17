@@ -2,6 +2,7 @@
 *.log
 *.out
 *.pdf
+*.ps
 *.synctex.gz
 *.ko
 *.mod.c
@@ -9,5 +10,7 @@
 *.o
 *.cmd
 .tmp_versions/
+experiments/*
+!experiments/*/
 *.order
 *.symvers

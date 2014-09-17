@@ -1,7 +1,15 @@
-\documentclass[letterpaper,twocolumn,10pt]{article}
-\usepackage{usenix,epsfig,authblk}
+\documentclass[12pt,twoside,a4paper]{article}
+\setlength{\oddsidemargin}{-0.4mm} % 25 mm left margin
+  \setlength{\evensidemargin}{\oddsidemargin}
+  \setlength{\textwidth}{160mm}      % 30 mm right margin
+  \setlength{\topmargin}{-5.4mm}     % 20 mm top margin
+  \setlength{\headheight}{5mm}
+  \setlength{\headsep}{5mm}
+  \setlength{\footskip}{10mm}
+  \setlength{\textheight}{237mm}     % 20 mm bottom margin
+\usepackage{epsfig,authblk}
 \usepackage{xcolor}
-\usepackage{hyperref}
+\usepackage[pdfpagelabels=false,pdfborder={0 0 0}]{hyperref}
 \usepackage{graphicx}
 \usepackage{listings}
 \usepackage{titlesec}
@@ -13,7 +21,7 @@
 
 \titlespacing\section{0pt}{8pt plus 4pt minus 2pt}{3pt plus 2pt minus 2pt}
 \titlespacing\subsection{0pt}{8pt plus 4pt minus 2pt}{3pt plus 2pt minus 2pt}
-\setlength{\textfloatsep}{8pt plus 1.0pt minus 2.0pt}
+%\setlength{\textfloatsep}{8pt plus 1.0pt minus 2.0pt}
 
 \colorlet{punct}{red!60!black}
 \definecolor{background}{HTML}{EEEEEE}
@@ -68,7 +76,7 @@
 \date{}
 
 %make title bold and 14 pt font (Latex default is non-bold, 16 pt)
-\title{\Large \bf \pname: Fine-grained Resource Accounting\\for Explaining Service Variability}
+\title{\Large \bf \pname: fine-grained resource accounting\\for explaining service variability}
 
 %for single author (just remove % characters)
 \author{Lucian Carata\thanks{in alphabetical order}\aorder} \author{Oliver
@@ -80,7 +88,8 @@ of Cambridge, UK\\ \texttt{\{firstname.lastname\}@cl.cam.ac.uk}}
 
 % Use the following at camera-ready time to suppress page numbers.
 % Comment it out when you first submit the paper for review.
-\thispagestyle{empty}
+%\thispagestyle{empty}
+\setcounter{page}{3}
 
 
 \subsection*{Abstract}
@@ -221,7 +230,7 @@ real application (lighttpd). A full investigation on the accuracy of the
 recorded data remains as future work.
 
 
-\section{\pname: System Design} 
+\section{\pname: System design} 
 Fine-grained accounting is required in cases where developers need insights into the way applications behave or interact with each other: for example, one might want to understand the cost of a client request, either on a single host or over a distributed system; this implies being able to aggregate data at sub-process granularity (summing over the calls that were made to service that request). On high latency requests, there is a need of diagnosing causes: What is different from the low latency case? Were there unintended interactions between the server and other co-located applications? Where was most of the time spent?
 
 The same fine-grained resource usage data can be used in improving user-level scheduling, or application coordination: applications could take such decisions based on the current state, for example by task-level coalescing of requests~\cite{dogar2014}, or could trade resources similar to auction frameworks~\cite{ShiAuction2014}. 
@@ -255,7 +264,7 @@ of latency and answer questions such as: Was most of the time spent in the
 network stack? Was the packet delayed by the scheduler moving the task on a
 different core?
 
-\subsection{Kernel Subsystem Identification}
+\subsection{Kernel subsystem identification}
 
 The Linux kernel has a modular structure of \emph{subsystems}, such as VFS,
 logical filesystems, block devices. A complete list of these can be found in
@@ -340,7 +349,7 @@ directory-based structure.
 % Todo fn pointers
 % Can be done on any kernel, without the need for source or recompilation.
 
-\subsection{Kernel Accounting Infrastructure}
+\subsection{Kernel accounting infrastructure}
 
 Having identified the minimum number of probe points required for measuring per-subsystem
 resource consumption, a kernel module has the job of inserting those probes at runtime.
@@ -358,8 +367,8 @@ how this works in Figure~\ref{fig:design}.
 
 \begin{figure}[ht!] 
 	\centering
-	\hspace*{-0.07\columnwidth} 
-	\includegraphics[width=1.1\columnwidth]{sys_design}
+	%\hspace*{-0.07\columnwidth} 
+	\includegraphics[width=0.7\columnwidth,natwidth=1460,natheight=1440]{sys_design}
 	\caption{Primary user-space/kernel-space interactions detailed. Resource
 accounting data is requested by applications for specific system calls and is
 then available for reading (zero-copy) from kernel buffer regions mmap-ed into
@@ -459,7 +468,7 @@ to \texttt{mmap} resource accounting buffers of other processes. This paves the 
 react to concurrent workloads, by throttling or delaying their own
 operations for example.
 
-\section{Initial Results}
+\section{Initial results}
 We have developed the kernel subsystem identification and resource accounting
 prototypes separately, with the purpose of showcasing the feasibility of the design
 and gathering preliminary overhead data.
@@ -480,8 +489,8 @@ when resource accounting is active. The tail latency is also slightly increased,
 with the 99th percentile growing by 7.66\%.
 \begin{figure}[ht!] 
 	\centering
-	\hspace*{-0.05\columnwidth} 
-	\def\svgwidth{\columnwidth}
+	%\hspace*{-0.05\columnwidth} 
+	\def\svgwidth{0.7\columnwidth}
 	\input{overheads.eps_tex}
 	%\includegraphics[width=1.1\columnwidth]{dist_and_fit2}
 	\caption{Normalized latency histograms showing changes in latency distribution when enabling \pname{ }for lighttpd} 
@@ -515,7 +524,7 @@ future work.
     \label{tbl:throughput} 
 \end{table}
 
-\section{Related Work} 
+\section{Related work} 
 
 %Existing tracing / profiling systems. (Maybe a chart
 %outlining differences).
@@ -564,7 +573,7 @@ provided with the results of a what-if scenario.
 % NOTES(lc525): Weatherman is Ostrowski's work (already in)
 % systems discussing multiple workloads interracting?
 
-\section{Future Work and Conclusion} 
+\section{Future work and conclusion} 
 A number of challenges remain as future work: (i) evaluating the precision and
 accuracy of the resulting data, thus characterizing the limits of our system -- this
 would allow \pname{ }to be used for setting fine-grained quotas or diagnosing

@@ -78,6 +78,8 @@ rscfl_handle rscfl_get_handle() {
 
 int rscfl_acct_next(rscfl_handle relay_f_data)
 {
+  if (relay_f_data == NULL) return -1;
+
   int rc;
   sock_fd = socket(PF_NETLINK, SOCK_RAW, NETLINK_USER);
   if (sock_fd < 0) {
@@ -126,6 +128,8 @@ int rscfl_acct_next(rscfl_handle relay_f_data)
 int rscfl_read_acct(rscfl_handle relay_f_data, struct accounting *acct)
 {
   int i = 0;
+  if (relay_f_data == NULL) return -1;
+
   struct accounting *relay_acct = (struct accounting *) relay_f_data->buf;
   if (relay_acct != NULL) {
     while (i < NO_RELAY_ACCTS) {
@@ -133,6 +137,45 @@ int rscfl_read_acct(rscfl_handle relay_f_data, struct accounting *acct)
       if (relay_acct->in_use == 1) {
         if (relay_acct->syscall_id.id == (relay_f_data->lst_syscall.id -1)) {
 //          printf("API read_acct from %p (syscall_id:%ld) pos:%d\n", (void*)relay_acct, relay_f_data->lst_syscall.id-1, i);
+          memcpy(acct, relay_acct, sizeof(struct accounting));
+          relay_acct->in_use = 0;
+          return 0;
+        }
+        else {
+          relay_acct++;
+          i++;
+        }
+      } else {
+        relay_acct++;
+        i++;
+      }
+    }
+  } else {
+    printf("relay_acct is null!");
+  }
+  return -1;
+}
+
+int rscfl_merge_acct(rscfl_handle relay_f_data, struct accounting *acct)
+{
+  int i = 0;
+  if (relay_f_data == NULL) return -1;
+
+  struct accounting *relay_acct = (struct accounting *) relay_f_data->buf;
+  if (relay_acct != NULL) {
+    while (i < NO_RELAY_ACCTS) {
+      if (relay_acct->in_use == 1) {
+        if (relay_acct->syscall_id.id == (relay_f_data->lst_syscall.id -1)) {
+          acct->fields |= relay_acct;
+
+          acct->cpu.instructions += relay_acct->cpu.instructions;
+          acct->cpu.branch_mispredictions += relay_acct->cpu.branch_mispredictions;
+          acct->cpu.cycles += relay_acct->cpu.cycles;
+          acct->cpu.wall_clock_time += relay_acct->cpu.wall_clock_time;
+
+          acct->mem.alloc += relay_acct->mem.alloc;
+          acct->mem.freed += relay_acct->mem.freed;
+
           memcpy(acct, relay_acct, sizeof(struct accounting));
           relay_acct->in_use = 0;
           return 0;

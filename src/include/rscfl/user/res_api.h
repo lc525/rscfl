@@ -16,4 +16,9 @@ int rscfl_acct_next(rscfl_handle);
 
 int rscfl_read_acct(rscfl_handle handle, struct accounting *acct);
 
+/* slower version of read that merges (aggregates) current resource data into an
+ * existing accounting data structure
+ * */
+int rscfl_merge_acct(rscfl_handle handle, struct accounting *acct);
+
 #endif

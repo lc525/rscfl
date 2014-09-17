@@ -163,13 +163,13 @@ union accounting_component {
 };
 
 struct accounting {
+  volatile long unsigned int in_use;
   struct cost_bitmap fields;   // logical OR of resource members
+  rscfl_syscall_id_t syscall_id;
 
   struct acct_CPU cpu;
   struct acct_Mem mem;
 
-  rscfl_syscall_id_t syscall_id;
-  volatile long unsigned int in_use;
 
   struct acct_mm mm;
   struct acct_fs fs;

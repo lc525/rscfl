@@ -24,7 +24,7 @@ int probes_init(void)
   if (rc2) {
     printk(KERN_ERR "rscfl: cannot initialize netlink\n");
   }
-  return (rc1 | rc2) ;
+  return (rc1 | rc2);
 }
 
 int probes_cleanup(void)
@@ -34,7 +34,7 @@ int probes_cleanup(void)
   // see comment in probes_init for why we need to explicitly enable
   // preemption here
   preempt_enable();
-  rc1 =_rscfl_shim_cleanup();
+  rc1 = _rscfl_shim_cleanup();
   rc2 = _netlink_teardown();
   preempt_disable();
   if (rc1) {

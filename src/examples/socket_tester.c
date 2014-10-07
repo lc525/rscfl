@@ -15,20 +15,19 @@ int main(int argc, char *argv[])
   int socfd_2;
   int socfd_3;
 
-  if (DEBUG)
-    printf("Opening sockets\n");
+  if (DEBUG) printf("Opening sockets\n");
 
   rscfl_handle relay_f_data;
   struct accounting acct = {0};
   struct accounting acct2 = {0};
 
-  if ( !(relay_f_data = rscfl_init())) {
+  if (!(relay_f_data = rscfl_init())) {
     fprintf(stderr, "rscfl: Error initialising. Errno=%d\n", errno);
     return -1;
   }
 
   // Open 3 sockets
-  if ( (socfd_1 = socket(sock_domain, sock_type, sock_proto)) < 0) {
+  if ((socfd_1 = socket(sock_domain, sock_type, sock_proto)) < 0) {
     goto soc_err;
   }
 
@@ -37,15 +36,14 @@ int main(int argc, char *argv[])
     return -1;
   }
 
-  if ( (socfd_2 = socket(sock_domain, sock_type, sock_proto)) < -1 ) {
+  if ((socfd_2 = socket(sock_domain, sock_type, sock_proto)) < -1) {
     goto soc_err;
   }
 
   if (!rscfl_read_acct(relay_f_data, &acct)) {
     printf("rscfl: cpu_cycles=%llu wall_clock_time=%llu\n", acct.cpu.cycles,
            acct.cpu.wall_clock_time);
-  }
-  else {
+  } else {
     fprintf(stderr, "rscfl: read_acct failed\n");
   }
 
@@ -54,20 +52,18 @@ int main(int argc, char *argv[])
     return -1;
   }
 
-  if ( (socfd_3 = socket(sock_domain, sock_type, sock_proto)) < -1 ) {
+  if ((socfd_3 = socket(sock_domain, sock_type, sock_proto)) < -1) {
     goto soc_err;
   }
 
   if (!rscfl_read_acct(relay_f_data, &acct2)) {
     printf("rscfl 2: cpu_cycles=%llu wall_clock_time=%llu\n", acct2.cpu.cycles,
            acct2.cpu.wall_clock_time);
-  }
-  else {
+  } else {
     fprintf(stderr, "rscfl: read_acct failed\n");
   }
 
-  if (DEBUG)
-    printf("Closing sockets\n");
+  if (DEBUG) printf("Closing sockets\n");
 
   // Be a good citizen
   close(socfd_1);

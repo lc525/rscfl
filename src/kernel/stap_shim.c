@@ -19,23 +19,24 @@
 #define BUF_SIZE sizeof(struct accounting) * ACCT_REG_SZ
 #define RSCFL_MAJOR 90
 #define RSCFL_MINOR 0
-#define CEILING(x,y) (((x) + (y) - 1) / (y))
+#define CEILING(x, y) (((x) + (y) - 1) / (y))
 
-struct syscall_acct_list_t {
+struct syscall_acct_list_t
+{
   unsigned long syscall_id;
   pid_t pid;
   int syscall_nr;
   struct syscall_acct_list_t *next;
 };
 
-struct rscfl_pid_pages_t {
+struct rscfl_pid_pages_t
+{
   char *buf;
   struct rscfl_pid_pages_t *next;
   pid_t pid;
 };
 
 typedef struct syscall_acct_list_t syscall_acct_list_t;
-
 
 static syscall_acct_list_t *syscall_acct_list;
 static long syscall_id_c;
@@ -49,17 +50,13 @@ static int rscfl_mmap(struct file *, struct vm_area_struct *);
 static struct cdev rscfl_cdev;
 static struct class *rscfl_class;
 
-static struct file_operations fops =
-{
-  .mmap = rscfl_mmap,
-};
-
+static struct file_operations fops = {.mmap = rscfl_mmap, };
 
 static int rscfl_mmap(struct file *filp, struct vm_area_struct *vma)
 {
   unsigned long page;
   unsigned long pos;
-  unsigned long size = (unsigned long)vma->vm_end-vma->vm_start;
+  unsigned long size = (unsigned long)vma->vm_end - vma->vm_start;
   unsigned long start = (unsigned long)vma->vm_start;
   struct rscfl_pid_pages_t *new_hd;
   char *buf;
@@ -67,7 +64,7 @@ static int rscfl_mmap(struct file *filp, struct vm_area_struct *vma)
   short pgsize = 1 << LG_PAGE_SIZE;
   int max_size = CEILING(BUF_SIZE, PAGE_SIZE) * PAGE_SIZE;
   debugk("mmap size: %d", max_size);
-  if (size > max_size){
+  if (size > max_size) {
     debugk("mmap error: requested %ld, max %d\n", size, max_size);
     return -EINVAL;
   }
@@ -77,8 +74,8 @@ static int rscfl_mmap(struct file *filp, struct vm_area_struct *vma)
     return -1;
   }
   write_lock(&pid_pages_lock);
-  new_hd = (struct rscfl_pid_pages_t *) kmalloc(sizeof(struct rscfl_pid_pages_t),
-            GFP_KERNEL);
+  new_hd = (struct rscfl_pid_pages_t *)kmalloc(sizeof(struct rscfl_pid_pages_t),
+                                               GFP_KERNEL);
   if (!new_hd) {
     kfree(buf);
     return -1;
@@ -93,15 +90,16 @@ static int rscfl_mmap(struct file *filp, struct vm_area_struct *vma)
 
   while (size) {
     page = virt_to_phys((void *)pos);
-    if (remap_pfn_range(vma, start, page >> PAGE_SHIFT, PAGE_SIZE, PAGE_SHARED)) {
+    if (remap_pfn_range(vma, start, page >> PAGE_SHIFT, PAGE_SIZE,
+                        PAGE_SHARED)) {
       rscfl_pid_pages = rscfl_pid_pages->next;
       kfree(new_hd);
       kfree(buf);
       return -EAGAIN;
     }
-    start+=PAGE_SIZE;
-    pos+=PAGE_SIZE;
-    size-=PAGE_SIZE;
+    start += PAGE_SIZE;
+    pos += PAGE_SIZE;
+    size -= PAGE_SIZE;
   }
   return 0;
 }
@@ -134,11 +132,12 @@ int _rscfl_shim_cleanup(void)
   return 0;
 }
 
-
-int _fill_struct(long cycles, long wall_clock_time, struct accounting *acct, long fill_type)
+int _fill_struct(long cycles, long wall_clock_time, struct accounting *acct,
+                 long fill_type)
 {
-  debugk("_fill_struct acct:%p cy:%ld wc:%ld type:%ld\n", (void*)acct, cycles, wall_clock_time, fill_type);
-  switch(fill_type) {
+  debugk("_fill_struct acct:%p cy:%ld wc:%ld type:%ld\n", (void *)acct, cycles,
+         wall_clock_time, fill_type);
+  switch (fill_type) {
     case FILL_MM:
       acct->mm.cycles += cycles;
       break;
@@ -158,35 +157,37 @@ int _fill_struct(long cycles, long wall_clock_time, struct accounting *acct, lon
  * if syscall_nr==-1 then we account for the next syscall, independent of which
  * syscall is executed.
  **/
-int _should_acct(pid_t pid, int syscall_nr, struct accounting** acct, int probe_nest, const char* name)
+int _should_acct(pid_t pid, int syscall_nr, struct accounting **acct,
+                 int probe_nest, const char *name)
 {
   syscall_acct_list_t *e;
   struct accounting *ret;
   struct rscfl_pid_pages_t *pid_page = rscfl_pid_pages;
 
   read_lock(&lock);
-  //debugk("_should_acct(?) pid: %d\n", pid);
+  // debugk("_should_acct(?) pid: %d\n", pid);
   e = syscall_acct_list;
   while (e) {
     if ((e->pid == pid) &&
-       ((syscall_nr == -1) || (e->syscall_nr == syscall_nr))) {
+        ((syscall_nr == -1) || (e->syscall_nr == syscall_nr))) {
       while (pid_page) {
         if (pid_page->pid == pid) {
-          debugk("\t acct: %p\n", (void*)(*acct));
-          if(*acct != NULL) {
+          debugk("\t acct: %p\n", (void *)(*acct));
+          if (*acct != NULL) {
             read_unlock(&lock);
             return 1;
           }
           read_unlock(&lock);
 
-          ret = (struct accounting *) pid_page->buf;
+          ret = (struct accounting *)pid_page->buf;
           BUG_ON(!ret);
           while (ret->in_use == 1) {
-          //while (test_and_set_bit(RSCFL_ACCT_USE_BIT, &ret->in_use)) {
-            debugk("in use: %p for (pid, id):(%d, %ld)\n", (void *)ret, ret->syscall_id.pid, ret->syscall_id.id);
+            // while (test_and_set_bit(RSCFL_ACCT_USE_BIT, &ret->in_use)) {
+            debugk("in use: %p for (pid, id):(%d, %ld)\n", (void *)ret,
+                   ret->syscall_id.pid, ret->syscall_id.id);
             ret++;
             if ((void *)ret > (void *)pid_page->buf + BUF_SIZE) {
-              ret = (struct accounting *) pid_page->buf;
+              ret = (struct accounting *)pid_page->buf;
               debugk("_should_acct: wraparound!<<<<<<<\n");
               break;
             }
@@ -194,16 +195,16 @@ int _should_acct(pid_t pid, int syscall_nr, struct accounting** acct, int probe_
           ret->in_use = 1;
           ret->syscall_id.pid = pid;
           ret->syscall_id.id = e->syscall_nr;
-          debugk("_should_acct %s: (yes, nr %d) %d, into %p\n", name, e->syscall_nr, pid, (void*)ret);
+          debugk("_should_acct %s: (yes, nr %d) %d, into %p\n", name,
+                 e->syscall_nr, pid, (void *)ret);
           *acct = ret;
           return 1;
         } else {
-          //pid_page++;
-          //if (pid_page - rscfl_pid_pages >= BUF_SIZE / sizeof(pid_page)) {
+          // pid_page++;
+          // if (pid_page - rscfl_pid_pages >= BUF_SIZE / sizeof(pid_page)) {
           if (pid_page->next == NULL) {
             read_unlock(&lock);
-            printk(KERN_ERR "rscfl: pid %d cannot find mapped page\n",
-                         pid);
+            printk(KERN_ERR "rscfl: pid %d cannot find mapped page\n", pid);
             *acct = NULL;
             return 0;
           }
@@ -219,8 +220,8 @@ int _should_acct(pid_t pid, int syscall_nr, struct accounting** acct, int probe_
 
 int acct_next(pid_t pid, int syscall_nr)
 {
-  syscall_acct_list_t *to_acct = (syscall_acct_list_t *)
-    kzalloc(sizeof(syscall_acct_list_t), GFP_KERNEL);
+  syscall_acct_list_t *to_acct =
+      (syscall_acct_list_t *)kzalloc(sizeof(syscall_acct_list_t), GFP_KERNEL);
   debugk("acct_next %d\n", pid);
   if (!to_acct) {
     return -1;

@@ -38,7 +38,7 @@ rscfl_handle rscfl_init()
 
   struct stat sb;
   int fd = open("/dev/rscfl", O_RDWR);
-  rscfl_handle relay_f_data = (rscfl_handle) malloc(sizeof(*relay_f_data));
+  rscfl_handle relay_f_data = (rscfl_handle)malloc(sizeof(*relay_f_data));
   if (!relay_f_data) {
     return NULL;
   }
@@ -47,7 +47,8 @@ rscfl_handle rscfl_init()
     goto error;
   }
 
-  relay_f_data->buf = mmap(NULL, 4096, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
+  relay_f_data->buf =
+      mmap(NULL, 4096, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
   if (relay_f_data == MAP_FAILED) {
     goto error;
   }
@@ -69,7 +70,8 @@ error:
   return NULL;
 }
 
-rscfl_handle rscfl_get_handle() {
+rscfl_handle rscfl_get_handle()
+{
   if (handle == NULL) {
     handle = rscfl_init();
   }
@@ -97,7 +99,7 @@ int rscfl_acct_next(rscfl_handle relay_f_data)
   memset(&dest_addr, 0, sizeof(dest_addr));
   memset(&dest_addr, 0, sizeof(dest_addr));
   dest_addr.nl_family = AF_NETLINK;
-  dest_addr.nl_pid = 0; /* For Linux Kernel */
+  dest_addr.nl_pid = 0;    /* For Linux Kernel */
   dest_addr.nl_groups = 0; /* unicast */
 
   nlh = (struct nlmsghdr *)malloc(NLMSG_SPACE(MAX_PAYLOAD));
@@ -130,18 +132,19 @@ int rscfl_read_acct(rscfl_handle relay_f_data, struct accounting *acct)
   int i = 0;
   if (relay_f_data == NULL) return -1;
 
-  struct accounting *relay_acct = (struct accounting *) relay_f_data->buf;
+  struct accounting *relay_acct = (struct accounting *)relay_f_data->buf;
   if (relay_acct != NULL) {
     while (i < NO_RELAY_ACCTS) {
-//      printf("relay_acct: %p - in use: %lu\n", (void *)relay_acct, relay_acct->in_use);
+      //      printf("relay_acct: %p - in use: %lu\n", (void *)relay_acct,
+      // relay_acct->in_use);
       if (relay_acct->in_use == 1) {
-        if (relay_acct->syscall_id.id == (relay_f_data->lst_syscall.id -1)) {
-//          printf("API read_acct from %p (syscall_id:%ld) pos:%d\n", (void*)relay_acct, relay_f_data->lst_syscall.id-1, i);
+        if (relay_acct->syscall_id.id == (relay_f_data->lst_syscall.id - 1)) {
+          //          printf("API read_acct from %p (syscall_id:%ld) pos:%d\n",
+          // (void*)relay_acct, relay_f_data->lst_syscall.id-1, i);
           memcpy(acct, relay_acct, sizeof(struct accounting));
           relay_acct->in_use = 0;
           return 0;
-        }
-        else {
+        } else {
           relay_acct++;
           i++;
         }
@@ -161,17 +164,18 @@ int rscfl_merge_acct(rscfl_handle relay_f_data, struct accounting *acct)
   int i = 0;
   if (relay_f_data == NULL) return -1;
 
-  struct accounting *relay_acct = (struct accounting *) relay_f_data->buf;
+  struct accounting *relay_acct = (struct accounting *)relay_f_data->buf;
   if (relay_acct != NULL) {
     while (i < NO_RELAY_ACCTS) {
       if (relay_acct->in_use == 1) {
-        if (relay_acct->syscall_id.id == (relay_f_data->lst_syscall.id -1)) {
+        if (relay_acct->syscall_id.id == (relay_f_data->lst_syscall.id - 1)) {
           acct->fields.primary |= relay_acct->fields.primary;
 #ifdef STAGE_2
-	  acct->fields.ext |= relay_acct->fields.ext;
+          acct->fields.ext |= relay_acct->fields.ext;
 #endif
           acct->cpu.instructions += relay_acct->cpu.instructions;
-          acct->cpu.branch_mispredictions += relay_acct->cpu.branch_mispredictions;
+          acct->cpu.branch_mispredictions +=
+              relay_acct->cpu.branch_mispredictions;
           acct->cpu.cycles += relay_acct->cpu.cycles;
           acct->cpu.wall_clock_time += relay_acct->cpu.wall_clock_time;
 
@@ -181,8 +185,7 @@ int rscfl_merge_acct(rscfl_handle relay_f_data, struct accounting *acct)
           memcpy(acct, relay_acct, sizeof(struct accounting));
           relay_acct->in_use = 0;
           return 0;
-        }
-        else {
+        } else {
           relay_acct++;
           i++;
         }
@@ -196,4 +199,3 @@ int rscfl_merge_acct(rscfl_handle relay_f_data, struct accounting *acct)
   }
   return -1;
 }
-

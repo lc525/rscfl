@@ -23,14 +23,12 @@ static void res_nl_recv_msg(struct sk_buff *skb)
 
 int _netlink_setup(void)
 {
-  struct netlink_kernel_cfg cfg = {
-    .groups = 0,
-    .flags =0,
-    .input = res_nl_recv_msg,
-    .cb_mutex = NULL,
-    .bind = NULL,
-    .compare = NULL
-  };
+  struct netlink_kernel_cfg cfg = {.groups = 0,
+                                   .flags = 0,
+                                   .input = res_nl_recv_msg,
+                                   .cb_mutex = NULL,
+                                   .bind = NULL,
+                                   .compare = NULL};
   nl_sk = netlink_kernel_create(&init_net, NETLINK_USER, &cfg);
   if (!nl_sk) {
     printk(KERN_ERR "rscfl: Error creating socket.\n");

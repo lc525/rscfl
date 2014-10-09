@@ -5,6 +5,7 @@
 #include "rscfl/costs.h"
 #include "rscfl/kernel/stap_shim.h"
 #include "rscfl/kernel/res_comm.h"
+#include "rscfl/kernel/perf.h"
 #include "rscfl/kernel/probes.h"
 
 struct accounting *acct = NULL;
@@ -39,6 +40,11 @@ function kpid:long()
 
 function probes_start:long()
 %{
+  int rc = rscfl_perf_init();
+  if (rc) {
+    STAP_RETVALUE = rc;
+    return;
+  }
   STAP_RETVALUE = probes_init();
 %}
 
@@ -61,6 +67,7 @@ function should_acct()
 function fill_struct(vfs:long, wall_clock_time:long, fill_type:long)
 %{
   debugk("Nest %lld\n", global(s_probe_nest));
+  rscfl_perf_get_current_vals(acct);
   _fill_struct(STAP_ARG_vfs, STAP_ARG_wall_clock_time, acct, STAP_ARG_fill_type);
 %}
 

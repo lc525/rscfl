@@ -115,11 +115,13 @@ set (stap_gen_SOURCES
 set (stap_SOURCES
   ${PROJECT_SOURCE_DIR}/res_comm.c
   ${PROJECT_SOURCE_DIR}/stap_shim.c
+  ${PROJECT_SOURCE_DIR}/perf.c
   ${PROJECT_SOURCE_DIR}/probes.c
 )
 
 set (stap_DEPS # if any of those files change, the stap ko is rebuilt
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/stap_shim.h
+  ${PROJECT_INCLUDE_DIR}/rscfl/kernel/perf.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/probes.h
   ${PROJECT_INCLUDE_DIR}/rscfl/costs.h
   ${PROJECT_BINARY_DIR}/rscfl/config.h

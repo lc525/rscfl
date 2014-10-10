@@ -114,7 +114,7 @@ struct acct_CPU
 {
   ru64 cycles;
   ru64 branch_mispredictions;  // count
-  ru64 instructions;  // count
+  ru64 instructions;           // count
   ru64 wall_clock_time;
 };
 
@@ -130,6 +130,8 @@ struct acct_Mem
 {
   ru64 alloc;
   ru64 freed;
+  ru64 page_faults;
+  ru64 align_faults;
 };
 
 struct acct_Storage
@@ -181,7 +183,7 @@ struct accounting
 
 #ifdef STAGE_2
   accounting_component[3] kunit_acct;
-  accounting_component* ext;
+  accounting_component *ext;
 #endif
 };
 
@@ -233,6 +235,6 @@ struct res_acct_cfg
 };
 
 // SYSCALL
-int res_acct_open(struct res_acct_cfg* cfg);
+int res_acct_open(struct res_acct_cfg *cfg);
 
 #endif

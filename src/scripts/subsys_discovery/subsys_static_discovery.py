@@ -118,6 +118,7 @@ def main():
     for subsys in subsys_entries:
         entry_points = ['kprobe.statement(%s.absolute),' % x for x in
                         subsys_entries[subsys]]
+        entry_points[-1] = entry_points[-1][0:-1]
         print("probe ")
         print("\n".join(entry_points))
         print("""

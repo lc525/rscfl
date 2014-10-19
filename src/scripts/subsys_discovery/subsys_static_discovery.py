@@ -36,7 +36,11 @@ def get_subsys(addr, addr2line, linux):
         file_name = file_line.split(":")[0]
 
         # Make filename relative
-        file_name = file_name.split("linux-stable/")[1]
+        try:
+            file_name = file_name.split("linux-stable/")[1]
+        except IndexError:
+            # Generated filenames are already relative.
+            pass
         addr_line_cache[addr] = file_name
 
     # Check the cache of files we've already found a subsystem for.

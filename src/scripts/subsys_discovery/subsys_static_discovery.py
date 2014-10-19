@@ -123,12 +123,7 @@ def main():
         print("\n".join(entry_points))
         print("""
 {
-  if (should_acct()) {
     print("Entered %s subsystem")
-    clear_acct_next(pid(), -1);
-    fill_struct(get_cycles() - cycles, gettimeofday_us() - wall_clock_time);
-    update_relay();
-   }
 }
               """ % subsys)
 

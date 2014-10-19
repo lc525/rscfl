@@ -116,7 +116,7 @@ def main():
     subsys_entries = get_addresses_of_boundary_calls(args.linux_root)
 
     for subsys in subsys_entries:
-        entry_points = ['kprobe.statement(%s.absolute),' % x for x in
+        entry_points = ['kprobe.statement(0x%s).absolute,' % x for x in
                         subsys_entries[subsys]]
         entry_points[-1] = entry_points[-1][0:-1]
         print("probe ")

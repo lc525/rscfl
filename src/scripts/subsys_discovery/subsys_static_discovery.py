@@ -14,8 +14,6 @@ def get_subsys(addr, addr2line, linux):
     #     addr: an address into the linux kernel.
     #     addr2line: an already-opened subprocess to addr2line, which we can
     #         use to map addr to a source code file.
-    #     file_subsys_cache: a cache that maps files to subsystems that they're
-    #         contained in. Used to prevent repeated calls to get_maintainer.pl.
     #     linux: string location of the Linux kernel.
     # Returns:
     #     A string representing the name of the subsystem that addr is located

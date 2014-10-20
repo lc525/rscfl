@@ -37,7 +37,7 @@ def get_subsys(addr, addr2line, linux):
 
         # Make filename relative
         try:
-            file_name = file_name.split("linux-stable/")[1]
+            file_name = file_name.split("%s/" % linux)[1]
         except IndexError:
             # Generated filenames are already relative.
             pass

@@ -1,0 +1,72 @@
+%{
+#include "rscfl/kernel/stap_shim.h"
+
+#include "rscfl/config.h"
+#include "rscfl/costs.h"
+#include "rscfl/kernel/perf.h"
+#include "rscfl/kernel/probes.h"
+#include "rscfl/res_common.h"
+
+struct accounting *acct = NULL;
+%}
+
+/**
+ * INIT FUNCTIONS
+ */
+function probes_start:long()
+%{
+  STAP_RETVALUE = probes_init();
+%}
+
+function probes_end:long()
+%{
+  STAP_RETVALUE = probes_cleanup();
+%}
+
+
+
+/**
+ * ACCOUNTING HELPERS
+ * The underlying C functions being called are defined in stap_shim.h
+ *
+ * NOTE(lc525): avoid deeply nested stp function calls, as the generated
+ * code will include multiple context and IRQ save/restores. This means
+ * some duplicate code is preffered rather than additional convenience
+ * functions.
+ */
+function kpid:long()
+%{
+  STAP_RETVALUE = current->pid;
+%}
+
+function should_acct:long()
+%{
+  int res = _should_acct(current->pid, -1, &acct, global(s_probe_nest), "");
+  STAP_RETVALUE = res;
+%}
+
+function should_acct_pid:long(pid:long, syscall_nr:long, name:string)
+%{
+  int res = _should_acct(STAP_ARG_pid, STAP_ARG_syscall_nr, &acct,
+      global(s_probe_nest), STAP_ARG_name);
+  STAP_RETVALUE = res;
+%}
+
+function fill_struct(vfs:long, wall_clock_time:long, fill_type:long)
+%{
+  debugk("Nest %lld\n", global(s_probe_nest));
+//  rscfl_perf_get_current_vals(acct);
+  _fill_struct(STAP_ARG_vfs, STAP_ARG_wall_clock_time, acct, STAP_ARG_fill_type);
+%}
+
+function clear_acct_next(pid:long, syscall_nr:long)
+%{
+  acct = NULL;
+  debugk("clear!\n");
+  _clear_acct_next(STAP_ARG_pid, STAP_ARG_syscall_nr);
+%}
+
+function acct_now:long()
+%{
+  STAP_RETVALUE = (acct != NULL && acct->syscall_id.pid == current->pid);
+%}

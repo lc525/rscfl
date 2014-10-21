@@ -16,7 +16,8 @@ static void rscfl_perf_overflow_handler(struct perf_event *event,
 static const __u64 sw_events[] = {
     PERF_COUNT_SW_CPU_CLOCK,        PERF_COUNT_SW_PAGE_FAULTS,
     PERF_COUNT_SW_TASK_CLOCK,       PERF_COUNT_SW_ALIGNMENT_FAULTS,
-    PERF_COUNT_SW_EMULATION_FAULTS, };
+    PERF_COUNT_SW_EMULATION_FAULTS,
+};
 
 static struct perf_event *event_counters[NUM_SW_EVENTS];
 

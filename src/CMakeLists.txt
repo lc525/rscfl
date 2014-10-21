@@ -65,7 +65,7 @@ endif(bt_lower STREQUAL "debug")
 
 ###
 #
-# NO PROJECT DEPENDENCIES (YET)
+# NO EXTERNAL PROJECT DEPENDENCIES (YET)
 #
 ###
 
@@ -113,18 +113,24 @@ set (stap_gen_SOURCES
   ${PROJECT_SOURCE_DIR}/resourceful.stp
 )
 set (stap_SOURCES
-  ${PROJECT_SOURCE_DIR}/res_comm.c
-  ${PROJECT_SOURCE_DIR}/stap_shim.c
+  ${PROJECT_SOURCE_DIR}/PMurHash.c
   ${PROJECT_SOURCE_DIR}/perf.c
-  ${PROJECT_SOURCE_DIR}/probes.c
+  ${PROJECT_SOURCE_DIR}/tapsets/chardev.c
+  ${PROJECT_SOURCE_DIR}/tapsets/cpu.c
+  ${PROJECT_SOURCE_DIR}/tapsets/hasht.c
+  ${PROJECT_SOURCE_DIR}/tapsets/netlink.c
+  ${PROJECT_SOURCE_DIR}/tapsets/probes.c
+  ${PROJECT_SOURCE_DIR}/tapsets/stap_shim.c
 )
 
 set (stap_DEPS # if any of those files change, the stap ko is rebuilt
-  ${PROJECT_INCLUDE_DIR}/rscfl/kernel/stap_shim.h
+  ${PROJECT_BINARY_DIR}/rscfl/config.h
+  ${PROJECT_INCLUDE_DIR}/rscfl/costs.h
+  ${PROJECT_INCLUDE_DIR}/rscfl/PMurHash.h
+  ${PROJECT_INCLUDE_DIR}/rscfl/kernel/hasht.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/perf.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/probes.h
-  ${PROJECT_INCLUDE_DIR}/rscfl/costs.h
-  ${PROJECT_BINARY_DIR}/rscfl/config.h
+  ${PROJECT_INCLUDE_DIR}/rscfl/kernel/stap_shim.h
   ${PROJECT_SOURCE_DIR}/resourceful.stp
 )
 

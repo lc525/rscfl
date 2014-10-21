@@ -1,5 +1,5 @@
-#ifndef _PERF_H_
-#define _PERF_H_
+#ifndef _RSCFL_PERF_H_
+#define _RSCFL_PERF_H_
 
 #include "linux/perf_event.h"
 

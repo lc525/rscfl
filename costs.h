@@ -32,6 +32,8 @@
 
 #include <netinet/tcp.h>
 
+#include "rscfl/rscfl_subsystems.h"
+
 #define BIT(x) 1U << x
 #define ALL_BITS(x) (1U << (x + 1)) - 1
 #define u32 unsigned int
@@ -50,45 +52,6 @@
  * A logical OR of resource members can also be explicitly passed by the user
  * when registering interest in system call resource accounting, as a filter.
  */
-enum resource {
-  SYS              = BIT(0),
-  SYS_DEV          = BIT(1),
-  SYS_HW           = BIT(2),
-  SYS_IO           = BIT(3),
-
-  PROC             = BIT(4),
-  PROC_THR         = BIT(5),
-  PROC_SYNC        = BIT(6),
-  PROC_SCHED       = BIT(7),
-  PROC_IRQ         = BIT(8),
-
-  MEM              = BIT(9),
-  MEM_VIRT         = BIT(10),
-  MEM_MAP          = BIT(11),
-  MEM_PAGE         = BIT(12),
-
-  STORAGE          = BIT(13),
-  STORAGE_VFS      = BIT(14),
-  STORAGE_CACHE    = BIT(15),
-  STORAGE_FS       = BIT(16),
-  STORAGE_HW       = BIT(17),
-
-  NET              = BIT(18),
-  NET_SOCK         = BIT(19),
-  NET_PROTO        = BIT(20),
-  NET_HW           = BIT(21),
-
-  ALL              = ALL_BITS(21)
-};
-
-struct cost_bitmap {
-  u32 primary; // logical OR between multiple resource elements
-#ifdef STAGE_2
-  u64 ext;     // here for future extension
-#endif
-};
-
-
 
 /* acct_*** data structures.
  *
@@ -131,19 +94,17 @@ struct acct_Net {
 union accounting_component {
   acct_Storage storage;
   acct_Net network;
-}
+};
+
+struct subsys_accounting{
+    acct_CPU cpu;
+    acct_Mem mem;
+};
 
 struct accounting {
-  cost_bitmap fields;   // logical OR of resource members
-
-  acct_CPU cpu;
-  acct_Mem mem;
-
-#ifdef STAGE_2
-  accounting_component[3] kunit_acct;
-  accounting_component* ext;
-#endif
+    struct subsys_accounting *[RSCFL_SUBSYS_NUM] acct_subsys;
 };
+
 
 /* Main structure for storing per-call resource consumption data
  */

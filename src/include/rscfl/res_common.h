@@ -2,6 +2,12 @@
 #define _RES_COMMON_H_
 
 #define RSCFL_DRIVER "rscfl"
-#define ACCT_REG_SZ 40
+#define MMAP_BUF_SIZE 4096  // need to think about this
+
+#ifndef NDEBUG
+  #define debugk(format, ...) printk(format, ##__VA_ARGS__)
+#else
+  #define debugk(format, ...)
+#endif
 
 #endif

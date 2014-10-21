@@ -9,9 +9,9 @@
 #include "rscfl/costs.h"
 #include "rscfl/res_common.h"
 
-static long syscall_id_c;
-static syscall_acct_list_t *syscall_acct_list;
-static struct rscfl_pid_pages_t *rscfl_pid_pages;
+long syscall_id_c;
+syscall_acct_list_t *syscall_acct_list;
+rscfl_pid_pages_t *rscfl_pid_pages;
 
 static rwlock_t lock = __RW_LOCK_UNLOCKED(lock);
 
@@ -45,7 +45,7 @@ int _should_acct(pid_t pid, int syscall_nr, struct accounting **acct,
   struct rscfl_pid_pages_t *pid_page = rscfl_pid_pages;
 
   read_lock(&lock);
-  // debugk("_should_acct(?) pid: %d\n", pid);
+//  debugk("_should_acct(?) pid: %d\n", pid);
   e = syscall_acct_list;
   while (e) {
     if ((e->pid == pid) &&

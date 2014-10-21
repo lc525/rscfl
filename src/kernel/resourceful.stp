@@ -33,6 +33,7 @@ probe end
 probe kernel.function("__kmalloc").call,
       kernel.function("kmem_cache_alloc").call,
       kernel.function("sys_accept").call,
+      kernel.function("sys_socket").call,
       kernel.function("sock_alloc_file").call,
       kernel.function("inet_accept").call,
       kernel.function("sock_sendpage").call,
@@ -57,6 +58,7 @@ probe kernel.function("__kmalloc").call,
  * NET
  */
 probe kernel.function("sys_accept").return,
+      kernel.function("sys_socket").return,
       kernel.function("sock_alloc_file").return,
       kernel.function("inet_accept").return,
       kernel.function("sock_sendpage").return

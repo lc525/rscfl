@@ -25,9 +25,9 @@ struct rscfl_pid_pages_t
 };
 typedef struct rscfl_pid_pages_t rscfl_pid_pages_t;
 
-static long syscall_id_c;
-static syscall_acct_list_t *syscall_acct_list;
-static rscfl_pid_pages_t *rscfl_pid_pages;
+extern long syscall_id_c;
+extern syscall_acct_list_t *syscall_acct_list;
+extern rscfl_pid_pages_t *rscfl_pid_pages;
 
 int acct_next(pid_t, int);
 int _should_acct(pid_t pid, int syscall_nr, struct accounting **,

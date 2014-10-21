@@ -128,12 +128,12 @@ int rscfl_read_acct(rscfl_handle rhdl, struct accounting *acct)
   struct accounting *relay_acct = (struct accounting *)rhdl->buf;
   if (relay_acct != NULL) {
     while (i < NO_RELAY_ACCTS) {
-      //      printf("relay_acct: %p - in use: %lu\n", (void *)relay_acct,
-      // relay_acct->in_use);
+      //printf("relay_acct: %p - in use: %lu\n",
+      //    (void *)relay_acct, relay_acct->in_use);
       if (relay_acct->in_use == 1) {
         if (relay_acct->syscall_id.id == (rhdl->lst_syscall.id - 1)) {
-          //          printf("API read_acct from %p (syscall_id:%ld) pos:%d\n",
-          // (void*)relay_acct, rhdl->lst_syscall.id-1, i);
+          //printf("API read_acct from %p (syscall_id:%ld) pos:%d\n",
+          //    (void*)relay_acct, rhdl->lst_syscall.id-1, i);
           memcpy(acct, relay_acct, sizeof(struct accounting));
           relay_acct->in_use = 0;
           return 0;
@@ -147,7 +147,7 @@ int rscfl_read_acct(rscfl_handle rhdl, struct accounting *acct)
       }
     }
   } else {
-    printf("relay_acct is null!");
+    printf("relay_acct is null!\n");
   }
   return -1;
 }

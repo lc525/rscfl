@@ -1,5 +1,5 @@
-#ifndef RSCFL_PERCPU_H_
-#define RSCFL_PERCPU_H_
+#ifndef _RSCFL_PERCPU_H_
+#define _RSCFL_PERCPU_H_
 
 #include "rscfl/kernel/hasht.h"
 

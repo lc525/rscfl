@@ -1,5 +1,5 @@
-#ifndef RSCFL_CHARDEV_H
-#define RSCFL_CHARDEV_H
+#ifndef _RSCFL_CHARDEV_H_
+#define _RSCFL_CHARDEV_H_
 
 #include <linux/mm.h>
 

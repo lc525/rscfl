@@ -9,8 +9,8 @@
  * TODO(lc525): deal with collisions. For now (testing) we just update the value
  * on collision (the hitem).
  */
-#ifndef _RSCFL_HASH_H
-#define _RSCFL_HASH_H
+#ifndef _RSCFL_HASH_H_
+#define _RSCFL_HASH_H_
 
 #include "rscfl/costs.h"
 

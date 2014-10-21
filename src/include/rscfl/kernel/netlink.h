@@ -1,5 +1,5 @@
-#ifndef _RSCFL_NETLINK_H
-#define _RSCFL_NETLINK_H
+#ifndef _RSCFL_NETLINK_H_
+#define _RSCFL_NETLINK_H_
 
 #include <linux/skbuff.h>
 

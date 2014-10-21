@@ -126,6 +126,7 @@ set (stap_SOURCES
 set (stap_DEPS # if any of those files change, the stap ko is rebuilt
   ${PROJECT_BINARY_DIR}/rscfl/config.h
   ${PROJECT_INCLUDE_DIR}/rscfl/costs.h
+  ${PROJECT_INCLUDE_DIR}/rscfl/PMurHash.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/hasht.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/perf.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/probes.h

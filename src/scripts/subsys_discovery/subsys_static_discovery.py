@@ -125,8 +125,7 @@ def append_to_rscfl_subsys_json(rscfl_subsys_json, subsys_names):
     for subsys in subsys_names:
         if subsys not in json_entries:
             # Remove various bits of punctuation so we can index using the name.
-            clean_subsys_name = subsys.replace(' ', '_').replace(
-                ',','').replace('/','')
+            clean_subsys_name = re.sub(r'\W+', '', subsys)
             json_entries[clean_subsys_name] = {}
             json_entries[clean_subsys_name]['index'] = len(json_entries)
             # long_name is used to deduplicate subsystems. Its value should not

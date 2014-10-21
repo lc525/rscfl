@@ -1,3 +1,0 @@
-This collection of scripts help to produce SystemTap D probe points for a given FTrace function tracer output. 
-
-NOTE: the output script is agnostic to process name. I suggest using the function tracer's PID filter to narrow down the list of probe points produced.

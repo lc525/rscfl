@@ -8,6 +8,22 @@ import subprocess
 file_subsys_cache = {}
 addr_line_cache = {}
 
+# Code to be included at the top of the subsystems header.
+rscfl_subsys_header_top = \
+"""#ifndef _RSCFL_SUBSYS_H_
+#define _RSCFL_SUBSYS_H_
+
+typedef enum {
+"""
+
+#Code at the bottom of the subsystems header.
+rscfl_subsys_header_bottom = """
+} rscfl_subsys;
+
+#endif /* _RSCFL_SUBSYS_H_ */
+"""
+
+
 def get_subsys(addr, addr2line, linux):
     # Use addr2line to convert addr to the filename that it is in.
     #
@@ -19,7 +35,6 @@ def get_subsys(addr, addr2line, linux):
     # Returns:
     #     A string representing the name of the subsystem that addr is located
     #     in.
-
 
     # Have we already mapped addr to a file name? If so use the cached value,
     # to save expensive calls out to addr2line.
@@ -51,8 +66,8 @@ def get_subsys(addr, addr2line, linux):
         proc = subprocess.Popen(["%s/scripts/get_maintainer.pl" % linux,
                                  "--subsystem", "--noemail",
                                  "--no-remove-duplicates", "--no-rolestats",
-                                 "-f", "%s" %  file_name], cwd=linux,
-                                 stdout=subprocess.PIPE)
+                                 "-f", "%s" % file_name], cwd=linux,
+                                stdout=subprocess.PIPE)
         (stdout, stderr) = proc.communicate()
         maintainers = stdout.strip().split("\n")
         subsys = ""
@@ -138,29 +153,55 @@ def append_to_rscfl_subsys_json(rscfl_subsys_json, subsys_names):
     json.dump(json_entries, rscfl_subsys_json, indent=2)
 
 
+def generate_rscfl_subsystems_header(json_file, header_file):
+    # Using the JSON list of subsystems, generate a header file that creates
+    # a enum of subsystems.
+    # Save this header file to $header_file
+    #
+    # Args:
+    #     json_file: File object with a JSON list of subsystems.
+    #     header_file: File to write a C header file containing an enum of
+    #         possible subsystems.
+    subsystems = json.load(json_file)
+    header_file.write(rscfl_subsys_header_top)
+    for i, subsystem in enumerate(subsystems):
+        header_file.write("  %s=%d,\n" % (subsystem, i))
+    header_file.write(rscfl_subsys_header_bottom)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-l', dest='linux_root', action='store', default='.',
                         help="""location of the root of the
                         Linux source directory.""")
+    parser.add_argument('--find_subsystems')
     parser.add_argument('-J', dest='rscfl_subsys_json',
-                        type=argparse.FileType('w+'), help="""JSON file to write
+                        type=argparse.FileType('r+'), help="""JSON file to write
                         subsystems to.""")
+    parser.add_argument('--update_json', action='store_true')
+    parser.add_argument('--gen_header', type=argparse.FileType('w'))
+
     args = parser.parse_args()
 
-    subsys_entries = get_addresses_of_boundary_calls(args.linux_root)
+    if args.update_json or args.find_subsystems:
+        subsys_entries = get_addresses_of_boundary_calls(args.linux_root)
 
-    if args.rscfl_subsys_json:
+    if args.update_json:
         append_to_rscfl_subsys_json(args.rscfl_subsys_json,
                                     subsys_entries.keys())
 
-    for subsys in subsys_entries:
-        entry_points = ['kprobe.statement(0x%s).absolute,' % x for x in
-                        subsys_entries[subsys]]
-        entry_points[-1] = entry_points[-1][0:-1]
-        print("probe ")
-        print("\n".join(entry_points))
-        print("""
+    if args.gen_header:
+        generate_rscfl_subsystems_header(args.rscfl_subsys_json,
+                                         args.gen_header)
+
+    if args.find_subsystems:
+        for subsys in subsys_entries:
+            entry_points = ['kprobe.statement(0x%s).absolute,' % x for x in
+                            subsys_entries[subsys]]
+            entry_points[-1] = entry_points[-1][0:-1]
+            print("probe ")
+            print("\n".join(entry_points))
+            print("""
 {
     print("Entered %s subsystem")
 }

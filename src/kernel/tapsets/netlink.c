@@ -1,11 +1,11 @@
-#include "rscfl/config.h"
-#include "rscfl/costs.h"
-#include "rscfl/kernel/res_comm.h"
-#include "rscfl/kernel/stap_shim.h"
+#include "rscfl/kernel/netlink.h"
 
 #include <linux/module.h>
 #include <linux/netlink.h>
 #include <net/sock.h>
+
+#include "rscfl/config.h"
+#include "rscfl/kernel/stap_shim.h"
 
 struct sock *nl_sk = NULL;
 
@@ -24,7 +24,7 @@ static void res_nl_recv_msg(struct sk_buff *skb)
 int _netlink_setup(void)
 {
   struct netlink_kernel_cfg cfg = {.groups = 0,
-                                   .flags = 0,
+                                   .flags =0,
                                    .input = res_nl_recv_msg,
                                    .cb_mutex = NULL,
                                    .bind = NULL,

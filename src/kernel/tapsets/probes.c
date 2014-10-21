@@ -1,9 +1,12 @@
-#include "rscfl/kernel/stap_shim.h"
-#include "rscfl/kernel/res_comm.h"
+#include "rscfl/kernel/probes.h"
+
+#include "rscfl/kernel/chardev.h"
+#include "rscfl/kernel/cpu.h"
+#include "rscfl/kernel/netlink.h"
 
 int probes_init(void)
 {
-  int rc1 = 0, rc2 = 0;
+  int rcd = 0, rcn = 0, rcc = 0;
 
   // stap disables preemption even when running begin/end probes.
   // however, _rscfl_shim_init and/or _netlink_setup might sleep,
@@ -14,34 +17,44 @@ int probes_init(void)
   // scheduling here.
   // TODO(lc525): see if we need to restore IRQs as well
   //
+  rcc = _rscfl_cpus_init();
   preempt_enable();
-  rc1 = _rscfl_shim_init();
-  rc2 = _netlink_setup();
+  rcd = _rscfl_dev_init();
+  rcn = _netlink_setup();
   preempt_disable();
-  if (rc1) {
+
+  if (rcc) {
+    printk(KERN_ERR "rscfl: cannot initialize per-cpu hash tables\n");
+  }
+  if (rcd) {
     printk(KERN_ERR "rscfl: cannot initialize rscfl driver\n");
   }
-  if (rc2) {
+  if (rcn) {
     printk(KERN_ERR "rscfl: cannot initialize netlink\n");
   }
-  return (rc1 | rc2);
+  return (rcd | rcn | rcc) ;
 }
 
 int probes_cleanup(void)
 {
-  int rc1 = 0, rc2 = 0;
+  int rcd = 0, rcn = 0, rcc = 0;
 
   // see comment in probes_init for why we need to explicitly enable
   // preemption here
   preempt_enable();
-  rc1 = _rscfl_shim_cleanup();
-  rc2 = _netlink_teardown();
+  rcn = _netlink_teardown();
+  rcd = _rscfl_dev_cleanup();
   preempt_disable();
-  if (rc1) {
-    printk(KERN_ERR "rscfl: cannot cleanup rscfl driver\n");
-  }
-  if (rc2) {
+  rcc = _rscfl_cpus_cleanup();
+
+  if (rcn) {
     printk(KERN_ERR "rscfl: cannot teardown netlink\n");
   }
-  return (rc1 | rc2);
+  if (rcd) {
+    printk(KERN_ERR "rscfl: cannot cleanup rscfl driver\n");
+  }
+  if (rcc) {
+    printk(KERN_ERR "rscfl: cannot cleanup per-cpu hash tables\n");
+  }
+  return (rcn | rcd | rcc);
 }

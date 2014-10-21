@@ -1,5 +1,5 @@
-#ifndef _RES_COMM_H
-#define _RES_COMM_H
+#ifndef _RSCFL_NETLINK_H
+#define _RSCFL_NETLINK_H
 
 #include <linux/skbuff.h>
 

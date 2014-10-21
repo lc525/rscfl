@@ -32,7 +32,7 @@ int probes_init(void)
   if (rcn) {
     printk(KERN_ERR "rscfl: cannot initialize netlink\n");
   }
-  return (rcd | rcn | rcc) ;
+  return (rcd | rcn | rcc);
 }
 
 int probes_cleanup(void)

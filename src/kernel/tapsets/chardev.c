@@ -11,9 +11,8 @@ static struct cdev rscfl_cdev;
 static struct class *rscfl_class;
 static rwlock_t pid_pages_lock = __RW_LOCK_UNLOCKED(pid_pages_lock);
 
-static struct file_operations fops =
-{
-  .mmap = rscfl_mmap,
+static struct file_operations fops = {
+    .mmap = rscfl_mmap,
 };
 
 int _rscfl_dev_init(void)
@@ -53,16 +52,15 @@ static int rscfl_mmap(struct file *filp, struct vm_area_struct *vma)
   rscfl_pid_pages_t *new_hd;
   char *buf;
 
-  if (size > MMAP_BUF_SIZE)
-    return -EINVAL;
+  if (size > MMAP_BUF_SIZE) return -EINVAL;
 
   buf = kzalloc(MMAP_BUF_SIZE, GFP_KERNEL);
   if (!buf) {
     return -1;
   }
   write_lock(&pid_pages_lock);
-  new_hd = (struct rscfl_pid_pages_t *) kmalloc(sizeof(struct rscfl_pid_pages_t),
-            GFP_KERNEL);
+  new_hd = (struct rscfl_pid_pages_t *)kmalloc(sizeof(struct rscfl_pid_pages_t),
+                                               GFP_KERNEL);
   if (!new_hd) {
     kfree(buf);
     return -1;
@@ -77,16 +75,16 @@ static int rscfl_mmap(struct file *filp, struct vm_area_struct *vma)
 
   while (size) {
     page = virt_to_phys((void *)pos);
-    if (remap_pfn_range(vma, start, page >> PAGE_SHIFT, PAGE_SIZE, PAGE_SHARED)) {
+    if (remap_pfn_range(vma, start, page >> PAGE_SHIFT, PAGE_SIZE,
+                        PAGE_SHARED)) {
       rscfl_pid_pages = rscfl_pid_pages->next;
       kfree(new_hd);
       kfree(buf);
       return -EAGAIN;
     }
-    start+=PAGE_SIZE;
-    pos+=PAGE_SIZE;
-    size-=PAGE_SIZE;
+    start += PAGE_SIZE;
+    pos += PAGE_SIZE;
+    size -= PAGE_SIZE;
   }
   return 0;
 }
-

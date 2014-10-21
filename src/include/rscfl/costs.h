@@ -191,7 +191,6 @@ struct accounting
  */
 struct call_cost
 {
-
   char flags;
   // has_async;
   //  bool async_done;

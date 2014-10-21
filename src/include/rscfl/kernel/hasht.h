@@ -16,21 +16,22 @@
 
 #define MUR_HASH_SEED 139423874
 
-typedef struct {
+typedef struct
+{
   pid_t pid;
   struct accounting* curr_acct;
 } hitem;
 
-typedef struct {
-  hitem* table; // size: 2^logsize
+typedef struct
+{
+  hitem* table;  // size: 2^logsize
   int logsize;
-  unsigned int mask; // hash value & mask = ix in table
+  unsigned int mask;  // hash value & mask = ix in table
 } htbl;
-
 
 short htbl_init(htbl* hasht, int logsize);
 void htbl_add(htbl* hasht, pid_t pid, hitem value);
-hitem htbl_get(htbl* hasht, pid_t pid, unsigned int *ix_out);
+hitem htbl_get(htbl* hasht, pid_t pid, unsigned int* ix_out);
 void htbl_remove(htbl* hasht, pid_t pid);
 void htbl_clear(htbl* hasht);
 

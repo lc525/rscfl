@@ -24,7 +24,7 @@ static void res_nl_recv_msg(struct sk_buff *skb)
 int _netlink_setup(void)
 {
   struct netlink_kernel_cfg cfg = {.groups = 0,
-                                   .flags =0,
+                                   .flags = 0,
                                    .input = res_nl_recv_msg,
                                    .cb_mutex = NULL,
                                    .bind = NULL,

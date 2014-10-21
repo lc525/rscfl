@@ -5,9 +5,9 @@
 #define MMAP_BUF_SIZE 4096  // need to think about this
 
 #ifndef NDEBUG
-  #define debugk(format, ...) printk(format, ##__VA_ARGS__)
+#define debugk(format, ...) printk(format, ##__VA_ARGS__)
 #else
-  #define debugk(format, ...)
+#define debugk(format, ...)
 #endif
 
 #endif

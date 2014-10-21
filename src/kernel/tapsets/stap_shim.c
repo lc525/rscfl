@@ -15,11 +15,10 @@ static struct rscfl_pid_pages_t *rscfl_pid_pages;
 
 static rwlock_t lock = __RW_LOCK_UNLOCKED(lock);
 
-
 int acct_next(pid_t pid, int syscall_nr)
 {
-  syscall_acct_list_t *to_acct = (syscall_acct_list_t *)
-    kzalloc(sizeof(syscall_acct_list_t), GFP_KERNEL);
+  syscall_acct_list_t *to_acct =
+      (syscall_acct_list_t *)kzalloc(sizeof(syscall_acct_list_t), GFP_KERNEL);
   debugk("acct_next %d\n", pid);
   if (!to_acct) {
     return -1;
@@ -82,7 +81,8 @@ int _should_acct(pid_t pid, int syscall_nr, struct accounting **acct,
           return 1;
         } else {
           // pid_page++;
-          // if (pid_page - rscfl_pid_pages >= MMAP_BUF_SIZE / sizeof(pid_page)) {
+          // if (pid_page - rscfl_pid_pages >= MMAP_BUF_SIZE / sizeof(pid_page))
+          // {
           if (pid_page->next == NULL) {
             read_unlock(&lock);
             printk(KERN_ERR "rscfl: pid %d cannot find mapped page\n", pid);
@@ -119,7 +119,6 @@ int _fill_struct(long cycles, long wall_clock_time, struct accounting *acct,
   acct->cpu.wall_clock_time += wall_clock_time;
   return 0;
 }
-
 
 /**
  * if syscall_nr==-1 then all resource consumption requests for the given pid

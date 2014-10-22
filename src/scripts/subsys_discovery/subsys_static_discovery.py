@@ -174,7 +174,7 @@ def main():
     parser.add_argument('-l', dest='linux_root', action='store', default='.',
                         help="""location of the root of the
                         Linux source directory.""")
-    parser.add_argument('--find_subsystems')
+    parser.add_argument('--find_subsystems', action='store_true')
     parser.add_argument('-J', dest='rscfl_subsys_json',
                         type=argparse.FileType('r+'), help="""JSON file to write
                         subsystems to.""")

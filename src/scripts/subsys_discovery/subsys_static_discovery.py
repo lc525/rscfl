@@ -7,7 +7,7 @@ import subprocess
 file_subsys_cache = {}
 addr_line_cache = {}
 
-def get_subsys(addr, addr2line, linux):
+def get_subsys(addr, addr2line, linux, build_dir):
     # Use addr2line to convert addr to the filename that it is in.
     #
     # Args:
@@ -35,7 +35,7 @@ def get_subsys(addr, addr2line, linux):
 
         # Make filename relative
         try:
-            file_name = file_name.split("%s/" % linux)[1]
+            file_name = file_name.split("%s/" % build_dir)[1]
         except IndexError:
             # Generated filenames are already relative.
             pass
@@ -65,7 +65,7 @@ def get_subsys(addr, addr2line, linux):
         return subsys
 
 
-def get_addresses_of_boundary_calls(linux):
+def get_addresses_of_boundary_calls(linux, build_dir):
     # Find the addresses of all call instructions that operate across a kernel
     # subsystem boundary.
     #
@@ -92,8 +92,8 @@ def get_addresses_of_boundary_calls(linux):
             caller_addr = m.group(1)
             callee_addr = m.group(2)
 
-            caller_subsys = get_subsys(caller_addr, addr2line, linux)
-            callee_subsys = get_subsys(callee_addr, addr2line, linux)
+            caller_subsys = get_subsys(caller_addr, addr2line, linux, build_dir)
+            callee_subsys = get_subsys(callee_addr, addr2line, linux, build_dir)
             if not caller_subsys:
                 # Address that we can't map to source file.
                 continue
@@ -109,9 +109,20 @@ def main():
     parser.add_argument('-l', dest='linux_root', action='store', default='.',
                         help="""location of the root of the
                         Linux source directory""")
+    parser.add_argument('--build_dir', help="""Location that vmlinux was
+                        built in.""")
+
     args = parser.parse_args()
 
-    subsys_entries = get_addresses_of_boundary_calls(args.linux_root)
+    # If we havent' been given an explicit build directory, it is fair to
+    # assume that the kernel was built in the source directory.
+    if args.build_dir:
+        build_dir = args.build_dir
+    else:
+        build_dir = args.linux_root
+
+    subsys_entries = get_addresses_of_boundary_calls(args.linux_root,
+                                                     args.build_dir)
 
     for subsys in subsys_entries:
         entry_points = ['kprobe.statement(0x%s).absolute,' % x for x in

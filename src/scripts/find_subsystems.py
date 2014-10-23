@@ -164,6 +164,7 @@ def generate_rscfl_subsystems_header(json_file, header_file):
     #     json_file: File object with a JSON list of subsystems.
     #     header_file: File to write a C header file containing an enum of
     #         possible subsystems.
+    json_file.seek(0)
     subsystems = json.load(json_file)
     header_file.write(rscfl_subsys_header_top)
     for i, subsystem in enumerate(subsystems):

@@ -18,6 +18,7 @@ typedef enum {
 
 #Code at the bottom of the subsystems header.
 rscfl_subsys_header_bottom = """
+  NUM_SUBSYSTEMS
 } rscfl_subsys;
 
 #endif /* _RSCFL_SUBSYS_H_ */

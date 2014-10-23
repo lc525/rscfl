@@ -79,7 +79,6 @@ def get_subsys(addr, addr2line, linux, build_dir):
                 subsys = maintainers[i+1]
                 break
         file_subsys_cache[file_name] = subsys
-        print(subsys)
         return subsys
 
 

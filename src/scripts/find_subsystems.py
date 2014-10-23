@@ -79,6 +79,7 @@ def get_subsys(addr, addr2line, linux, build_dir):
                 subsys = maintainers[i+1]
                 break
         file_subsys_cache[file_name] = subsys
+        print(subsys)
         return subsys
 
 
@@ -193,7 +194,7 @@ def main():
     else:
         build_dir = args.linux_root
     if args.update_json or args.find_subsystems:
-        subsys_entries = get_addresses_of_boundary_calls(args.linux_root)
+        subsys_entries = get_addresses_of_boundary_calls(args.linux_root, build_dir)
 
     if args.update_json:
         append_to_rscfl_subsys_json(args.rscfl_subsys_json,

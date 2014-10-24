@@ -38,6 +38,7 @@ static kprobe_opcode_t {{ subsystem }}_ADDRS[] = {{ '{' }}
 {% for addr in subsystems[subsystem] %}
   0x{{ addr }},
 {% endfor %}
+  0
 {{ '};' }}
 {% endfor %}
 

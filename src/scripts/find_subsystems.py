@@ -33,21 +33,19 @@ rscfl_subsys_addr_template = """
 
 #include "rscfl/rscfl_subsys.h"
 
-typedef kprobe_opcode_t[] rscfl_addr_list;
-
 {% for subsystem in subsystems %}
-static rscfl_addr_list {{ subsystem }}_ADDRS = {{ '{' }}
+static kprobe_opcode_t {{ subsystem }}_ADDRS[] = {{ '{' }}
 {% for addr in subsystems[subsystem] %}
   0x{{ addr }},
 {% endfor %}
-{{ '}' }}
+{{ '};' }}
 {% endfor %}
 
 rscfl_addr_list* probe_addrs[NUM_SUBSYSTEMS] = {{ '{'  }}
 {% for subsys in subsystems %}
   &{{ subsys }}_ADDRS,
 {% endfor %}
-{{ '}' }}
+{{ '};' }}
 #endif
 """
 

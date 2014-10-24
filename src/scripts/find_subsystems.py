@@ -1,6 +1,7 @@
 #!/usr/bin/env python2.7
 
 import argparse
+import jinja2
 import json
 import re
 import subprocess
@@ -24,6 +25,40 @@ rscfl_subsys_header_bottom = """
 #endif /* _RSCFL_SUBSYS_H_ */
 """
 
+rscfl_subsys_addr_template = """
+#ifndef _RSCFL_SUBSYS_ADDR_H
+#define _RSCFL_SUBSYS_ADDR_H
+
+#include <linux/kprobes.h>
+
+#include "rscfl/rscfl_subsys.h"
+
+typedef kprobe_opcode_t[] rscfl_addr_list;
+
+{% for subsystem in subsystems %}
+static rscfl_addr_list {{ subsystem }}_ADDRS = {{ '{' }}
+{% for addr in subsystems[subsystem] %}
+  0x{{ addr }},
+{% endfor %}
+{{ '}' }}
+{% endfor %}
+
+rscfl_addr_list* probe_addrs[NUM_SUBSYSTEMS] = {{ '{'  }}
+{% for subsys in subsystems %}
+  &{{ subsys }}_ADDRS,
+{% endfor %}
+{{ '}' }}
+#endif
+"""
+
+
+def to_upper_alpha(str):
+    # Args:
+    #    str: a string.
+    #
+    # Returns: str, with all non [A-Za-z] characters removed. Then in
+    #     uppercase.
+    return re.sub(r'\W+', '', str).upper()
 
 def get_subsys(addr, addr2line, linux, build_dir):
     # Use addr2line to convert addr to the filename that it is in.
@@ -116,6 +151,7 @@ def get_addresses_of_boundary_calls(linux, build_dir):
                 # Address that we can't map to source file.
                 continue
             if callee_subsys != caller_subsys and callee_subsys is not None:
+                callee_subsys = to_upper_alpha(callee_subsys)
                 if callee_subsys not in boundary_fns:
                     boundary_fns[callee_subsys] = []
                 boundary_fns[callee_subsys].append(caller_addr)
@@ -207,18 +243,10 @@ def main():
                                          args.gen_header)
 
     if args.find_subsystems:
-        for subsys in subsys_entries:
-            entry_points = ['kprobe.statement(0x%s).absolute,' % x for x in
-                            subsys_entries[subsys]]
-            entry_points[-1] = entry_points[-1][0:-1]
-            print("probe ")
-            print("\n".join(entry_points))
-            print("""
-{
-    print("Entered %s subsystem")
-}
-              """ % subsys)
-
+        template = jinja2.Template(rscfl_subsys_addr_template)
+        args = {}
+        args['subsystems'] = subsys_entries
+        print template.render(args)
 
 if __name__ == '__main__':
     main()

@@ -8,7 +8,6 @@
 #include <linux/hashtable.h>
 #include <linux/list.h>
 
-#include "rscfl/costs.h"
 
 /* DE{FIN,CLAR}E_PER_CPU_HASHTABLE macro notes:
  * 1. see include/linux/percpu-defs.h for possible further optimisations

@@ -2,6 +2,7 @@
 #define _RSCFL_PERCPU_H_
 
 #include "rscfl/config.h"
+#include "rscfl/costs.h"
 #include "rscfl/kernel/hasht.h"
 
 /* Per-CPU (pid -> accounting buf) hash table pid_to_acct_tbl

@@ -68,6 +68,9 @@ def get_subsys(addr, addr2line, linux, build_dir):
     #     addr2line: an already-opened subprocess to addr2line, which we can
     #         use to map addr to a source code file.
     #     linux: string location of the Linux kernel.
+    #     build_dir: the directory that Linux was built in. This may not
+    #         actually exist on the current filesystem. To find this directory,
+    #         run addr2line on vmlinux, and find the first bit.
     # Returns:
     #     A string representing the name of the subsystem that addr is located
     #     in.
@@ -214,13 +217,22 @@ def main():
                         help="""location of the root of the
                         Linux source directory.""")
     parser.add_argument('--build_dir', help="""Location that vmlinux was
-                        built in.""")
-    parser.add_argument('--find_subsystems', action='store_true')
+                        built in. This might not exist on the filesystem. It
+                        can be found by running addr2line on vmlinux, with
+                        a symbol address, and finding the first bit.""")
+    parser.add_argument('--find_subsystems', action='store_true',
+                        help="""Scan vmlinux, looking for all addresses that
+                        cross the boundary of subsystems. These are exported
+                        as a .h file of addresses.""")
     parser.add_argument('-J', dest='rscfl_subsys_json',
                         type=argparse.FileType('r+'), help="""JSON file to write
                         subsystems to.""")
-    parser.add_argument('--update_json', action='store_true')
-    parser.add_argument('--gen_header', type=argparse.FileType('w'))
+    parser.add_argument('--update_json', action='store_true', help="""Append
+                        any new subsystems to the JSON file.""")
+    parser.add_argument('--gen_shared_header', type=argparse.FileType('w'),
+                        help="""Generate a .h file that should be shared
+                        across the user-kernel boundary that defines
+                        an enum that maps subsystems to array indices.""")
 
     args = parser.parse_args()
 

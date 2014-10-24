@@ -6,30 +6,20 @@
 #include "rscfl/kernel/hasht.h"
 #include "rscfl/res_common.h"
 
-DEFINE_PER_CPU(u32, current_pid_ix);
-DEFINE_PER_CPU(htbl, pid_acct_htbl);
+DEFINE_PER_CPU(pid_acct*, current_acct);
+DEFINE_PER_CPU_HASHTABLE(pid_to_acct_tbl, CPU_PIDACCT_HTBL_LOGSIZE);
 
 int _rscfl_cpus_init(void)
 {
   int cpu_id;
-  int errg = 0, errc = 0;
-
   for_each_present_cpu(cpu_id)
   {
-    //    debugk("[cpu %d]: initializing hashtable\n", cpu_id);
-    errc = htbl_init(&per_cpu(pid_acct_htbl, cpu_id), CPU_PIDACCT_HTBL_LOGSIZE);
-    errg |= errc;
+    hash_init(per_cpu(pid_to_acct_tbl, cpu_id));
   }
-  return errg;
+  return 0;
 }
 
 int _rscfl_cpus_cleanup(void)
 {
-  int cpu_id;
-  for_each_present_cpu(cpu_id)
-  {
-    //    debugk("[cpu %d]: cleaning hashtable\n", cpu_id);
-    htbl_clear(&per_cpu(pid_acct_htbl, cpu_id));
-  }
   return 0;
 }

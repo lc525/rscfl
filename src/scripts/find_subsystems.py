@@ -160,21 +160,30 @@ def get_addresses_of_boundary_calls(linux, build_dir):
     return boundary_fns
 
 
-def append_to_rscfl_subsys_json(rscfl_subsys_json, subsys_names):
+def append_to_json_file(json_fname, subsys_names):
     # Add new subsystems to a JSON file.
     #
-    # Parses rscfl_subsys_json, and adds any subsystems in subsys_entries to
+    # Parses json_fname, and adds any subsystems in subsys_entries to
     # the file.
     #
     # Args:
-    #     rscfl_subsys_json: a file object that can be read, and written. If the
-    #         file contains a valid JSON structure, new subsystems will be
-    #         appended. Otherwise, all subsystems will be dumped to the file.
+    #     json_fname: the JSON file name. If the file contains a valid JSON
+    #         structure, new subsystems will be appended. Otherwise, all
+    #         subsystems will be dumped to the file.
     #     subsys_names: a list of string names of Linux subsystems.
     try:
-        json_entries = json.load(rscfl_subsys_json)
+        json_file = open(json_fname, 'r+')
+        json_entries = json.load(json_file)
+        json_file.seek(0)
+        json_file.truncate()
+    except IOError:
+        # File does not exist
+        json_file = open(json_fname, 'w')
+        json_entries = {}
     except ValueError:
         # No valid JSON in the file.
+        json_file.close()
+        json_file = open(json_fname, 'w')
         json_entries = {}
 
     for subsys in subsys_names:
@@ -190,10 +199,11 @@ def append_to_rscfl_subsys_json(rscfl_subsys_json, subsys_names):
             # be more human/code-friendly.
             json_entries[clean_subsys_name]['short_name'] = clean_subsys_name
 
-    json.dump(json_entries, rscfl_subsys_json, indent=2)
+    json.dump(json_entries, json_file, indent=2)
+    json_file.close()
 
 
-def generate_rscfl_subsystems_header(json_file, header_file):
+def generate_rscfl_subsystems_header(json_fname, header_file):
     # Using the JSON list of subsystems, generate a header file that creates
     # a enum of subsystems.
     # Save this header file to $header_file
@@ -202,12 +212,13 @@ def generate_rscfl_subsystems_header(json_file, header_file):
     #     json_file: File object with a JSON list of subsystems.
     #     header_file: File to write a C header file containing an enum of
     #         possible subsystems.
-    json_file.seek(0)
+    json_file = open(json_fname, 'r')
     subsystems = json.load(json_file)
     header_file.write(rscfl_subsys_header_top)
     for i, subsystem in enumerate(subsystems):
         header_file.write("  %s=%d,\n" % (subsystem, i))
     header_file.write(rscfl_subsys_header_bottom)
+    json_file.close()
 
 
 def main():
@@ -223,9 +234,8 @@ def main():
                         help="""Scan vmlinux, looking for all addresses that
                         cross the boundary of subsystems. These are exported
                         as a .h file of addresses.""")
-    parser.add_argument('-J', dest='rscfl_subsys_json',
-                        type=argparse.FileType('r+'), help="""JSON file to write
-                        subsystems to.""")
+    parser.add_argument('-J', dest='subsys_json_fname', help="""JSON file to
+                        write subsystems to.""")
     parser.add_argument('--update_json', action='store_true', help="""Append
                         any new subsystems to the JSON file.""")
     parser.add_argument('--gen_shared_header', type=argparse.FileType('w'),
@@ -246,11 +256,11 @@ def main():
                                                          build_dir)
 
     if args.update_json:
-        append_to_rscfl_subsys_json(args.rscfl_subsys_json,
-                                    subsys_entries.keys())
+        append_to_json_file(args.subsys_json_fname,
+                            subsys_entries.keys())
 
     if args.gen_shared_header:
-        generate_rscfl_subsystems_header(args.rscfl_subsys_json,
+        generate_rscfl_subsystems_header(args.subsys_json_fname,
                                          args.gen_shared_header)
 
     if args.find_subsystems:

@@ -5,15 +5,13 @@
 #  ====================================================================
 #
 # SUBSYS_HEADER_GEN (public function)
-#   MOD_NAME = the name of resulting kernel module
-#   INCLUDES = include files to add to kbuild make
-#   OUT_DIR = the output directory for stap results
-#   GEN_SRC = SystemTap .stp script
-#   SRC = Other sources that need to be built for this module
-#
-#   Unnamed parameters:
-#   ARGN = file dependencies (if one of those is modified the module
-#          gets rebuilt)
+#   L_ROOT = directory containing the linux source tree
+#   L_BUILD = directory containing a vmlinux that was built with
+#             CONFIG_DEBUG_INFO=y
+#   OUT_LIST = name of header file to generate with list of subsystems
+#   OUT_ADDR = name of header file to generate with kernel function
+#              addresses for the given kernel binary, per subsystem
+#   OUT_JSON = name of json file to generate with list of subsystems
 #
 #  ====================================================================
 function(SUBSYS_HEADER_GEN L_ROOT L_BUILD OUT_LIST OUT_ADDR OUT_JSON)
@@ -31,5 +29,5 @@ function(SUBSYS_HEADER_GEN L_ROOT L_BUILD OUT_LIST OUT_ADDR OUT_JSON)
       > ${OUT_ADDR}
     COMMENT "Building kprobe address list from kernel binary, generating header files"
   )
-  add_custom_target(subsys_gen ALL DEPENDS ${OUTPUT})
+  add_custom_target(subsys_gen ALL DEPENDS ${OUT_JSON} ${OUT_LIST} ${OUT_ADDR})
 endfunction()

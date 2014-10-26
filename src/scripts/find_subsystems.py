@@ -207,7 +207,7 @@ def append_to_json_file(json_fname, subsys_names):
     json_file.close()
 
 
-def generate_rscfl_subsystems_header(json_file, header_file):
+def generate_rscfl_subsystems_header(json_fname, header_file):
     # Using the JSON list of subsystems, generate a header file that creates
     # a enum of subsystems.
     # Save this header file to $header_file

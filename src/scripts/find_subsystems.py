@@ -186,6 +186,7 @@ def append_to_json_file(json_fname, subsys_names):
         json_file = open(json_fname, 'w')
         json_entries = OrderedDict()
 
+    subsys_names.sort()
     for subsys in subsys_names:
         if subsys not in json_entries:
             # Remove various bits of punctuation so we can index using the name.

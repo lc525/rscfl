@@ -249,9 +249,9 @@ def main():
         append_to_rscfl_subsys_json(args.rscfl_subsys_json,
                                     subsys_entries.keys())
 
-    if args.gen_header:
+    if args.gen_shared_header:
         generate_rscfl_subsystems_header(args.rscfl_subsys_json,
-                                         args.gen_header)
+                                         args.gen_shared_header)
 
     if args.find_subsystems:
         template = jinja2.Template(rscfl_subsys_addr_template)

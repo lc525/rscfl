@@ -3,6 +3,7 @@
 import argparse
 import jinja2
 import json
+import os
 import re
 import subprocess
 
@@ -31,7 +32,7 @@ rscfl_subsys_addr_template = """
 
 #include <linux/kprobes.h>
 
-#include "rscfl/rscfl_subsys.h"
+#include "rscfl/{{ subsys_list_header }}"
 
 {% for subsystem in subsystems %}
 static kprobe_opcode_t {{ subsystem }}_ADDRS[] = {{ '{' }}
@@ -264,8 +265,10 @@ def main():
                                          args.gen_shared_header)
 
     if args.find_subsystems:
+        sharedh_fname = args.gen_shared_header.name
         template = jinja2.Template(rscfl_subsys_addr_template)
         args = {}
+        args['subsys_list_header'] = os.path.basename(sharedh_fname)
         args['subsystems'] = subsys_entries
         print template.render(args)
 

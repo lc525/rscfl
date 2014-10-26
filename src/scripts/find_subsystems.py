@@ -3,6 +3,7 @@
 import argparse
 import jinja2
 import json
+from collections import OrderedDict
 import re
 import subprocess
 
@@ -173,18 +174,19 @@ def append_to_json_file(json_fname, subsys_names):
     #     subsys_names: a list of string names of Linux subsystems.
     try:
         json_file = open(json_fname, 'r+')
-        json_entries = json.load(json_file)
+        json_entries = json.load(json_file,
+                                 object_pairs_hook=OrderedDict)
         json_file.seek(0)
         json_file.truncate()
     except IOError:
         # File does not exist
         json_file = open(json_fname, 'w')
-        json_entries = {}
+        json_entries = OrderedDict()
     except ValueError:
         # No valid JSON in the file.
         json_file.close()
         json_file = open(json_fname, 'w')
-        json_entries = {}
+        json_entries = OrderedDict()
 
     for subsys in subsys_names:
         if subsys not in json_entries:

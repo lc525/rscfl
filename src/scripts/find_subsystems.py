@@ -151,9 +151,6 @@ def get_addresses_of_boundary_calls(linux, build_dir):
 
             caller_subsys = get_subsys(caller_addr, addr2line, linux, build_dir)
             callee_subsys = get_subsys(callee_addr, addr2line, linux, build_dir)
-            if not caller_subsys:
-                # Address that we can't map to source file.
-                continue
             if callee_subsys != caller_subsys and callee_subsys is not None:
                 callee_subsys = to_upper_alpha(callee_subsys)
                 if callee_subsys not in boundary_fns:

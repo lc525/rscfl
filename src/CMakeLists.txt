@@ -63,10 +63,12 @@ else(bt_lower STREQUAL "debug")
   set(DEFINE_NDEBUG "\#define NDEBUG")
 endif(bt_lower STREQUAL "debug")
 
-set(LINUX_ROOT "/home/calucian/dev-kernel/linux-dirty"
+set(LINUX_ROOT $ENV{RSCFL_LINUX_ROOT}
   CACHE PATH "A linux source directory for subsystem identification")
-set(LINUX_BUILD ${LINUX_ROOT}
-  CACHE PATH "The linux directory in which vmlinux was built with CONFIG_DEBUG_INFO=y")
+set(LINUX_BUILD $ENV{RSCFL_LINUX_BUILD}
+  CACHE PATH "The linux directory in which vmlinux was originally built")
+set(LINUX_VMLINUX $ENV{RSCFL_LINUX_VMLINUX}
+  CACHE PATH "The path towards a vmlinux that was built with CONFIG_DEBUG_INFO=y")
 
 ###
 #
@@ -106,6 +108,7 @@ include_directories("${PROJECT_INCLUDE_DIR}")
 # build list of subsystems
 include(subsys)
 subsys_header_gen(${LINUX_ROOT}
+  ${LINUX_VMLINUX}
   ${LINUX_BUILD}
   ${PROJECT_INCLUDE_DIR}/rscfl/subsys_list.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/subsys_addr.h

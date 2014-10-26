@@ -5,8 +5,27 @@ VBOSE=0
 JOPT=2
 INSTALL=""
 TARGETS=""
-LINUX_ROOT="/home/calucian/dev-kernel/linux-dirty"
-LINUX_BUILD="/home/calucian/dev-kernel/linux-dirty"
+
+if [[ -z "$RSCFL_LINUX_ROOT" ]]
+then
+  LINUX_ROOT="/home/calucian/dev-kernel/linux-dirty"
+else
+  LINUX_ROOT=$RSCFL_LINUX_ROOT
+fi
+
+if [[ -z "$RSCFL_LINUX_BUILD" ]]
+then
+  LINUX_BUILD="/home/calucian/dev-kernel/linux-dirty"
+else
+  LINUX_BUILD=$RSCFL_LINUX_BUILD
+fi
+
+if [[ -z "$RSCFL_LINUX_VMLINUX" ]]
+then
+  LINUX_VMLINUX="/home/calucian/dev-kernel/linux-dirty/vmlinux"
+else
+  LINUX_VMLINUX=$RSCFL_LINUX_VMLINUX
+fi
 
 function print_usage {
   echo "./.build [OPTIONS]"
@@ -68,7 +87,8 @@ fi
 
 cmake -DCMAKE_BUILD_TYPE=$TYPE        \
       -DLINUX_ROOT=$LINUX_ROOT        \
-      -DLINUX_BUILD=$LINUX_BUILD ..
+      -DLINUX_BUILD=$LINUX_BUILD      \
+      -DLINUX_VMLINUX=$LINUX_VMLINUX ..
 
 if [ $VBOSE -eq 1 ]
 then

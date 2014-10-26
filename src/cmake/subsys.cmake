@@ -6,21 +6,22 @@
 #
 # SUBSYS_HEADER_GEN (public function)
 #   L_ROOT = directory containing the linux source tree
-#   L_BUILD = directory containing a vmlinux that was built with
-#             CONFIG_DEBUG_INFO=y
+#   L_VMLINUX = path towards a vmlinux that was built with CONFIG_DEBUG_INFO=y
+#   L_BUILD = directory where vmlinux was originally built
 #   OUT_LIST = name of header file to generate with list of subsystems
 #   OUT_ADDR = name of header file to generate with kernel function
 #              addresses for the given kernel binary, per subsystem
 #   OUT_JSON = name of json file to generate with list of subsystems
 #
 #  ====================================================================
-function(SUBSYS_HEADER_GEN L_ROOT L_BUILD OUT_LIST OUT_ADDR OUT_JSON)
+function(SUBSYS_HEADER_GEN L_ROOT L_VMLINUX L_BUILD OUT_LIST OUT_ADDR OUT_JSON)
   # Generate subsystems header files
   add_custom_command(
     OUTPUT ${OUT_JSON} ${OUT_LIST} ${OUT_ADDR}
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/find_subsystems.py
     ARGS
       -l ${L_ROOT}
+      -v ${L_VMLINUX}
       --build_dir ${L_BUILD}
       --find_subsystems
       -J ${OUT_JSON}

@@ -109,7 +109,7 @@ subsys_header_gen(${LINUX_ROOT}
   ${LINUX_BUILD}
   ${PROJECT_INCLUDE_DIR}/rscfl/subsys_list.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/subsys_addr.h
-  ${PROJECT_INCLUDE_DIR}/rscfl/subsys_list.json
+  ${PROJECT_BINARY_DIR}/subsys_list.json
 )
 
 # build systemtap modules

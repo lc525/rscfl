@@ -224,7 +224,7 @@ def main():
                         cross the boundary of subsystems. These are exported
                         as a .h file of addresses.""")
     parser.add_argument('-J', dest='rscfl_subsys_json',
-                        type=argparse.FileType('r+'), help="""JSON file to write
+                        type=argparse.FileType('a+'), help="""JSON file to write
                         subsystems to.""")
     parser.add_argument('--update_json', action='store_true', help="""Append
                         any new subsystems to the JSON file.""")
@@ -244,6 +244,9 @@ def main():
     if args.update_json or args.find_subsystems:
         subsys_entries = get_addresses_of_boundary_calls(args.linux_root,
                                                          build_dir)
+
+    if args.rscfl_subsys_json:
+        args.rscfl_subsys_json.seek(0)
 
     if args.update_json:
         append_to_rscfl_subsys_json(args.rscfl_subsys_json,

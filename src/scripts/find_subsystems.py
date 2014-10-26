@@ -122,24 +122,27 @@ def get_subsys(addr, addr2line, linux, build_dir):
         return subsys
 
 
-def get_addresses_of_boundary_calls(linux, build_dir):
+def get_addresses_of_boundary_calls(linux, build_dir, vmlinux_path):
     # Find the addresses of all call instructions that operate across a kernel
     # subsystem boundary.
     #
     # Args:
     #     linux: string representing the location of the linux kernel.
+    #     build_dir: the directory that linux was built in. Found by looking
+    #         at the prefix of the results returned by addr2line.
+    #     vmlinux_path: string representing the path to vm_linux.
     #
     # Returns:
     #     a dictionary (indexed by subsystem name) where each element is a list
     #     of addresses that are callq instructions whose target is in the
     #     appropriate subsystem.
     boundary_fns = {}
-    addr2line = subprocess.Popen(['addr2line', '-e' '%s/vmlinux' % linux],
+    addr2line = subprocess.Popen(['addr2line', '-e', vmlinux_path],
                                  stdout=subprocess.PIPE,
                                  stdin=subprocess.PIPE)
     # Use objdump+grep to find all callq instructions.
-    proc = subprocess.Popen('objdump -d vmlinux', shell=True,
-                            stdout=subprocess.PIPE, cwd=linux)
+    proc = subprocess.Popen('objdump -d %s' % vmlinux_path, shell=True,
+                            stdout=subprocess.PIPE)
     # regex to match callq instructions, creating groups from the caller, and
     # callee addresses.
     p_callq = re.compile("([0-9a-f]{16,16}).*callq.*([0-9a-f]{16,16}).*$")
@@ -224,9 +227,11 @@ def generate_rscfl_subsystems_header(json_file, header_file):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-l', dest='linux_root', action='store', default='.',
+    parser.add_argument('-l', dest='linux_root', action='store',
                         help="""location of the root of the
                         Linux source directory.""")
+    parser.add_argument('-v', dest="vmlinux_path", action='store', help="""Path
+                        to vmlinux.""")
     parser.add_argument('--build_dir', help="""Location that vmlinux was
                         built in. This might not exist on the filesystem. It
                         can be found by running addr2line on vmlinux, with
@@ -254,7 +259,8 @@ def main():
         build_dir = args.linux_root
     if args.update_json or args.find_subsystems:
         subsys_entries = get_addresses_of_boundary_calls(args.linux_root,
-                                                         build_dir)
+                                                         build_dir,
+                                                         args.vmlinux_path)
 
     if args.update_json:
         append_to_json_file(args.subsys_json_fname,

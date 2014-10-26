@@ -104,10 +104,10 @@ def get_subsys(addr, addr2line, linux, build_dir):
     else:
         # Use the get_maintainer.pl script to check the MAINTAINERS file,
         # to get the subsystem.
-        proc = subprocess.Popen(["%s/scripts/get_maintainer.pl" % linux,
+        proc = subprocess.Popen(["scripts/get_maintainer.pl",
                                  "--subsystem", "--noemail",
                                  "--no-remove-duplicates", "--no-rolestats",
-                                 "-f", "%s" % file_name], cwd=linux,
+                                 "-f", file_name], cwd=linux,
                                 stdout=subprocess.PIPE)
         (stdout, stderr) = proc.communicate()
         maintainers = stdout.strip().split("\n")

@@ -100,7 +100,7 @@ function(STAP_BUILD MOD_NAME INCLUDES OUT_DIR GEN_SRC SRC)
                               ${MODULE_OUTPUT_FILES}
                       COMMAND ${KBUILD_CMD}
                       COMMAND cp -f ${MODULE_BIN_FILE} ${PROJECT_BINARY_DIR}
-                      DEPENDS ${_stap_srcf} stap_gen
+                      DEPENDS ${_stap_srcf} subsys_gen stap_gen
                       VERBATIM )
 
   add_custom_target ( ${MODULE_TARGET_NAME} ALL

@@ -5,6 +5,8 @@ VBOSE=0
 JOPT=2
 INSTALL=""
 TARGETS=""
+LINUX_ROOT="/home/calucian/dev-kernel/linux-dirty"
+LINUX_BUILD="/home/calucian/dev-kernel/linux-dirty"
 
 function print_usage {
   echo "./.build [OPTIONS]"
@@ -64,7 +66,9 @@ then
   ./.clean
 fi
 
-cmake -DCMAKE_BUILD_TYPE=$TYPE ..
+cmake -DCMAKE_BUILD_TYPE=$TYPE        \
+      -DLINUX_ROOT=$LINUX_ROOT        \
+      -DLINUX_BUILD=$LINUX_BUILD ..
 
 if [ $VBOSE -eq 1 ]
 then

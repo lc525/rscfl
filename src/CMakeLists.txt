@@ -63,6 +63,11 @@ else(bt_lower STREQUAL "debug")
   set(DEFINE_NDEBUG "\#define NDEBUG")
 endif(bt_lower STREQUAL "debug")
 
+set(LINUX_ROOT "/home/calucian/dev-kernel/linux-dirty"
+  CACHE PATH "A linux source directory for subsystem identification")
+set(LINUX_BUILD ${LINUX_ROOT}
+  CACHE PATH "The linux directory in which vmlinux was built with CONFIG_DEBUG_INFO=y")
+
 ###
 #
 # NO EXTERNAL PROJECT DEPENDENCIES (YET)
@@ -98,6 +103,15 @@ set (PROJECT_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/kernel)
 include_directories("${GEN_INCLUDE_DIR}") # for generated configs
 include_directories("${PROJECT_INCLUDE_DIR}")
 
+# build list of subsystems
+include(subsys)
+subsys_header_gen(${LINUX_ROOT}
+  ${LINUX_BUILD}
+  ${PROJECT_INCLUDE_DIR}/rscfl/subsys_list.h
+  ${PROJECT_INCLUDE_DIR}/rscfl/kernel/subsys_addr.h
+  ${PROJECT_BINARY_DIR}/subsys_list.json
+)
+
 # build systemtap modules
 include(stap)
 
@@ -131,6 +145,7 @@ set (stap_DEPS # if any of those files change, the stap ko is rebuilt
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/perf.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/probes.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/stap_shim.h
+  ${PROJECT_INCLUDE_DIR}/rscfl/kernel/subsys_addr.h
   ${PROJECT_SOURCE_DIR}/resourceful.stp
 )
 

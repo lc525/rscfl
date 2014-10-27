@@ -44,6 +44,7 @@
 
 #define ru32 unsigned int
 #define ru64 unsigned long long
+
 #define RSCFL_ACCT_USE_BIT 0
 
 #define STAGE_1

@@ -6,8 +6,10 @@
  * int filter = SYS | PROC | NET_SOCK; // defines what resources we're
  *                                     // interested in, default: ALL (include
  *                                     // all resources)
- * call_cost* cost_o = acct_next(filter);   // declares interest in measuring the
- *                                          // resource consumption of the next syscall
+ * call_cost* cost_o = acct_next(filter);   // declares interest in measuring
+ *the
+ *                                          // resource consumption of the next
+ *syscall
  * int fd = open("/../file_path", O_CREAT); // syscall being measured
  *
  * call_cost* cost_w = acct_next(filter);
@@ -41,8 +43,7 @@
 
 #define STAGE_1
 // #define STAGE_2  // The elements marked with #ifdef STAGE_2 will be
-                    // implemented after all the STAGE_1 functionality is in place
-
+// implemented after all the STAGE_1 functionality is in place
 
 /* The resource enum, together with the cost_bitmap structure, lets the end-user
  * quickly identify what kernel modules were touched when a syscall was made.
@@ -61,54 +62,60 @@
  *
  *
  */
-struct acct_CPU {
+struct acct_CPU
+{
   u64 cycles;
-  u64 branch_mispredictions; //count
-  u64 instructions; //count
+  u64 branch_mispredictions;  // count
+  u64 instructions;  // count
 };
 
-
-struct acct_Sys {
+struct acct_Sys
+{
 };
 
-struct acct_Proc {
+struct acct_Proc
+{
 };
 
-struct acct_Mem {
+struct acct_Mem
+{
   u64 alloc;
   u64 freed;
 };
 
-struct acct_Storage {
+struct acct_Storage
+{
   u64 avg_bandwidth;
   u64 io_wait;
   u64 seeks;
 };
 
-struct acct_Net {
+struct acct_Net
+{
   struct tcp_info stats;
 };
 
-
-
-union accounting_component {
+union accounting_component
+{
   struct acct_Storage storage;
   struct acct_Net network;
 };
 
-struct subsys_accounting{
-    struct acct_CPU cpu;
-    struct acct_Mem mem;
+struct subsys_accounting
+{
+  struct acct_CPU cpu;
+  struct acct_Mem mem;
 };
 
-struct accounting {
-    struct subsys_accounting *acct_subsys[NUM_SUBSYSTEMS];
+struct accounting
+{
+  struct subsys_accounting* acct_subsys[NUM_SUBSYSTEMS];
 };
-
 
 /* Main structure for storing per-call resource consumption data
  */
-struct call_cost {
+struct call_cost
+{
   bool has_async;
   bool async_done;
 
@@ -116,42 +123,41 @@ struct call_cost {
   struct accounting async;
 };
 
-
-
 #ifdef STAGE_2
 /* Accounting for global resource consumption that happens at the same
  * time as a system_call, but is not caused by it.
  *
  * Full interface TBD
  */
-struct system_acct {
-  //struct system_quantum quanta[MAX_CONCURRENT_SYSCALLS];
-  //int head_pos;
+struct system_acct
+{
+  // struct system_quantum quanta[MAX_CONCURRENT_SYSCALLS];
+  // int head_pos;
 };
 
-struct sys_cost {
+struct sys_cost
+{
   // accounting for simultaneous workloads
-  system_acct sys; // do we want this per subsystem?
-  int system_acct_start; // do we track start/stop per subsystem - probably not
+  system_acct sys;        // do we want this per subsystem?
+  int system_acct_start;  // do we track start/stop per subsystem - probably not
   int system_acct_stop;
 };
 #endif
-
-
 
 /* Interface between user space and  kernel space for registering interest in
  * resource accounting events (added syscall)
  *
  * TODO(lc525) currently incomplete
  */
-struct res_acct_cfg {
+struct res_acct_cfg
+{
   // should enable filters and customization of desired resource accounting
 
   // syscall_filter
   // resource_filter
 };
 
-//SYSCALL
+// SYSCALL
 int res_acct_open(struct res_acct_cfg* cfg);
 
 #endif

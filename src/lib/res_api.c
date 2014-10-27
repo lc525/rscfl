@@ -152,27 +152,58 @@ int rscfl_read_acct(rscfl_handle rhdl, struct accounting *acct)
   return -1;
 }
 
+/*
+ * Given a userspace rscfl handle (rhdl), add to its struct accounting the
+ * costs that the kernel has measured in acct.
+ *
+ * Walk through all of the struct accountings that exist in the current
+ * rscfl_handle. For each struct accounting in rscfl, we check to see if its
+ * syscall_id is the same as that in acct. If so, we add the costs of that
+ * struct accounting to what is already in
+ */
 int rscfl_merge_acct(rscfl_handle rhdl, struct accounting *acct)
 {
   int i = 0;
+  int subsys_no;
+
+  // aliases into rhdl's and accts subsys_accountings.
+  struct subsys_accounting* acct_subsys;
+  struct subsys_accounting* relay_subsys;
+
   if (rhdl == NULL) return -1;
 
   struct accounting *relay_acct = (struct accounting *)rhdl->buf;
   if (relay_acct != NULL) {
     while (i < NO_RELAY_ACCTS) {
-      if (relay_acct->in_use == 1) {
+      if (relay_acct->in_use) {
         if (relay_acct->syscall_id.id == (rhdl->lst_syscall.id - 1)) {
-          acct->cpu.instructions += relay_acct->cpu.instructions;
-          acct->cpu.branch_mispredictions +=
-              relay_acct->cpu.branch_mispredictions;
-          acct->cpu.cycles += relay_acct->cpu.cycles;
-          acct->cpu.wall_clock_time += relay_acct->cpu.wall_clock_time;
+	  // Sum together accounting values in each subsystem that they're set.
+	  for (subsys_no = 0; subsys_no < NUM_SUBSYSTEMS; subsys_no++) {
+	    acct_subsys = acct->acct_subsys[subsys_no];
+	    relay_subsys = relay_acct->acct_subsys[subsys_no];
+	    // We are iterating over an array of pointers. These pointers will
+	    // be NULL if the subsystem has not been touched. We therefore just
+	    // continue.
 
-          acct->mem.alloc += relay_acct->mem.alloc;
-          acct->mem.freed += relay_acct->mem.freed;
+	    if (acct_subsys == NULL) {
+	      continue;
+	    }
 
-          memcpy(acct, relay_acct, sizeof(struct accounting));
+	    acct_subsys->cpu.cycles += relay_subsys->cpu.cycles;
+	    acct_subsys->cpu.branch_mispredictions +=
+	      relay_subsys->cpu.branch_mispredictions;
+	    acct_subsys->cpu.wall_clock_time +=
+	      relay_subsys->cpu.wall_clock_time;
+	    acct_subsys->mem.alloc += relay_subsys->mem.alloc;
+	    acct_subsys->mem.freed += relay_subsys->mem.freed;
+	  }
+
+	  // We have added the costs of relay_acct to acct, so can now reuse
+	  // relay_acct.
           relay_acct->in_use = 0;
+
+	  // We have found a matching syscall_id, so we know it won't appear
+	  // again in the rest of the array, as syscall_id's are unique.
           return 0;
         } else {
           relay_acct++;

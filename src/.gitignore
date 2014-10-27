@@ -1,1 +1,3 @@
 *.swp
+include/rscfl/subsys_list.h
+include/rscfl/kernel/subsys_addr.h

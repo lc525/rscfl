@@ -162,10 +162,6 @@ int rscfl_merge_acct(rscfl_handle rhdl, struct accounting *acct)
     while (i < NO_RELAY_ACCTS) {
       if (relay_acct->in_use == 1) {
         if (relay_acct->syscall_id.id == (rhdl->lst_syscall.id - 1)) {
-          acct->fields.primary |= relay_acct->fields.primary;
-#ifdef STAGE_2
-          acct->fields.ext |= relay_acct->fields.ext;
-#endif
           acct->cpu.instructions += relay_acct->cpu.instructions;
           acct->cpu.branch_mispredictions +=
               relay_acct->cpu.branch_mispredictions;

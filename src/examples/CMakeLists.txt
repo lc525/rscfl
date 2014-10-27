@@ -8,6 +8,7 @@ set(EXAMPLES_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 # Read_accounting example
 ##
 add_executable(read_accounting ${EXAMPLES_DIR}/read_accounting.c)
+add_dependencies(read_accounting res_api subsys_gen)
 
 
 ##
@@ -23,6 +24,7 @@ set_source_files_properties(
   PROPERTIES COMPILE_FLAGS ${SOCK_FLAGS}
 )
 add_executable(socket_tester ${SOCK_TESTER_SOURCES})
+add_dependencies(socket_tester subsys_gen)
 # link with resourceful API
 target_link_libraries(socket_tester res_api)
 
@@ -39,6 +41,7 @@ set_source_files_properties(
   PROPERTIES COMPILE_FLAGS ${VALIDATOR_FLAGS}
 )
 add_executable(value_validator ${VALIDATOR_SOURCES})
+add_dependencies(value_validator subsys_gen)
 target_link_libraries(value_validator res_api)
 
 ##

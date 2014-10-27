@@ -106,6 +106,9 @@ include_directories("${GEN_INCLUDE_DIR}") # for generated configs
 include_directories("${PROJECT_INCLUDE_DIR}")
 
 # build list of subsystems
+#
+# do not depend on any of those generated files directly, but on
+# the subsys_gen build target
 include(subsys)
 subsys_header_gen(${LINUX_ROOT}
   ${LINUX_VMLINUX}
@@ -141,6 +144,7 @@ set (stap_SOURCES
 )
 
 set (stap_DEPS # if any of those files change, the stap ko is rebuilt
+  subsys_gen
   ${PROJECT_BINARY_DIR}/rscfl/config.h
   ${PROJECT_INCLUDE_DIR}/rscfl/costs.h
   ${PROJECT_INCLUDE_DIR}/rscfl/PMurHash.h
@@ -148,7 +152,6 @@ set (stap_DEPS # if any of those files change, the stap ko is rebuilt
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/perf.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/probes.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/stap_shim.h
-  ${PROJECT_INCLUDE_DIR}/rscfl/kernel/subsys_addr.h
   ${PROJECT_SOURCE_DIR}/resourceful.stp
 )
 

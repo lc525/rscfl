@@ -34,7 +34,8 @@ int main(int argc, char *argv[])
 
   while (1) {
     acc = (struct accounting *)memblock;
-    printf("CPU cycles: %llu\n", acc->cpu.cycles);
+    printf("CPU cycles: %llu\n",
+	   acc->acct_subsys[NETWORKINGGENERAL]->cpu.cycles);
     sleep(100);
   }
 

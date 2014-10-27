@@ -75,6 +75,7 @@ function(STAP_BUILD MOD_NAME INCLUDES OUT_DIR GEN_SRC SRC)
       --tmpdir=${OUT_DIR} # temporary directory
       -k                  # keep temporary directory
       -m ${MOD_NAME}      # force module name
+      -I ${PROJECT_SOURCE_DIR}/tapsets
       ${ABS_FIL}
       > /dev/null
     DEPENDS ${GEN_SRC} ${ARGN}

@@ -17,13 +17,17 @@ static const unsigned int PATCH_VERSION = 0x@PATCH_VERSION@;
 static const char VERSION[] = "@VERSION@";
 
 // resourceful kernel module parameters:
-//#define SUBBUF_SIZE 262144
-//#define N_SUBBUFS 4
+//
+// CPU_PIDACCT_HTBL_LOGSIZE - the size of per-cpu hash tables storing
+//                            (pid, current_accounting_region) pairs (K,V).
+#define CPU_PIDACCT_HTBL_LOGSIZE 2
 
 // communication parameters
 #define NETLINK_USER 31
 
-#define LG_PAGE_SIZE 12
-
+// character device properties
+// the device is mmap-ed in user space for reading accounting results
+#define RSCFL_MAJOR 90
+#define RSCFL_MINOR 0
 #endif
 

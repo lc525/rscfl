@@ -109,8 +109,8 @@ struct accounting {
 /* Main structure for storing per-call resource consumption data
  */
 struct call_cost {
-  bool has_async;
-  bool async_done;
+  _Bool has_async;
+  _Bool async_done;
 
   struct accounting sync;
   struct accounting async;

@@ -86,23 +86,23 @@ struct acct_Storage {
 };
 
 struct acct_Net {
-  tcp_info stats;
+  struct tcp_info stats;
 };
 
 
 
 union accounting_component {
-  acct_Storage storage;
-  acct_Net network;
+  struct acct_Storage storage;
+  struct acct_Net network;
 };
 
 struct subsys_accounting{
-    acct_CPU cpu;
-    acct_Mem mem;
+    struct acct_CPU cpu;
+    struct acct_Mem mem;
 };
 
 struct accounting {
-    struct subsys_accounting *[RSCFL_SUBSYS_NUM] acct_subsys;
+    struct subsys_accounting *acct_subsys[NUM_SUBSYSTEMS];
 };
 
 
@@ -112,8 +112,8 @@ struct call_cost {
   bool has_async;
   bool async_done;
 
-  accounting sync;
-  accounting async;
+  struct accounting sync;
+  struct accounting async;
 };
 
 
@@ -149,9 +149,9 @@ struct res_acct_cfg {
 
   // syscall_filter
   // resource_filter
-}
+};
 
 //SYSCALL
-int res_acct_open(res_acct_cfg* cfg);
+int res_acct_open(struct res_acct_cfg* cfg);
 
 #endif

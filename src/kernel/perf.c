@@ -32,6 +32,8 @@ int rscfl_perf_get_current_vals(struct accounting *acct)
   for (i = 0; i < NUM_SW_EVENTS; i++) {
     BUG_ON(event_counters[i] == NULL);
     val = perf_event_read_value(event_counters[i], &enabled, &running);
+    BUG_ON(!enabled);
+    BUG_ON(!running);
     switch (sw_events[i]) {
       case PERF_COUNT_SW_CPU_CLOCK:
         acct->cpu.cycles = val;
@@ -43,8 +45,6 @@ int rscfl_perf_get_current_vals(struct accounting *acct)
         acct->mem.align_faults = val;
         break;
       }
-        BUG_ON(!enabled);
-        BUG_ON(!running);
     }
   }
   return 0;

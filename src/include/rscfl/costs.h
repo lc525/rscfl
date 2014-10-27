@@ -32,7 +32,7 @@
 
 #include <netinet/tcp.h>
 
-#include "rscfl/rscfl_subsystems.h"
+#include "rscfl/subsys_list.h"
 
 #define BIT(x) 1U << x
 #define ALL_BITS(x) (1U << (x + 1)) - 1

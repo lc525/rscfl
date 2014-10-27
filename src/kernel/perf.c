@@ -21,7 +21,10 @@ static const __u64 sw_events[] = {
 
 static struct perf_event *event_counters[NUM_SW_EVENTS];
 
-int rscfl_perf_get_current_vals(struct accounting *acct)
+/*
+ * Use perf to read the current resources, and store them in acct_subsys.
+ */
+int rscfl_perf_get_current_vals(struct subsys_accounting *acct_subsys)
 {
   u64 enabled;
   u64 running;
@@ -34,13 +37,13 @@ int rscfl_perf_get_current_vals(struct accounting *acct)
     val = perf_event_read_value(event_counters[i], &enabled, &running);
     switch (sw_events[i]) {
       case PERF_COUNT_SW_CPU_CLOCK:
-        acct->cpu.cycles = val;
+        acct_subsys->cpu.cycles = val;
         break;
       case PERF_COUNT_SW_PAGE_FAULTS:
-        acct->mem.page_faults = val;
+        acct_subsys->mem.page_faults = val;
         break;
       case PERF_COUNT_SW_ALIGNMENT_FAULTS: {
-        acct->mem.align_faults = val;
+        acct_subsys->mem.align_faults = val;
         break;
       }
         BUG_ON(!enabled);

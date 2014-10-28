@@ -42,8 +42,12 @@
 
 #include "rscfl/subsys_list.h"
 
+#ifndef ru32
 #define ru32 unsigned int
+#endif
+#ifndef ru64
 #define ru64 unsigned long long
+#endif
 
 #define RSCFL_ACCT_USE_BIT 0
 

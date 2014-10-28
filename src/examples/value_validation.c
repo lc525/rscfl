@@ -55,8 +55,9 @@ int main(int argc, char *argv[])
 
   // RSCFL
   if (!rscfl_read_acct(r_handle, &acct_1)) {
-    printf("rscfl: cpu_cycles=%llu wall_clock_time=%llu\n", acct_1.cpu.cycles,
-           acct_1.cpu.wall_clock_time);
+    printf("rscfl: cpu_cycles=%llu wall_clock_time=%llu\n",
+	   acct_1.acct_subsys[NETWORKINGGENERAL]->cpu.cycles,
+           acct_1.acct_subsys[NETWORKINGGENERAL]->cpu.wall_clock_time);
   } else {
     fprintf(stderr, "rscfl: read_acct 1 failed\n");
     return -1;
@@ -92,8 +93,9 @@ int main(int argc, char *argv[])
 
   // RSCFL
   if (!rscfl_read_acct(r_handle, &acct_2)) {
-    printf("rscfl: cpu_cycles=%llu wall_clock_time=%llu\n", acct_2.cpu.cycles,
-           acct_2.cpu.wall_clock_time);
+    printf("rscfl: cpu_cycles=%llu wall_clock_time=%llu\n",
+	   acct_2.acct_subsys[NETWORKINGGENERAL]->cpu.cycles,
+           acct_2.acct_subsys[NETWORKINGGENERAL]->cpu.wall_clock_time);
   } else {
     fprintf(stderr, "rscfl: read_acct 2 failed\n");
     return -1;

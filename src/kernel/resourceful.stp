@@ -65,7 +65,7 @@ probe kernel.function("sys_accept").return,
 {
   if (acct_now()) {
     fill_struct(get_cycles() - cycles, gettimeofday_us() - wall_clock_time,
-    %{FILL_NET%});
+		%{NETWORKINGGENERAL%});
     probe_nest -= 1;
     if(probe_nest == 0){
       clear_acct_next(kpid(), -1);
@@ -83,7 +83,7 @@ probe kernel.function("new_inode_pseudo").return,
 {
   if (acct_now()) {
     fill_struct(get_cycles() - cycles, gettimeofday_us() - wall_clock_time,
-    %{FILL_FS%});
+    %{FILESYSTEMSVFSANDINFRASTRUCTURE%});
     probe_nest -= 1;
     if(probe_nest == 0){
       clear_acct_next(kpid(), -1);
@@ -99,7 +99,7 @@ probe kernel.function("kmem_cache_alloc").return,
 {
   if (acct_now()) {
     fill_struct(get_cycles() - cycles, gettimeofday_us() - wall_clock_time,
-    %{FILL_MM%});
+    %{SLABALOCATOR%});
     probe_nest -= 1;
     if(probe_nest == 0){
       clear_acct_next(kpid(), -1);

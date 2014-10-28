@@ -99,7 +99,7 @@ probe kernel.function("kmem_cache_alloc").return,
 {
   if (acct_now()) {
     fill_struct(get_cycles() - cycles, gettimeofday_us() - wall_clock_time,
-    %{SLABALOCATOR%});
+    %{MEMORYMANAGEMENT%});
     probe_nest -= 1;
     if(probe_nest == 0){
       clear_acct_next(kpid(), -1);

@@ -1,4 +1,5 @@
 #define BIT(x) 1U << x
+#include "rscfl/costs.h"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -6,8 +7,6 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-
-#include "rscfl/costs.h"
 
 #define RESOURCEFUL_FILE "/mnt/resourceful0"
 
@@ -34,8 +33,7 @@ int main(int argc, char *argv[])
 
   while (1) {
     acc = (struct accounting *)memblock;
-    printf("CPU cycles: %llu\n",
-	   acc->acct_subsys[NETWORKINGGENERAL]->cpu.cycles);
+    printf("CPU cycles: %llu\n", acc->cpu.cycles);
     sleep(100);
   }
 

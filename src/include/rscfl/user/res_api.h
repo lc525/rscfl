@@ -4,7 +4,7 @@
 #include "rscfl/costs.h"
 #include "rscfl/res_common.h"
 
-#define NO_RHDL_ACCTS (MMAP_BUF_SIZE / sizeof(struct accounting))
+#define NO_RELAY_ACCTS (MMAP_BUF_SIZE / sizeof(struct accounting))
 #define MAX_PAYLOAD 1024 /* maximum payload size*/
 
 typedef struct

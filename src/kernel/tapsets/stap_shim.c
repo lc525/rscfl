@@ -100,12 +100,11 @@ int _should_acct(pid_t pid, int syscall_nr, struct accounting **acct,
 }
 
 int _fill_struct(long cycles, long wall_clock_time,
-		 struct accounting *subsys_acct, long subsys_id)
+		 struct accounting *acct, long subsys_id)
 {
+  struct subsys_accounting *subsys_acct = acct->acct_subsys[subsys_id];
   debugk("_fill_struct acct:%p cy:%ld wc:%ld subsys_no:%ld\n", (void *)acct,
 	 cycles, wall_clock_time, subsys_id);
-  struct accounting_accounting *subsys_acct =
-    subsys_acct->acct_subsys[subsys_id];
   subsys_acct->cpu.cycles += cycles;
   subsys_acct->cpu.wall_clock_time += wall_clock_time;
   return 0;

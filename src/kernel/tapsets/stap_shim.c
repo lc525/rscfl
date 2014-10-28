@@ -104,6 +104,8 @@ int _fill_struct(long cycles, long wall_clock_time,
 {
   debugk("_fill_struct acct:%p cy:%ld wc:%ld subsys_no:%ld\n", (void *)acct,
 	 cycles, wall_clock_time, subsys_id);
+  struct accounting_accounting *subsys_acct =
+    subsys_acct->acct_subsys[subsys_id];
   subsys_acct->cpu.cycles += cycles;
   subsys_acct->cpu.wall_clock_time += wall_clock_time;
   return 0;

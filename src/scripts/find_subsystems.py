@@ -44,7 +44,7 @@ static kprobe_opcode_t {{ subsystem }}_ADDRS[] = {{ '{' }}
 {{ '};' }}
 {% endfor %}
 
-rscfl_addr_list* probe_addrs[NUM_SUBSYSTEMS] = {{ '{'  }}
+rscfl_addr_list *probe_addrs[NUM_SUBSYSTEMS] = {{ '{'  }}
 {% for subsys in subsystems %}
   &{{ subsys }}_ADDRS,
 {% endfor %}

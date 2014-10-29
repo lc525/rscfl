@@ -27,7 +27,7 @@ static const char VERSION[] = "@VERSION@";
 
 // character device properties
 // the device is mmap-ed in user space for reading accounting results
-#define RSCFL_MAJOR 90
+#define RSCFL_MAJOR 91
 #define RSCFL_MINOR 0
 #endif
 

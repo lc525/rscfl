@@ -17,7 +17,6 @@ set_source_files_properties(
   PROPERTIES COMPILE_FLAGS ${SOCK_FLAGS}
 )
 add_executable(socket_tester ${SOCK_TESTER_SOURCES})
-add_dependencies(socket_tester subsys_gen)
 # link with resourceful API
 target_link_libraries(socket_tester res_api)
 
@@ -34,7 +33,6 @@ set_source_files_properties(
   PROPERTIES COMPILE_FLAGS ${VALIDATOR_FLAGS}
 )
 add_executable(value_validator ${VALIDATOR_SOURCES})
-add_dependencies(value_validator subsys_gen)
 target_link_libraries(value_validator res_api)
 
 ##

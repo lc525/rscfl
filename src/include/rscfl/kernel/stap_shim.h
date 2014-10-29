@@ -3,6 +3,11 @@
 
 #include "rscfl/costs.h"
 
+#define FILL_MM 0
+#define FILL_NET 1
+#define FILL_FS 2
+#define FILL_GLOBAL 3
+
 struct syscall_acct_list_t
 {
   unsigned long syscall_id;

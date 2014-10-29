@@ -99,14 +99,24 @@ int _should_acct(pid_t pid, int syscall_nr, struct accounting **acct,
   return 0;
 }
 
-int _fill_struct(long cycles, long wall_clock_time,
-		 struct accounting *acct, long subsys_id)
+int _fill_struct(long cycles, long wall_clock_time, struct accounting *acct,
+                 long fill_type)
 {
-  struct subsys_accounting *subsys_acct = acct->acct_subsys[subsys_id];
-  debugk("_fill_struct acct:%p cy:%ld wc:%ld subsys_no:%ld\n", (void *)acct,
-	 cycles, wall_clock_time, subsys_id);
-  subsys_acct->cpu.cycles += cycles;
-  subsys_acct->cpu.wall_clock_time += wall_clock_time;
+  debugk("_fill_struct acct:%p cy:%ld wc:%ld type:%ld\n", (void *)acct, cycles,
+         wall_clock_time, fill_type);
+  switch (fill_type) {
+    case FILL_MM:
+      acct->mm.cycles += cycles;
+      break;
+    case FILL_FS:
+      acct->fs.cycles += cycles;
+      break;
+    case FILL_NET:
+      acct->net.cycles += cycles;
+      break;
+  }
+  acct->cpu.cycles += cycles;
+  acct->cpu.wall_clock_time += wall_clock_time;
   return 0;
 }
 

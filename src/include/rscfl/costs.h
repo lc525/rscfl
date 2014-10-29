@@ -40,21 +40,19 @@
 #include <netinet/tcp.h>
 #endif
 
-#include "rscfl/subsys_list.h"
+#ifndef RBIT
+#define RBIT(x) 1U << x
+#endif
 
-#ifndef ru32
+#define ALL_BITS(x) (1U << (x + 1)) - 1
 #define ru32 unsigned int
-#endif
-#ifndef ru64
 #define ru64 unsigned long long
-#endif
 
 #define RSCFL_ACCT_USE_BIT 0
 
 #define STAGE_1
 // #define STAGE_2  // The elements marked with #ifdef STAGE_2 will be
-                    // implemented after all the STAGE_1 functionality is in place
-
+// implemented after all the STAGE_1 functionality is in place
 
 /* The resource enum, together with the cost_bitmap structure, lets the end-user
  * quickly identify what kernel modules were touched when a syscall was made.
@@ -64,12 +62,45 @@
  * A logical OR of resource members can also be explicitly passed by the user
  * when registering interest in system call resource accounting, as a filter.
  */
+typedef enum {
+  SYS = RBIT(0),
+  SYS_DEV = RBIT(1),
+  SYS_HW = RBIT(2),
+  SYS_IO = RBIT(3),
+  PROC = RBIT(4),
+  PROC_THR = RBIT(5),
+  PROC_SYNC = RBIT(6),
+  PROC_SCHED = RBIT(7),
+  PROC_IRQ = RBIT(8),
+  MEM = RBIT(9),
+  MEM_VIRT = RBIT(10),
+  MEM_MAP = RBIT(11),
+  MEM_PAGE = RBIT(12),
+  STORAGE = RBIT(13),
+  STORAGE_VFS = RBIT(14),
+  STORAGE_CACHE = RBIT(15),
+  STORAGE_FS = RBIT(16),
+  STORAGE_HW = RBIT(17),
+  NET = RBIT(18),
+  NET_SOCK = RBIT(19),
+  NET_PROTO = RBIT(20),
+  NET_HW = RBIT(21),
+  ALL = ALL_BITS(21)
+} resource;
 
 typedef struct
 {
   unsigned long id;
   pid_t pid;
 } rscfl_syscall_id_t;
+
+struct cost_bitmap
+{
+  ru32 primary;  // logical OR between multiple resource elements
+#ifdef STAGE_2
+  ru64 ext;  // here for future extension
+#endif
+};
 
 /* acct_*** data structures.
  *
@@ -82,8 +113,8 @@ typedef struct
 struct acct_CPU
 {
   ru64 cycles;
-  ru64 branch_mispredictions; //count
-  ru64 instructions; //count
+  ru64 branch_mispredictions;  // count
+  ru64 instructions;           // count
   ru64 wall_clock_time;
 };
 
@@ -110,36 +141,59 @@ struct acct_Storage
   ru64 seeks;
 };
 
-struct acct_Net
+struct acct_mm
 {
-  struct tcp_info stats;
+  ru64 cycles;
 };
+
+struct acct_fs
+{
+  ru64 cycles;
+};
+
+struct acct_net
+{
+  ru64 cycles;
+};
+
+/*
+struct acct_Net {
+  //struct tcp_info stats;
+};
+*/
 
 union accounting_component
 {
   struct acct_Storage storage;
-  struct acct_Net network;
-};
-
-struct subsys_accounting
-{
-  struct acct_CPU cpu;
-  struct acct_Mem mem;
+  // struct acct_Net network;
 };
 
 struct accounting
 {
   volatile long unsigned int in_use;
+  struct cost_bitmap fields;  // logical OR of resource members
   rscfl_syscall_id_t syscall_id;
-  struct subsys_accounting* acct_subsys[NUM_SUBSYSTEMS];
+
+  struct acct_CPU cpu;
+  struct acct_Mem mem;
+
+  struct acct_mm mm;
+  struct acct_fs fs;
+  struct acct_net net;
+
+#ifdef STAGE_2
+  accounting_component[3] kunit_acct;
+  accounting_component *ext;
+#endif
 };
 
 /* Main structure for storing per-call resource consumption data
  */
 struct call_cost
 {
-  _Bool has_async;
-  _Bool async_done;
+  char flags;
+  // has_async;
+  //  bool async_done;
 
   struct accounting sync;
   struct accounting async;

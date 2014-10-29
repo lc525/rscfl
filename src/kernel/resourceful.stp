@@ -27,6 +27,21 @@ probe end
 }
 
 /*--------------------------------
+ * scheduler interposition
+ */
+
+probe rscfl.sched.ctxswitch,
+      rscfl.sched.migrate
+{
+}
+
+// available parameters: @cpu_from, @cpu_to, @pid
+probe rscfl.sched.migrate = scheduler.migrate {
+  on_cpu_switch(cpu_from, cpu_to, pid)
+}
+
+
+/*--------------------------------
  * call probes
  */
 

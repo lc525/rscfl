@@ -5,13 +5,6 @@ set(EXAMPLES_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 # set(CMAKE_C_FLAGS "-O0 -gdwarf-2 -gstrict-dwarf")
 
 ##
-# Read_accounting example
-##
-add_executable(read_accounting ${EXAMPLES_DIR}/read_accounting.c)
-add_dependencies(read_accounting res_api subsys_gen)
-
-
-##
 # Socket example
 ##
 set(SOCK_FLAGS "-g")

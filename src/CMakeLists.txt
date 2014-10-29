@@ -140,6 +140,7 @@ set (stap_SOURCES
   ${PROJECT_SOURCE_DIR}/tapsets/hasht.c
   ${PROJECT_SOURCE_DIR}/tapsets/netlink.c
   ${PROJECT_SOURCE_DIR}/tapsets/probes.c
+  ${PROJECT_SOURCE_DIR}/tapsets/sched.c
   ${PROJECT_SOURCE_DIR}/tapsets/stap_shim.c
 )
 
@@ -151,6 +152,7 @@ set (stap_DEPS # if any of those files change, the stap ko is rebuilt
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/hasht.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/perf.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/probes.h
+  ${PROJECT_INCLUDE_DIR}/rscfl/kernel/sched.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/stap_shim.h
   ${PROJECT_SOURCE_DIR}/resourceful.stp
 )

@@ -10,56 +10,25 @@
  * functions.
  */
 %{
-  #include "rscfl/kernel/cpu.h"
-  #include "rscfl/kernel/hasht.h"
   #include "rscfl/kernel/sched.h"
 %}
 
 // one extra hash table search on every context switch, for all processes
-function on_ctx_switch(next_tid:long) %{
-  pid_acct *it;
-
-  hash_for_each_possible(CPU_TBL(pid_acct_tbl), it, link, STAP_ARG_next_tid)
-    if(it->pid == STAP_ARG_next_tid){
-      CPU_VAR(current_acct) = it;
-      return;
-    }
-
-  // next_tid is not in the hash table
-  CPU_VAR(current_acct) = NULL;
+function _ctx_switch(next_tid:long) %{
+  on_ctx_switch(STAP_ARG_next_tid);
 %}
 
 // only the kprobe overhead for processes that do not use resourceful
-function on_cpu_switch(from:long, to:long, pid:long) %{
-  pid_acct *it;
-
-  // Fastest path out: pid does not use resourceful
-  if(CPU_VAR(current_acct) == NULL) return;
-
-  /* We assume that if the process is long-lived, after a while all CPUs will
-   * have its pid_acct structure within their hash table. So the fast path is to
-   * just check for the existence of that entry and return. on_ctx_switch will
-   * take care of the rest (updating current_acct on the new cpu)
-   */
-  hash_for_each_possible(per_cpu(pid_acct_tbl, STAP_ARG_to), it, link,
-                         STAP_ARG_pid)
-    if(it->pid == STAP_ARG_pid){
-      return;
-    }
-
-  /* The hash table of the CPU we're moving on doesn't have the required entry.
-   * Add it; at this point, we know current_acct != NULL
-   */
-  hash_add(per_cpu(pid_acct_tbl, STAP_ARG_to), &CPU_VAR(current_acct)->link,
-           STAP_ARG_pid);
+function _cpu_switch(from:long, to:long, pid:long) %{
+  on_cpu_switch(STAP_ARG_from, STAP_ARG_to, STAP_ARG_pid);
 %}
 
 // available parameters @prev_pid, @prev_tid, @next_pid, @next_tid
 probe rscfl.sched.ctxswitch = scheduler.ctxswitch {
-  on_ctx_switch(next_tid)
+  _ctx_switch(next_tid)
 }
 
 // available parameters: @cpu_from, @cpu_to, @pid
 probe rscfl.sched.migrate = scheduler.migrate {
-  on_cpu_switch(cpu_from, cpu_to, pid)
+  _cpu_switch(cpu_from, cpu_to, pid)
 }

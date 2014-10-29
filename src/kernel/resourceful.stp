@@ -35,11 +35,6 @@ probe rscfl.sched.ctxswitch,
 {
 }
 
-// available parameters: @cpu_from, @cpu_to, @pid
-probe rscfl.sched.migrate = scheduler.migrate {
-  on_cpu_switch(cpu_from, cpu_to, pid)
-}
-
 
 /*--------------------------------
  * call probes

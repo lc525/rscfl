@@ -60,14 +60,14 @@ static int rscfl_mmap(struct file *filp, struct vm_area_struct *vma)
   unsigned long start = (unsigned long)vma->vm_start;
   char *acct_buf;
   rscfl_pid_pages_t *new_hd;
-  pid_acct* pid_acct_node;
-  kprobe_priv* probe_data;
+  pid_acct *pid_acct_node;
+  kprobe_priv *probe_data;
 
   if (size > MMAP_BUF_SIZE) return -EINVAL;
 
   acct_buf = kzalloc(MMAP_BUF_SIZE, GFP_KERNEL);
   if (!acct_buf) {
-    return -1;
+    return -ENOMEM;
   }
 
   // TODO(lc525): get rid of rscfl_pid_pages_t and replace that with the
@@ -77,7 +77,7 @@ static int rscfl_mmap(struct file *filp, struct vm_area_struct *vma)
                                                GFP_KERNEL);
   if (!new_hd) {
     kfree(acct_buf);
-    return -1;
+    return -ENOMEM;
   }
   new_hd->buf = acct_buf;
   new_hd->pid = current->pid;
@@ -94,7 +94,20 @@ static int rscfl_mmap(struct file *filp, struct vm_area_struct *vma)
   // pay off to pre-add entries at the expense of some memory.
   //
   pid_acct_node = (pid_acct *)kmalloc(sizeof(pid_acct), GFP_KERNEL);
+  if(!pid_acct_node) {
+    rscfl_pid_pages = rscfl_pid_pages->next;
+    kfree(new_hd);
+    kfree(acct_buf);
+    return -ENOMEM;
+  }
   probe_data = (kprobe_priv *)kzalloc(sizeof(kprobe_priv), GFP_KERNEL);
+  if(!probe_data) {
+    rscfl_pid_pages = rscfl_pid_pages->next;
+    kfree(pid_acct_node);
+    kfree(new_hd);
+    kfree(acct_buf);
+    return -ENOMEM;
+  }
   pid_acct_node->pid = current->pid;
   pid_acct_node->acct_buf = (struct accounting *)acct_buf;
   pid_acct_node->probe_data = probe_data;
@@ -112,6 +125,8 @@ static int rscfl_mmap(struct file *filp, struct vm_area_struct *vma)
     if (remap_pfn_range(vma, start, page >> PAGE_SHIFT, PAGE_SIZE,
                         PAGE_SHARED)) {
       rscfl_pid_pages = rscfl_pid_pages->next;
+      kfree(probe_data);
+      kfree(pid_acct_node);
       kfree(new_hd);
       kfree(acct_buf);
       return -EAGAIN;

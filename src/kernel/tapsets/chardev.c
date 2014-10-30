@@ -54,7 +54,6 @@ int _rscfl_dev_cleanup(void)
  */
 static int rscfl_mmap(struct file *filp, struct vm_area_struct *vma)
 {
-  struct mm_struct* mm = vma->vm_mm;
   unsigned long page;
   unsigned long pos;
   unsigned long size = (unsigned long)vma->vm_end - vma->vm_start;

@@ -60,8 +60,23 @@ void on_cpu_switch(int cpu_from, int cpu_to, pid_t pid) {
   return;
 }
 
-  /* The hash table of the CPU we're moving on doesn't have the required entry.
-   * Add it; at this point, we know current_acct != NULL
-   */
-  hash_add(per_cpu(pid_acct_tbl, cpu_to), &CPU_VAR(current_acct)->link, pid);
+
+/* Remove the pid from the hash tables of any CPUs that might hold it.
+ *
+ * TODO(lc525): possible optimisation is to keep a set of what CPUs a pid has
+ * been on, so that we minimise the number of hash table look-ups
+ */
+void on_task_exit(pid_t pid) {
+  int cpu_id;
+  pid_acct *it;
+
+  for_each_present_cpu(cpu_id)
+  {
+    hash_for_each_possible(per_cpu(pid_acct_tbl, cpu_id), it, link, pid) {
+      if(it->pid == pid) {
+        hash_del(&it->link);
+        break;
+      }
+    }
+  }
 }

@@ -13,14 +13,16 @@
   #include "rscfl/kernel/sched.h"
 %}
 
-// one extra hash table search on every context switch, for all processes
 function _ctx_switch(next_tid:long) %{
   on_ctx_switch(STAP_ARG_next_tid);
 %}
 
-// only the kprobe overhead for processes that do not use resourceful
 function _cpu_switch(from:long, to:long, pid:long) %{
   on_cpu_switch(STAP_ARG_from, STAP_ARG_to, STAP_ARG_pid);
+%}
+
+function _task_exit(pid:long) %{
+  on_task_exit(STAP_ARG_pid);
 %}
 
 // available parameters @prev_pid, @prev_tid, @next_pid, @next_tid
@@ -31,4 +33,9 @@ probe rscfl.sched.ctxswitch = scheduler.ctxswitch {
 // available parameters: @cpu_from, @cpu_to, @pid
 probe rscfl.sched.migrate = scheduler.migrate {
   _cpu_switch(cpu_from, cpu_to, pid)
+}
+
+// available parameters: @pid, @priority
+probe rscfl.sched.process_exit = scheduler.process_exit {
+  _task_exit(pid)
 }

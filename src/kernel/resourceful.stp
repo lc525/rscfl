@@ -31,7 +31,8 @@ probe end
  */
 
 probe rscfl.sched.ctxswitch,
-      rscfl.sched.migrate
+      rscfl.sched.migrate,
+      rscfl.sched.process_exit
 {
 }
 

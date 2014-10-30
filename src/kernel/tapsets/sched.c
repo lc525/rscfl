@@ -6,7 +6,8 @@
 /* function that needs to be executed on every context switch
  * one extra hash table search on every context switch, for all processes
  */
-void on_ctx_switch(pid_t next_tid) {
+void on_ctx_switch(pid_t next_tid)
+{
   pid_acct *it;
 
   hash_for_each_possible(CPU_TBL(pid_acct_tbl), it, link, next_tid) {
@@ -31,7 +32,8 @@ void on_ctx_switch(pid_t next_tid) {
  *
  * this can execute on ANY cpu
  */
-void on_cpu_switch(int cpu_from, int cpu_to, pid_t pid) {
+void on_cpu_switch(int cpu_from, int cpu_to, pid_t pid)
+{
   pid_acct *it;
 
   /* We assume that if the process is long-lived, after a while all CPUs will
@@ -66,12 +68,12 @@ void on_cpu_switch(int cpu_from, int cpu_to, pid_t pid) {
  * TODO(lc525): possible optimisation is to keep a set of what CPUs a pid has
  * been on, so that we minimise the number of hash table look-ups
  */
-void on_task_exit(pid_t pid) {
+void on_task_exit(pid_t pid)
+{
   int cpu_id;
   pid_acct *it;
 
-  for_each_present_cpu(cpu_id)
-  {
+  for_each_present_cpu(cpu_id) {
     hash_for_each_possible(per_cpu(pid_acct_tbl, cpu_id), it, link, pid) {
       if(it->pid == pid) {
         hash_del(&it->link);

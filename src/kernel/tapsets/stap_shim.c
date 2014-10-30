@@ -46,7 +46,7 @@ int _should_acct(pid_t pid, int syscall_nr, struct accounting **acct,
   syscall_acct_list_t *e;
   struct accounting *ret;
   struct rscfl_pid_pages_t *pid_page = rscfl_pid_pages;
-  pid_acct* pa;
+  pid_acct *current_pid_acct;
 
   read_lock(&lock);
 //  debugk("_should_acct(?) pid: %d\n", pid);
@@ -56,11 +56,12 @@ int _should_acct(pid_t pid, int syscall_nr, struct accounting **acct,
         ((syscall_nr == -1) || (e->syscall_nr == syscall_nr))) {
       while (pid_page) {
         if (pid_page->pid == pid) {
-          pa = CPU_VAR(current_acct);
-          if(pa != NULL && pa->acct_buf != (struct accounting*) pid_page->buf)
+          current_pid_acct = CPU_VAR(current_acct);
+          if(current_pid_acct != NULL &&
+             current_pid_acct->acct_buf != (struct accounting*) pid_page->buf)
             printk("CPU%d:[%d] %s hash buf:%p actual:%p\n", smp_processor_id(),
-                pid, name, pa->acct_buf, pid_page->buf);
-          if(pa == NULL)
+                pid, name, current_pid_acct->acct_buf, pid_page->buf);
+          if(current_pid_acct == NULL)
             printk("CPU%d:[%d] %s hash is null, buf: %p\n", smp_processor_id(),
                 pid, name, pid_page->buf);
           debugk("\t acct: %p\n", (void *)(*acct));

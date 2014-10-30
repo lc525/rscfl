@@ -3,11 +3,14 @@
 #include <asm/atomic.h>
 #include <linux/rwlock_types.h>
 #include <linux/slab.h>
+#include <linux/smp.h> // only here for smp_processor_id()
 #include <linux/spinlock.h>
 
 #include "rscfl/config.h"
 #include "rscfl/costs.h"
 #include "rscfl/res_common.h"
+#include "rscfl/kernel/cpu.h"
+
 
 long syscall_id_c;
 syscall_acct_list_t *syscall_acct_list;
@@ -43,6 +46,7 @@ int _should_acct(pid_t pid, int syscall_nr, struct accounting **acct,
   syscall_acct_list_t *e;
   struct accounting *ret;
   struct rscfl_pid_pages_t *pid_page = rscfl_pid_pages;
+  pid_acct* pa;
 
   read_lock(&lock);
 //  debugk("_should_acct(?) pid: %d\n", pid);
@@ -52,6 +56,13 @@ int _should_acct(pid_t pid, int syscall_nr, struct accounting **acct,
         ((syscall_nr == -1) || (e->syscall_nr == syscall_nr))) {
       while (pid_page) {
         if (pid_page->pid == pid) {
+          pa = CPU_VAR(current_acct);
+          if(pa != NULL && pa->acct_buf != (struct accounting*) pid_page->buf)
+            printk("CPU%d:[%d] %s hash buf:%p actual:%p\n", smp_processor_id(),
+                pid, name, pa->acct_buf, pid_page->buf);
+          if(pa == NULL)
+            printk("CPU%d:[%d] %s hash is null, buf: %p\n", smp_processor_id(),
+                pid, name, pid_page->buf);
           debugk("\t acct: %p\n", (void *)(*acct));
           if (*acct != NULL) {
             read_unlock(&lock);

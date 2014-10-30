@@ -27,6 +27,17 @@ probe end
 }
 
 /*--------------------------------
+ * scheduler interposition
+ */
+
+probe rscfl.sched.ctxswitch,
+      rscfl.sched.migrate,
+      rscfl.sched.task_exit
+{
+}
+
+
+/*--------------------------------
  * call probes
  */
 
@@ -43,7 +54,7 @@ probe kernel.function("__kmalloc").call,
       kernel.function("sys_sendfile").call
 {
   start = gettimeofday_us();
-  if(should_acct()) {
+  if(should_acct(probefunc())) {
     probe_nest++;
     cycles = get_cycles();
     wall_clock_time = start;

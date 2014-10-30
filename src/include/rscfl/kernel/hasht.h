@@ -45,5 +45,6 @@
  * are scheduled (possibly on a different CPU), you're going to have a bad time.
  */
 #define CPU_TBL(tbl_name) (*(this_cpu_ptr(&tbl_name)))
+#define CPU_VAR(var)  (*(this_cpu_ptr(&var)))
 
 #endif

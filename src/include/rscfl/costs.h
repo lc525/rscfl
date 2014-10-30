@@ -42,8 +42,13 @@
 
 #include "rscfl/subsys_list.h"
 
+#ifndef ru32
 #define ru32 unsigned int
+#endif
+#ifndef ru64
 #define ru64 unsigned long long
+#endif
+
 #define RSCFL_ACCT_USE_BIT 0
 
 #define STAGE_1
@@ -120,13 +125,16 @@ struct subsys_accounting
 {
   struct acct_CPU cpu;
   struct acct_Mem mem;
+  volatile _Bool in_use;
 };
 
 struct accounting
 {
-  volatile long unsigned int in_use;
+  volatile _Bool in_use;
   rscfl_syscall_id_t syscall_id;
-  struct subsys_accounting* acct_subsys[NUM_SUBSYSTEMS];
+  // Indexes into offsets from the start of the subsys section of
+  // rscfl_pid_page->buf.
+  short acct_subsys[NUM_SUBSYSTEMS];
 };
 
 /* Main structure for storing per-call resource consumption data

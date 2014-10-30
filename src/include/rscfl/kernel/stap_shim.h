@@ -2,11 +2,7 @@
 #define _KO_RESOURCEFUL_H_
 
 #include "rscfl/costs.h"
-
-#define FILL_MM 0
-#define FILL_NET 1
-#define FILL_FS 2
-#define FILL_GLOBAL 3
+#include "rscfl/res_common.h"
 
 struct syscall_acct_list_t
 {
@@ -16,6 +12,14 @@ struct syscall_acct_list_t
   struct syscall_acct_list_t *next;
 };
 typedef struct syscall_acct_list_t syscall_acct_list_t;
+
+struct rscfl_shared_mem_layout_t
+{
+  struct accounting acct[STRUCT_ACCT_NUM];
+  struct subsys_accounting subsyses[ACCT_SUBSYS_NUM];
+};
+
+typedef struct rscfl_shared_mem_layout_t rscfl_shared_mem_layout_t;
 
 struct rscfl_pid_pages_t
 {
@@ -30,9 +34,9 @@ extern syscall_acct_list_t *syscall_acct_list;
 extern rscfl_pid_pages_t *rscfl_pid_pages;
 
 int acct_next(pid_t, int);
-int _should_acct(pid_t pid, int syscall_nr, struct accounting **,
-                 int probe_nest, const char *name);
-int _fill_struct(long, long, struct accounting *, long);
+int _should_acct(pid_t pid, int syscall_nr, int probe_nest, const char *name,
+                 struct accounting **, rscfl_pid_pages_t **);
+int _fill_struct(long, long, struct accounting *, long, rscfl_pid_pages_t *);
 int _clear_acct_next(pid_t, int);
 
 #endif

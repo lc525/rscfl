@@ -16,6 +16,7 @@ int main(int argc, char *argv[])
   rscfl_handle r_handle;
   struct accounting acct_1 = {0};
   struct accounting acct_2 = {0};
+  struct subsys_accounting *subsys_acct;
   int sockfd_1;
   int sockfd_2;
 
@@ -55,8 +56,9 @@ int main(int argc, char *argv[])
 
   // RSCFL
   if (!rscfl_read_acct(r_handle, &acct_1)) {
-    printf("rscfl: cpu_cycles=%llu wall_clock_time=%llu\n", acct_1.cpu.cycles,
-           acct_1.cpu.wall_clock_time);
+    subsys_acct = get_subsys_accounting(r_handle, &acct_1, NETWORKINGGENERAL);
+    printf("rscfl: cpu_cycles=%llu wall_clock_time=%llu\n",
+           subsys_acct->cpu.cycles, subsys_acct->cpu.wall_clock_time);
   } else {
     fprintf(stderr, "rscfl: read_acct 1 failed\n");
     return -1;
@@ -92,8 +94,9 @@ int main(int argc, char *argv[])
 
   // RSCFL
   if (!rscfl_read_acct(r_handle, &acct_2)) {
-    printf("rscfl: cpu_cycles=%llu wall_clock_time=%llu\n", acct_2.cpu.cycles,
-           acct_2.cpu.wall_clock_time);
+    subsys_acct = get_subsys_accounting(r_handle, &acct_1, NETWORKINGGENERAL);
+    printf("rscfl: cpu_cycles=%llu wall_clock_time=%llu\n",
+           subsys_acct->cpu.cycles, subsys_acct->cpu.wall_clock_time);
   } else {
     fprintf(stderr, "rscfl: read_acct 2 failed\n");
     return -1;

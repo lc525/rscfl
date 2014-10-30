@@ -15,6 +15,8 @@ int main(int argc, char *argv[])
   int socfd_2;
   int socfd_3;
 
+  struct subsys_accounting* networking_subsys;
+
   if (DEBUG) printf("Opening sockets\n");
 
   rscfl_handle relay_f_data;
@@ -41,8 +43,14 @@ int main(int argc, char *argv[])
   }
 
   if (!rscfl_read_acct(relay_f_data, &acct)) {
-    printf("rscfl: cpu_cycles=%llu wall_clock_time=%llu\n", acct.cpu.cycles,
-           acct.cpu.wall_clock_time);
+    networking_subsys =
+        get_subsys_accounting(relay_f_data, &acct, NETWORKINGGENERAL);
+    if (networking_subsys == NULL) {
+      printf("rscfl: Nothing to report.\n");
+    }
+    printf("rscfl: cpu_cycles=%llu wall_clock_time=%llu\n",
+           networking_subsys->cpu.cycles,
+           networking_subsys->cpu.wall_clock_time);
   } else {
     fprintf(stderr, "rscfl: read_acct failed\n");
   }
@@ -57,13 +65,19 @@ int main(int argc, char *argv[])
   }
 
   if (!rscfl_read_acct(relay_f_data, &acct2)) {
+    networking_subsys =
+        get_subsys_accounting(relay_f_data, &acct, NETWORKINGGENERAL);
+    if (networking_subsys == NULL) {
+      printf("rscfl: Nothing to report.\n");
+    }
     printf(
         "rscfl 2: cpu_cycles=%llu\n"
         "wall_clock_time=%llu\n"
         "page_faults=%llu\n"
         "align_faults=%llu\n",
-        acct2.cpu.cycles, acct2.cpu.wall_clock_time, acct2.mem.page_faults,
-        acct2.mem.align_faults);
+        networking_subsys->cpu.cycles, networking_subsys->cpu.wall_clock_time,
+        networking_subsys->mem.page_faults,
+        networking_subsys->mem.align_faults);
   } else {
     fprintf(stderr, "rscfl: read_acct failed\n");
   }

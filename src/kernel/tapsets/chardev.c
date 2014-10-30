@@ -73,18 +73,18 @@ static int rscfl_mmap(struct file *filp, struct vm_area_struct *vma)
 
   pos = (unsigned long)buf;
 
-  while (size) {
+  while (size > 0) {
     page = virt_to_phys((void *)pos);
-    if (remap_pfn_range(vma, start, page >> PAGE_SHIFT, PAGE_SIZE,
+    if (remap_pfn_range(vma, start, page >> PAGE_SHIFT, MMAP_BUF_SIZE,
                         PAGE_SHARED)) {
       rscfl_pid_pages = rscfl_pid_pages->next;
       kfree(new_hd);
       kfree(buf);
       return -EAGAIN;
     }
-    start += PAGE_SIZE;
-    pos += PAGE_SIZE;
-    size -= PAGE_SIZE;
+    start += MMAP_BUF_SIZE;
+    pos += MMAP_BUF_SIZE;
+    size -= MMAP_BUF_SIZE;
   }
   return 0;
 }

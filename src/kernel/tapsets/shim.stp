@@ -8,6 +8,7 @@
 #include "rscfl/res_common.h"
 
 struct accounting *acct = NULL;
+rscfl_pid_pages_t *rscfl_shared_pages;
 %}
 
 /**
@@ -41,7 +42,8 @@ function kpid:long()
 
 function should_acct:long()
 %{
-  int res = _should_acct(current->pid, -1, &acct, global(s_probe_nest), "");
+  int res = _should_acct(current->pid, -1, global(s_probe_nest), "", &acct,
+			 &rscfl_shared_pages);
   STAP_RETVALUE = res;
 %}
 
@@ -56,7 +58,8 @@ function fill_struct(vfs:long, wall_clock_time:long, fill_type:long)
 %{
   debugk("Nest %lld\n", global(s_probe_nest));
 //  rscfl_perf_get_current_vals(acct);
-  _fill_struct(STAP_ARG_vfs, STAP_ARG_wall_clock_time, acct, STAP_ARG_fill_type);
+  _fill_struct(STAP_ARG_vfs, STAP_ARG_wall_clock_time, acct, STAP_ARG_fill_type,
+	       rscfl_shared_pages);
 %}
 
 function clear_acct_next(pid:long, syscall_nr:long)

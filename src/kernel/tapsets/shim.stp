@@ -40,10 +40,10 @@ function kpid:long()
   STAP_RETVALUE = current->pid;
 %}
 
-function should_acct:long()
+function should_acct:long(name:string)
 %{
-  int res = _should_acct(current->pid, -1, global(s_probe_nest), "", &acct,
-			 &rscfl_shared_pages);
+  int res = _should_acct(current->pid, -1, global(s_probe_nest),
+                         STAP_ARG_name, &acct, &rscfl_shared_pages);
   STAP_RETVALUE = res;
 %}
 

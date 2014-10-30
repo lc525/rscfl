@@ -38,7 +38,7 @@
 struct pid_acct {
   struct hlist_node link; // item in the per-bucket linked list
   pid_t pid;
-  struct accounting* acct;
+  struct accounting* acct_buf;
 };
 typedef struct pid_acct pid_acct;
 

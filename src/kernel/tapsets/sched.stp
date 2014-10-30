@@ -36,6 +36,15 @@ probe rscfl.sched.migrate = scheduler.migrate {
 }
 
 // available parameters: @pid, @priority
-probe rscfl.sched.process_exit = scheduler.process_exit {
+probe rscfl.sched.task_exit = kernel.function("do_exit") {
+  if (@defined($tsk)) {
+    __tsk = $tsk
+    pid = $tsk->pid
+  }
+  else {
+    __tsk = task_current()
+    pid = @cast(__tsk, "task_struct",
+          "kernel<linux/sched.h>")->pid
+  }
   _task_exit(pid)
 }

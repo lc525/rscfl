@@ -32,7 +32,7 @@ probe end
 
 probe rscfl.sched.ctxswitch,
       rscfl.sched.migrate,
-      rscfl.sched.process_exit
+      rscfl.sched.task_exit
 {
 }
 

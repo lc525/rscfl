@@ -52,8 +52,6 @@ void on_cpu_switch(int cpu_from, int cpu_to, pid_t pid)
   hash_for_each_possible(per_cpu(pid_acct_tbl, cpu_from), it, link, pid) {
     if(it->pid == pid){
       hash_add(per_cpu(pid_acct_tbl, cpu_to), &it->link, pid);
-      /* printk("CPU%d:[%d] migrate from CPU%d to CPU%d\n", cpu_to, pid,
-                cpu_from, cpu_to);*/
       return;
     }
   }

@@ -4,7 +4,6 @@
 #include "rscfl/costs.h"
 #include "rscfl/res_common.h"
 
-#define NO_RELAY_ACCTS (MMAP_BUF_SIZE / sizeof(struct accounting))
 #define MAX_PAYLOAD 1024 /* maximum payload size*/
 
 typedef struct
@@ -25,5 +24,16 @@ int rscfl_read_acct(rscfl_handle handle, struct accounting *acct);
  * existing accounting data structure
  * */
 int rscfl_merge_acct(rscfl_handle handle, struct accounting *acct);
+
+/*
+ * Get a pointer to the memory that contains the accounting information for
+ * subsystem $rscfl_subsys from the struct accounting. We have a helper function
+ * for this as we store indices of offsets into the memory, rather than
+ * pointers as we need to conserve offsets across the user-kernel memory
+ * boundary.
+ */
+struct subsys_accounting *get_subsys_accounting(rscfl_handle,
+                                                struct accounting *,
+                                                rscfl_subsys);
 
 #endif

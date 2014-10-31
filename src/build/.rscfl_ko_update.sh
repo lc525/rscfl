@@ -26,12 +26,8 @@ then
   PIDS=`ps -ef | grep rscfl_*.ko | grep -v "grep\|rscfl_ko_update" | awk '{ print $2; }'`
   if [ ! -z "$PIDS" ]
   then
-    sudo kill -9 $PIDS
+    sudo kill $PIDS
   fi
-
-  #rmmod module
-  echo "removing old module ($MODNAME)..."
-  sudo rmmod $MODNAME
 fi
 
 if [ $# -eq 1 ]

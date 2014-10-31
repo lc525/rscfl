@@ -21,22 +21,13 @@ struct rscfl_shared_mem_layout_t
 
 typedef struct rscfl_shared_mem_layout_t rscfl_shared_mem_layout_t;
 
-struct rscfl_pid_pages_t
-{
-  char *buf;
-  struct rscfl_pid_pages_t *next;
-  pid_t pid;
-};
-typedef struct rscfl_pid_pages_t rscfl_pid_pages_t;
-
 extern long syscall_id_c;
 extern syscall_acct_list_t *syscall_acct_list;
-extern rscfl_pid_pages_t *rscfl_pid_pages;
 
 int acct_next(pid_t, int);
 int _should_acct(pid_t pid, int syscall_nr, int probe_nest, const char *name,
-                 struct accounting **, rscfl_pid_pages_t **);
-int _fill_struct(long, long, struct accounting *, long, rscfl_pid_pages_t *);
+                 struct accounting **);
+int _fill_struct(long, long, struct accounting *, long);
 int _clear_acct_next(pid_t, int);
 
 #endif

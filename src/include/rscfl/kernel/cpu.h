@@ -55,7 +55,7 @@ typedef struct kprobe_priv kprobe_priv;
 struct pid_acct {
   struct hlist_node link; // item in the per-bucket linked list
   pid_t pid;
-  struct accounting* acct_buf;        // shared with user-space
+  struct rscfl_shared_mem_layout_t* shared_buf;        // shared with user-space
   struct kprobe_priv* probe_data;     // private data used by each kprobe
 };
 typedef struct pid_acct pid_acct;

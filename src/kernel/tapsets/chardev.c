@@ -11,7 +11,6 @@
 
 static struct cdev rscfl_cdev;
 static struct class *rscfl_class;
-static rwlock_t pid_pages_lock = __RW_LOCK_UNLOCKED(pid_pages_lock);
 
 static struct file_operations fops = {
     .mmap = rscfl_mmap,
@@ -58,77 +57,55 @@ static int rscfl_mmap(struct file *filp, struct vm_area_struct *vma)
   unsigned long pos;
   unsigned long size = (unsigned long)vma->vm_end - vma->vm_start;
   unsigned long start = (unsigned long)vma->vm_start;
-  char *acct_buf;
-  rscfl_pid_pages_t *new_hd;
+  char *shared_buf;
   pid_acct *pid_acct_node;
   kprobe_priv *probe_data;
 
   if (size > MMAP_BUF_SIZE) return -EINVAL;
 
-  acct_buf = kzalloc(MMAP_BUF_SIZE, GFP_KERNEL);
-  if (!acct_buf) {
+  shared_buf = kzalloc(MMAP_BUF_SIZE, GFP_KERNEL);
+  if (!shared_buf) {
     return -ENOMEM;
   }
 
-  // TODO(lc525): get rid of rscfl_pid_pages_t and replace that with the
-  // per-cpu hash tables
-  write_lock(&pid_pages_lock);
-  new_hd = (struct rscfl_pid_pages_t *)kmalloc(sizeof(struct rscfl_pid_pages_t),
-                                               GFP_KERNEL);
-  if (!new_hd) {
-    kfree(acct_buf);
-    return -ENOMEM;
-  }
-  new_hd->buf = acct_buf;
-  new_hd->pid = current->pid;
-  new_hd->next = rscfl_pid_pages;
-  rscfl_pid_pages = new_hd;
-  write_unlock(&pid_pages_lock);
-
-  // new pid wants resource accounting data, so add (pid, acct_buf) into
+  // new pid wants resource accounting data, so add (pid, shared_buf) into
   // per-cpu hash table.
   //
-  // TODO(lc525, review discussion): decide on whether to add (pid, acct_buf)
+  // TODO(lc525, review discussion): decide on whether to add (pid, shared_buf)
   // into the hash tables of every CPU or just in the hash table of the CPU
   // currently running the app. If we get switched a lot between CPUs it might
   // pay off to pre-add entries at the expense of some memory.
   //
   pid_acct_node = (pid_acct *)kmalloc(sizeof(pid_acct), GFP_KERNEL);
   if(!pid_acct_node) {
-    rscfl_pid_pages = rscfl_pid_pages->next;
-    kfree(new_hd);
-    kfree(acct_buf);
+    kfree(shared_buf);
     return -ENOMEM;
   }
   probe_data = (kprobe_priv *)kzalloc(sizeof(kprobe_priv), GFP_KERNEL);
   if(!probe_data) {
-    rscfl_pid_pages = rscfl_pid_pages->next;
     kfree(pid_acct_node);
-    kfree(new_hd);
-    kfree(acct_buf);
+    kfree(shared_buf);
     return -ENOMEM;
   }
   pid_acct_node->pid = current->pid;
-  pid_acct_node->acct_buf = (struct accounting *)acct_buf;
+  pid_acct_node->shared_buf = (rscfl_shared_mem_layout_t *)shared_buf;
   pid_acct_node->probe_data = probe_data;
   preempt_disable();
   hash_add(CPU_TBL(pid_acct_tbl), &pid_acct_node->link, pid_acct_node->pid);
   CPU_VAR(current_acct) = pid_acct_node;
   preempt_enable();
 
-  // do the actual mmap-ing of acct_buf (kernel memory) into the address space
+  // do the actual mmap-ing of shared_buf (kernel memory) into the address space
   // of the calling process (user space)
-  pos = (unsigned long)acct_buf;
+  pos = (unsigned long)shared_buf;
 
   while (size > 0) {
     page = virt_to_phys((void *)pos);
     if (remap_pfn_range(vma, start, page >> PAGE_SHIFT, MMAP_BUF_SIZE,
                         PAGE_SHARED)) {
-      rscfl_pid_pages = rscfl_pid_pages->next;
       kfree(probe_data);
       kfree(pid_acct_node);
-      kfree(new_hd);
-      kfree(acct_buf);
+      kfree(shared_buf);
       return -EAGAIN;
     }
     start += MMAP_BUF_SIZE;

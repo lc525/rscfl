@@ -14,7 +14,6 @@
 
 long syscall_id_c;
 syscall_acct_list_t *syscall_acct_list;
-rscfl_pid_pages_t *rscfl_pid_pages;
 
 static rwlock_t lock = __RW_LOCK_UNLOCKED(lock);
 
@@ -41,73 +40,53 @@ int acct_next(pid_t pid, int syscall_nr)
  * syscall is executed.
  **/
 int _should_acct(pid_t pid, int syscall_nr, int probe_nest, const char *name,
-                 struct accounting **acct, rscfl_pid_pages_t **rscfl_pid_page)
+                 struct accounting **acct)
 {
   syscall_acct_list_t *e;
-  struct accounting *ret;
-  rscfl_pid_pages_t *pid_page = rscfl_pid_pages;
+  struct accounting *acct_buf;
   pid_acct *current_pid_acct;
   rscfl_shared_mem_layout_t *rscfl_shared_mem;
 
   read_lock(&lock);
+  current_pid_acct = CPU_VAR(current_acct);
   e = syscall_acct_list;
   while (e) {
     if ((e->pid == pid) &&
         ((syscall_nr == -1) || (e->syscall_nr == syscall_nr))) {
-      while (pid_page) {
-        if (pid_page->pid == pid) {
-          *rscfl_pid_page = pid_page;
-          current_pid_acct = CPU_VAR(current_acct);
-          if(current_pid_acct != NULL &&
-             current_pid_acct->acct_buf != (struct accounting*) pid_page->buf)
-            printk("CPU%d:[%d] %s hash buf:%p actual:%p\n", smp_processor_id(),
-                pid, name, current_pid_acct->acct_buf, pid_page->buf);
-          if(current_pid_acct == NULL)
-            printk("CPU%d:[%d] %s hash is null, buf: %p\n", smp_processor_id(),
-                pid, name, pid_page->buf);
-          debugk("\t acct: %p\n", (void *)(*acct));
-          if (*acct != NULL) {
-            read_unlock(&lock);
-            return 1;
-          }
+      if(current_pid_acct != NULL) {
+        if (*acct != NULL) {
           read_unlock(&lock);
-
-          // Find a free struct accounting in the shared memory that we can
-          // use.
-          rscfl_shared_mem = (rscfl_shared_mem_layout_t *)pid_page->buf;
-          ret = rscfl_shared_mem->acct;
-          BUG_ON(!ret);
-          while (ret->in_use == 1) {
-            debugk("in use: %p for (pid, id):(%d, %ld)\n", (void *)ret,
-                   ret->syscall_id.pid, ret->syscall_id.id);
-            ret++;
-            if ((void *)ret > (void *)pid_page->buf +
-                                  sizeof(struct accounting) * STRUCT_ACCT_NUM) {
-              ret = (struct accounting *)pid_page->buf;
-              debugk("_should_acct: wraparound!<<<<<<<\n");
-              break;
-            }
-          }
-          // We have a free struct accounting now, so use it.
-          ret->in_use = 1;
-          ret->syscall_id.pid = pid;
-          ret->syscall_id.id = e->syscall_nr;
-          // Initialise the subsys_accounting indices to -1, as they are used
-          // to index an array, so 0 is valid.
-          memset(ret->acct_subsys, -1, sizeof(short) * NUM_SUBSYSTEMS);
-          debugk("_should_acct %s: (yes, nr %d) %d, into %p\n", name,
-                 e->syscall_nr, pid, (void *)ret);
-          *acct = ret;
           return 1;
-        } else {
-          if (pid_page->next == NULL) {
-            read_unlock(&lock);
-            printk(KERN_ERR "rscfl: pid %d cannot find mapped page\n", pid);
-            *acct = NULL;
-            return 0;
-          }
-          pid_page = pid_page->next;
         }
+        read_unlock(&lock);
+
+        // Find a free struct accounting in the shared memory that we can
+        // use.
+        rscfl_shared_mem = current_pid_acct->shared_buf;
+        acct_buf = rscfl_shared_mem->acct;
+        BUG_ON(!acct_buf);
+        while (acct_buf->in_use == 1) {
+          debugk("in use: %p for (pid, id):(%d, %ld)\n", (void *)acct_buf,
+              acct_buf->syscall_id.pid, acct_buf->syscall_id.id);
+          acct_buf++;
+          if ((void *)acct_buf + sizeof(struct accounting) >
+              (void *)current_pid_acct->shared_buf->subsyses){
+            acct_buf = current_pid_acct->shared_buf->acct;
+            debugk("_should_acct: wraparound!<<<<<<<\n");
+            break;
+          }
+        }
+        // We have a free struct accounting now, so use it.
+        acct_buf->in_use = 1;
+        acct_buf->syscall_id.pid = pid;
+        acct_buf->syscall_id.id = e->syscall_nr;
+        // Initialise the subsys_accounting indices to -1, as they are used
+        // to index an array, so 0 is valid.
+        memset(acct_buf->acct_subsys, -1, sizeof(short) * NUM_SUBSYSTEMS);
+        debugk("_should_acct %s: (yes, nr %d) %d, into %p\n", name,
+            e->syscall_nr, pid, (void *)acct_buf);
+        *acct = acct_buf;
+        return 1;
       }
     }
     e = e->next;
@@ -117,11 +96,11 @@ int _should_acct(pid_t pid, int syscall_nr, int probe_nest, const char *name,
 }
 
 int _fill_struct(long cycles, long wall_clock_time, struct accounting *acct,
-                 long subsys_id, rscfl_pid_pages_t *rscfl_pid_page)
+                 long subsys_id)
 {
   struct subsys_accounting *subsys_acct;
-  rscfl_shared_mem_layout_t *rscfl_mem =
-      (rscfl_shared_mem_layout_t *)rscfl_pid_page->buf;
+  pid_acct *current_pid_acct = CPU_VAR(current_acct);
+  rscfl_shared_mem_layout_t *rscfl_mem = current_pid_acct->shared_buf;
   int subsys_offset = acct->acct_subsys[subsys_id];
 
   if (subsys_offset == -1) {

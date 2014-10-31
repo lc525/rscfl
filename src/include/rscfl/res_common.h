@@ -1,6 +1,8 @@
 #ifndef _RES_COMMON_H_
 #define _RES_COMMON_H_
 
+#include "rscfl/config.h"
+
 #define RSCFL_DRIVER "rscfl"
 #define MMAP_BUF_SIZE 81920  // need to think about this
 #define STRUCT_ACCT_NUM 10   // Need to think about this.

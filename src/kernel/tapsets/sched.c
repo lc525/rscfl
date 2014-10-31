@@ -74,6 +74,17 @@ void on_task_exit(pid_t pid)
   for_each_present_cpu(cpu_id) {
     hash_for_each_possible(per_cpu(pid_acct_tbl, cpu_id), it, link, pid) {
       if(it->pid == pid) {
+        /*
+         * no more probes will be firing on this thread, but perhaps in
+         * userspace we want to reuse the rscfl_handle for a new thread?
+         *
+         * kfree(it->probe_data);
+         *
+         * freeing acct_buf also prove tricky: what if the thread
+         * dies but other threads want to access its resource accounting data?
+         *
+         * kfree(it->acct_buf);
+         */
         hash_del(&it->link);
         break;
       }

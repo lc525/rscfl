@@ -15,7 +15,9 @@ int main(int argc, char *argv[])
   int socfd_2;
   int socfd_3;
 
-  struct subsys_accounting* networking_subsys;
+  int i;
+
+  struct subsys_accounting* subsys;
 
   if (DEBUG) printf("Opening sockets\n");
 
@@ -43,14 +45,13 @@ int main(int argc, char *argv[])
   }
 
   if (!rscfl_read_acct(relay_f_data, &acct)) {
-    networking_subsys =
-        get_subsys_accounting(relay_f_data, &acct, NETWORKINGGENERAL);
-    if (networking_subsys == NULL) {
-      printf("rscfl: Nothing to report.\n");
+    for (i = 0; i < NUM_SUBSYSTEMS; i++) {
+      subsys = get_subsys_accounting(relay_f_data, &acct, i);
+      if (subsys != NULL) {
+	printf("rscfl subsystem %d: cpu_cycles=%llu wall_clock_time=%llu\n",
+	       i, subsys->cpu.cycles, subsys->cpu.wall_clock_time);
+      }
     }
-    printf("rscfl: cpu_cycles=%llu wall_clock_time=%llu\n",
-           networking_subsys->cpu.cycles,
-           networking_subsys->cpu.wall_clock_time);
   } else {
     fprintf(stderr, "rscfl: read_acct failed\n");
   }
@@ -65,19 +66,17 @@ int main(int argc, char *argv[])
   }
 
   if (!rscfl_read_acct(relay_f_data, &acct2)) {
-    networking_subsys =
-        get_subsys_accounting(relay_f_data, &acct, NETWORKINGGENERAL);
-    if (networking_subsys == NULL) {
-      printf("rscfl: Nothing to report.\n");
+    for (i = 0; i < NUM_SUBSYSTEMS; i++) {
+      subsys = get_subsys_accounting(relay_f_data, &acct, i);
+      if (subsys != NULL) {
+	printf("rscfl subsys %d: cpu_cycles=%llu\n"
+	       "wall_clock_time=%llu\n"
+	       "page_faults=%llu\n"
+	       "align_faults=%llu\n", i, subsys->cpu.cycles,
+	       subsys->cpu.wall_clock_time, subsys->mem.page_faults,
+	       subsys->mem.align_faults);
+      }
     }
-    printf(
-        "rscfl 2: cpu_cycles=%llu\n"
-        "wall_clock_time=%llu\n"
-        "page_faults=%llu\n"
-        "align_faults=%llu\n",
-        networking_subsys->cpu.cycles, networking_subsys->cpu.wall_clock_time,
-        networking_subsys->mem.page_faults,
-        networking_subsys->mem.align_faults);
   } else {
     fprintf(stderr, "rscfl: read_acct failed\n");
   }

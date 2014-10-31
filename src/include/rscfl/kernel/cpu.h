@@ -26,23 +26,41 @@
  *
  *   pid_acct* pa = (pid_acct *)kmalloc(sizeof(pid_acct), GFP_ATOMIC);
  *   pa->pid = current->pid;
- *   hash_add(CPU_TBL(pid_to_acct_tbl), &pa->link, pa->pid);
+ *   hash_add(CPU_TBL(pid_acct_tbl), &pa->link, pa->pid);
  *
  * LOOKUP example (iterate through all elements in a hash bucket):
  *
  *    pid_acct *it;
- *    hash_for_each_possible(CPU_TBL(pid_to_acct_tbl), it, link, key)
+ *    hash_for_each_possible(CPU_TBL(pid_acct_tbl), it, link, key)
  *      if(it->pid == key)
  *        //do stuff with pid_acct *it
  */
+
+//TODO(lc525): move kprobe_priv into one of the kprobe headers once jas250
+//merges the kprobe API
+//
+// kprobe_priv stores probe counter snapshots so that one can determine
+// the resource consumption between subsystem crossing boundaries.
+//
+// nest_level is incremented on probing nested functions. It is initially 0 and
+// the application request for measuring the resources consumed by a system call
+// is considered completed when nest_level returns to 0.
+struct kprobe_priv {
+  u32 nest_level;
+  long cycles;
+  long wall_clock_time;
+};
+typedef struct kprobe_priv kprobe_priv;
+
 struct pid_acct {
   struct hlist_node link; // item in the per-bucket linked list
   pid_t pid;
-  struct accounting* acct_buf;
+  struct accounting* acct_buf;        // shared with user-space
+  struct kprobe_priv* probe_data;     // private data used by each kprobe
 };
 typedef struct pid_acct pid_acct;
 
-DECLARE_PER_CPU_HASHTABLE(pid_to_acct_tbl, CPU_PIDACCT_HTBL_LOGSIZE);
+DECLARE_PER_CPU_HASHTABLE(pid_acct_tbl, CPU_PIDACCT_HTBL_LOGSIZE);
 
 /* current_acct
  * This variable always contains a pointer to the pid_acct structure in

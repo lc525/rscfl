@@ -63,6 +63,13 @@ else(bt_lower STREQUAL "debug")
   set(DEFINE_NDEBUG "\#define NDEBUG")
 endif(bt_lower STREQUAL "debug")
 
+set(LINUX_ROOT $ENV{RSCFL_LINUX_ROOT}
+  CACHE PATH "A linux source directory for subsystem identification")
+set(LINUX_BUILD $ENV{RSCFL_LINUX_BUILD}
+  CACHE PATH "The linux directory in which vmlinux was originally built")
+set(LINUX_VMLINUX $ENV{RSCFL_LINUX_VMLINUX}
+  CACHE PATH "The path towards a vmlinux that was built with CONFIG_DEBUG_INFO=y")
+
 ###
 #
 # NO EXTERNAL PROJECT DEPENDENCIES (YET)
@@ -98,6 +105,19 @@ set (PROJECT_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/kernel)
 include_directories("${GEN_INCLUDE_DIR}") # for generated configs
 include_directories("${PROJECT_INCLUDE_DIR}")
 
+# build list of subsystems
+#
+# do not depend on any of those generated files directly, but on
+# the subsys_gen build target
+include(subsys)
+subsys_header_gen(${LINUX_ROOT}
+  ${LINUX_VMLINUX}
+  ${LINUX_BUILD}
+  ${PROJECT_INCLUDE_DIR}/rscfl/subsys_list.h
+  ${PROJECT_INCLUDE_DIR}/rscfl/kernel/subsys_addr.h
+  ${PROJECT_BINARY_DIR}/subsys_list.json
+)
+
 # build systemtap modules
 include(stap)
 
@@ -120,16 +140,19 @@ set (stap_SOURCES
   ${PROJECT_SOURCE_DIR}/tapsets/hasht.c
   ${PROJECT_SOURCE_DIR}/tapsets/netlink.c
   ${PROJECT_SOURCE_DIR}/tapsets/probes.c
+  ${PROJECT_SOURCE_DIR}/tapsets/sched.c
   ${PROJECT_SOURCE_DIR}/tapsets/stap_shim.c
 )
 
 set (stap_DEPS # if any of those files change, the stap ko is rebuilt
+  subsys_gen
   ${PROJECT_BINARY_DIR}/rscfl/config.h
   ${PROJECT_INCLUDE_DIR}/rscfl/costs.h
   ${PROJECT_INCLUDE_DIR}/rscfl/PMurHash.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/hasht.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/perf.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/probes.h
+  ${PROJECT_INCLUDE_DIR}/rscfl/kernel/sched.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/stap_shim.h
   ${PROJECT_SOURCE_DIR}/resourceful.stp
 )

@@ -20,14 +20,14 @@ static const char VERSION[] = "@VERSION@";
 //
 // CPU_PIDACCT_HTBL_LOGSIZE - the size of per-cpu hash tables storing
 //                            (pid, current_accounting_region) pairs (K,V).
-#define CPU_PIDACCT_HTBL_LOGSIZE 2
+#define CPU_PIDACCT_HTBL_LOGSIZE 6
 
 // communication parameters
 #define NETLINK_USER 31
 
 // character device properties
 // the device is mmap-ed in user space for reading accounting results
-#define RSCFL_MAJOR 90
+#define RSCFL_MAJOR 91
 #define RSCFL_MINOR 0
 #endif
 

@@ -53,8 +53,7 @@
 
 #define STAGE_1
 // #define STAGE_2  // The elements marked with #ifdef STAGE_2 will be
-                    // implemented after all the STAGE_1 functionality is in place
-
+// implemented after all the STAGE_1 functionality is in place
 
 /* The resource enum, together with the cost_bitmap structure, lets the end-user
  * quickly identify what kernel modules were touched when a syscall was made.

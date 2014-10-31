@@ -27,6 +27,17 @@ probe end
 }
 
 /*--------------------------------
+ * scheduler interposition
+ */
+
+probe rscfl.sched.ctxswitch,
+      rscfl.sched.migrate,
+      rscfl.sched.task_exit
+{
+}
+
+
+/*--------------------------------
  * call probes
  */
 

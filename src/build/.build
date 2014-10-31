@@ -6,6 +6,57 @@ JOPT=2
 INSTALL=""
 TARGETS=""
 
+
+# Set LINUX_ROOT here or set a RSCFL_LINUX_ROOT environment variable pointing
+# to the root of a valid linux source tree
+#
+if [[ -z "$RSCFL_LINUX_ROOT" ]]
+then
+  LINUX_ROOT="/home/calucian/dev-kernel/linux-dirty"
+else
+  LINUX_ROOT=$RSCFL_LINUX_ROOT
+fi
+
+# Set LINUX_BUILD here or set a RSCFL_LINUX_BUILD environment variable.
+# You will typically determine this path by running
+#
+# $ objdump -d vmlinux
+#
+# and picking the address of a callq instruction. Then pass that address
+# to addr2line:
+#
+# $ addr2line -e vmlinux ffffffff8105da50
+#
+# The prefix of the path printed by addr2line that is the root of a linux
+# source tree should be set as the value of LINUX_BUILD (or as the value of the
+# RSCFL_LINUX_BUILD environment variable). For example, if addr2line outputs
+#
+# /home/calucian/dev-kernel/linux-dirty/arch/x86/mm/pf_in.c:465
+#
+# then set the variable to /home/calucian/dev-kernel/linux-dirty
+#
+if [[ -z "$RSCFL_LINUX_BUILD" ]]
+then
+  LINUX_BUILD="/home/calucian/dev-kernel/linux-dirty"
+else
+  LINUX_BUILD=$RSCFL_LINUX_BUILD
+fi
+
+# Set LINUX_VMLINUX here or set a RSCFL_LINUX_VMLINUX environment variable
+# pointing to a valid vmlinux file (a vmlinux built with debug info:
+# CONFIG_DEBUG_INFO=y)
+#
+if [[ -z "$RSCFL_LINUX_VMLINUX" ]]
+then
+  LINUX_VMLINUX="/home/calucian/dev-kernel/linux-dirty/vmlinux"
+else
+  LINUX_VMLINUX=$RSCFL_LINUX_VMLINUX
+fi
+
+
+# you shouldn't need to change anything below this line
+# -----
+
 function print_usage {
   echo "./.build [OPTIONS]"
   echo "OPTIONS:"
@@ -64,7 +115,10 @@ then
   ./.clean
 fi
 
-cmake -DCMAKE_BUILD_TYPE=$TYPE ..
+cmake -DCMAKE_BUILD_TYPE=$TYPE        \
+      -DLINUX_ROOT=$LINUX_ROOT        \
+      -DLINUX_BUILD=$LINUX_BUILD      \
+      -DLINUX_VMLINUX=$LINUX_VMLINUX ..
 
 if [ $VBOSE -eq 1 ]
 then

@@ -19,14 +19,16 @@ while getopts ":h" opt; do
   esac
 done
 
+sudo dmesg --clear
+
 if [ ! -z "$MODNAME" ]
 then
   #existing processes using rscfl*.ko
   echo "killing processes dealing with rscfl*.ko..."
-  PIDS=`ps -ef | grep rscfl_*.ko | grep -v "grep\|rscfl_ko_update" | awk '{ print $2; }'`
+  PIDS=`ps -ef | grep staprun | grep -v "grep" | awk '{ print $2; }'`
   if [ ! -z "$PIDS" ]
   then
-    sudo kill $PIDS
+    sudo kill -s SIGINT $PIDS
   fi
 fi
 

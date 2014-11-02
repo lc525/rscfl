@@ -36,17 +36,17 @@ rscfl_subsys_addr_template = """
 #include "rscfl/{{ subsys_list_header }}"
 
 {% for subsystem in subsystems %}
-static kprobe_opcode_t {{ subsystem }}_ADDRS[] = {{ '{' }}
+static kprobe_opcode_t *{{ subsystem }}_ADDRS[] = {{ '{' }}
 {% for addr in subsystems[subsystem] %}
-  0x{{ addr }},
+  (kprobe_opcode_t *)(0x{{ addr }}),
 {% endfor %}
   0
 {{ '};' }}
 {% endfor %}
 
-rscfl_addr_list *probe_addrs[NUM_SUBSYSTEMS] = {{ '{'  }}
+static kprobe_opcode_t **probe_addrs[] = {{ '{'  }}
 {% for subsys in subsystems %}
-  &{{ subsys }}_ADDRS,
+  {{ subsys }}_ADDRS,
 {% endfor %}
 {{ '};' }}
 #endif

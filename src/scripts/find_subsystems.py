@@ -158,7 +158,8 @@ def get_addresses_of_boundary_calls(linux, build_dir, vmlinux_path):
                 callee_subsys = to_upper_alpha(callee_subsys)
                 if callee_subsys not in boundary_fns:
                     boundary_fns[callee_subsys] = []
-                boundary_fns[callee_subsys].append(caller_addr)
+                if callee_addr not in boundary_fns[callee_subsys]:
+                    boundary_fns[callee_subsys].append(callee_addr)
     return boundary_fns
 
 

@@ -111,7 +111,7 @@ def get_subsys(addr, addr2line, linux, build_dir):
                                 stdout=subprocess.PIPE)
         (stdout, stderr) = proc.communicate()
         maintainers = stdout.strip().split("\n")
-        subsys = ""
+        subsys = "ERROR_DECODING_SUBSYS"
         # The most specific subsystem is listed straight after linux-kernel
         # mailing list.
         for i, line in enumerate(maintainers):

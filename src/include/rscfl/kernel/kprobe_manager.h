@@ -4,8 +4,8 @@
 #include<linux/kprobes.h>
 
 struct rscfl_probe_list_n {
-	struct kretprobe *probe;
-	struct rscfl_probe_list_n *next;
+  struct kretprobe *probe;
+  struct rscfl_probe_list_n *next;
 };
 typedef struct rscfl_probe_list_n rscfl_probe_list_n;
 
@@ -18,7 +18,7 @@ struct kretprobe *rscfl_create_probe(kprobe_opcode_t *address,
                                   kretprobe_handler_t kp_rtn_handler);
 
 // Un-register and free multiple probes
-void rscfl_unregister_kprobes();
+void rscfl_unregister_kprobes(void);
 
 // Create and init multiple kprobes
 int rscfl_init_rtn_kprobes(kprobe_opcode_t **subsys_addrs[], int num,

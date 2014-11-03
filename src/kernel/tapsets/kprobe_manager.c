@@ -40,7 +40,7 @@ void rscfl_unregister_kprobe(struct kretprobe *probe)
   unregister_kretprobe(probe);
 }
 
-void rscfl_unregister_kprobes()
+void rscfl_unregister_kprobes(void)
 {
   rscfl_probe_list_n *probes_head = probe_list;
   while (probes_head != NULL) {

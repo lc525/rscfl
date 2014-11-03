@@ -1,21 +1,24 @@
-#ifndef KPROBE_MANAGER_H
-#define KPROBE_MANAGER_H
+#ifndef _RSCFL_KPROBE_MANAGER_H_
+#define _RSCFL_KPROBE_MANAGER_H_
 
-#include<linux/kprobes.h>
+#include <linux/kprobes.h>
 
-struct rscfl_probe_list_n {
+struct rscfl_probe_list_n
+{
   struct kretprobe *probe;
   struct rscfl_probe_list_n *next;
 };
 typedef struct rscfl_probe_list_n rscfl_probe_list_n;
 
-int rscfl_default_pre_handler(struct kretprobe_instance *probe, struct pt_regs *regs);
-int rscfl_default_rtn_handler(struct kretprobe_instance *probe, struct pt_regs *regs);
+int rscfl_default_pre_handler(struct kretprobe_instance *probe,
+                              struct pt_regs *regs);
+int rscfl_default_rtn_handler(struct kretprobe_instance *probe,
+                              struct pt_regs *regs);
 
 // Create a kprobe
 struct kretprobe *rscfl_create_probe(kprobe_opcode_t *address,
-                                  kretprobe_handler_t kp_pre_handler,
-                                  kretprobe_handler_t kp_rtn_handler);
+                                     kretprobe_handler_t kp_pre_handler,
+                                     kretprobe_handler_t kp_rtn_handler);
 
 // Un-register and free multiple probes
 void rscfl_unregister_kprobes(void);

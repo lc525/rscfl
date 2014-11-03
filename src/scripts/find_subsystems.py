@@ -36,15 +36,15 @@ rscfl_subsys_addr_template = """
 #include "rscfl/{{ subsys_list_header }}"
 
 {% for subsystem in subsystems %}
-static kprobe_opcode_t {{ subsystem }}_ADDRS[] = {{ '{' }}
+static kprobe_opcode_t *{{ subsystem }}_ADDRS[] = {{ '{' }}
 {% for addr in subsystems[subsystem] %}
-  (kprobe_opcode_t)(0x{{ addr }} & 0xffffffff),
+  (kprobe_opcode_t *)(0x{{ addr }}),
 {% endfor %}
   0
 {{ '};' }}
 {% endfor %}
 
-static kprobe_opcode_t *probe_addrs[] = {{ '{'  }}
+static kprobe_opcode_t **probe_addrs[] = {{ '{'  }}
 {% for subsys in subsystems %}
   {{ subsys }}_ADDRS,
 {% endfor %}
@@ -111,7 +111,7 @@ def get_subsys(addr, addr2line, linux, build_dir):
                                 stdout=subprocess.PIPE)
         (stdout, stderr) = proc.communicate()
         maintainers = stdout.strip().split("\n")
-        subsys = ""
+        subsys = "ERROR_DECODING_SUBSYS"
         # The most specific subsystem is listed straight after linux-kernel
         # mailing list.
         for i, line in enumerate(maintainers):
@@ -158,7 +158,8 @@ def get_addresses_of_boundary_calls(linux, build_dir, vmlinux_path):
                 callee_subsys = to_upper_alpha(callee_subsys)
                 if callee_subsys not in boundary_fns:
                     boundary_fns[callee_subsys] = []
-                boundary_fns[callee_subsys].append(caller_addr)
+                if callee_addr not in boundary_fns[callee_subsys]:
+                    boundary_fns[callee_subsys].append(callee_addr)
     return boundary_fns
 
 

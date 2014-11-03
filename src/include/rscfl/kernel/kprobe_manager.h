@@ -15,10 +15,7 @@ int rscfl_default_pre_handler(struct kretprobe_instance *probe,
 int rscfl_default_rtn_handler(struct kretprobe_instance *probe,
                               struct pt_regs *regs);
 
-// Create a kprobe
-struct kretprobe *rscfl_create_probe(kprobe_opcode_t *address,
-                                     kretprobe_handler_t kp_pre_handler,
-                                     kretprobe_handler_t kp_rtn_handler);
+void rscfl_unregister_kprobes(void);
 
 // Create and init multiple kprobes
 int rscfl_init_rtn_kprobes(kprobe_opcode_t **subsys_addrs[], int num,

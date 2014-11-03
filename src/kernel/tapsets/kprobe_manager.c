@@ -17,22 +17,6 @@ int rscfl_default_rtn_handler(struct kretprobe_instance *probe,
   return 0;
 }
 
-struct kretprobe *rscfl_create_probe(kprobe_opcode_t *address,
-                                     kretprobe_handler_t kp_pre_handler,
-                                     kretprobe_handler_t kp_rtn_handler)
-{
-  struct kretprobe *probe = kzalloc(sizeof(struct kretprobe), GFP_KERNEL);
-  if (!probe) {
-    return NULL;
-  } else {
-    probe->handler = kp_rtn_handler;
-    probe->entry_handler = kp_pre_handler;
-    probe->kp.addr = address;
-    probe->maxactive = 0;
-    return probe;
-  }
-}
-
 void rscfl_unregister_kprobes(void)
 {
   rscfl_probe_list_n *probes_head = probe_list;
@@ -43,6 +27,7 @@ void rscfl_unregister_kprobes(void)
     kfree(probes_head);
     probes_head = next;
   }
+  probe_list = NULL;
 }
 
 int rscfl_init_rtn_kprobes(kprobe_opcode_t **subsys_addrs[], int num,
@@ -52,7 +37,6 @@ int rscfl_init_rtn_kprobes(kprobe_opcode_t **subsys_addrs[], int num,
   rscfl_probe_list_n *probe_head = NULL;
   rscfl_probe_list_n *probe_tail = NULL;
 
-  int success_count = 0;
   int fail_count = 0;
 
   /* Subsys addr layout:
@@ -64,41 +48,47 @@ int rscfl_init_rtn_kprobes(kprobe_opcode_t **subsys_addrs[], int num,
     kprobe_opcode_t **sub_addr = subsys_addrs[i];
 
     while (*sub_addr != 0) {
-      struct kretprobe *probe =
-          rscfl_create_probe(*sub_addr, kp_pre_handler, kp_rtn_handler);
-      if (probe != NULL) {
-        int rtn;
-        if ((rtn = register_kretprobe(probe)) < 0) {
-          printk("Error setting kprobe on address:%x error:%d\n", *sub_addr,
-                 rtn);
-          fail_count++;
+      /* Create a probe */
+      struct kretprobe *probe = kzalloc(sizeof(struct kretprobe), GFP_KERNEL);
+      if (!probe) {
+        goto error_no_mem;
+      }
+      probe->handler = kp_rtn_handler;
+      probe->entry_handler = kp_pre_handler;
+      probe->kp.addr = *sub_addr;
+      probe->maxactive = 0;
+
+      /* Try to register it */
+      int rtn;
+      if ((rtn = register_kretprobe(probe)) < 0) {
+        printk("Error setting kprobe on address:%x error:%d\n", *sub_addr, rtn);
+        fail_count++;
+        kfree(probe);
+      } else {
+        rscfl_probe_list_n *curr_probe = (rscfl_probe_list_n *)kzalloc(
+            sizeof(rscfl_probe_list_n), GFP_KERNEL);
+        if (!curr_probe) {
           kfree(probe);
+          goto error_no_mem;
         } else {
-          rscfl_probe_list_n *curr_probe = (rscfl_probe_list_n *)kzalloc(
-              sizeof(rscfl_probe_list_n), GFP_KERNEL);
-          if (!curr_probe) {
-            printk("Couldn't create new list entry\n");
-            kfree(probe);
+          curr_probe->probe = probe;
+          if (probe_head == NULL) {
+            probe_head = curr_probe;
+            probe_tail = curr_probe;
           } else {
-            curr_probe->probe = probe;
-            if (probe_head == NULL) {
-              probe_head = curr_probe;
-              probe_tail = curr_probe;
-            } else {
-              probe_tail->next = curr_probe;
-              probe_tail = curr_probe;
-            }
-            success_count++;
+            probe_tail->next = curr_probe;
+            probe_tail = curr_probe;
           }
         }
-      } else {
-        printk("Error creating probe for address:%x\n", *sub_addr);
       }
       sub_addr++;
     }
   }
   printk("Done creating and registering probes\n");
   probe_list = probe_head;
-  return success_count;
+  return fail_count;
+
+error_no_mem:
+  return -ENOMEM;
 }
 

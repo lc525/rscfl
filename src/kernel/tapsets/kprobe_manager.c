@@ -3,6 +3,8 @@
 
 #include "kprobe_manager.h"
 
+static rscfl_probe_list_n *probe_list;
+
 int rscfl_default_pre_handler(struct kretprobe_instance *probe,
                               struct pt_regs *regs)
 {
@@ -38,8 +40,9 @@ void rscfl_unregister_kprobe(struct kretprobe *probe)
   unregister_kretprobe(probe);
 }
 
-void rscfl_unregister_kprobes(rscfl_probe_list_n *probes_head)
+void rscfl_unregister_kprobes()
 {
+  rscfl_probe_list_n *probes_head = probe_list;
   while (probes_head != NULL) {
     rscfl_probe_list_n *next = probes_head->next;
     unregister_kretprobe(probes_head->probe);
@@ -49,8 +52,8 @@ void rscfl_unregister_kprobes(rscfl_probe_list_n *probes_head)
   }
 }
 
-rscfl_probe_list_n *rscfl_init_rtn_kprobes(kprobe_opcode_t **subsys_addrs[],
-                                           int *num,
+int rscfl_init_rtn_kprobes(kprobe_opcode_t **subsys_addrs[],
+                                           int num,
                                            kretprobe_handler_t kp_pre_handler,
                                            kretprobe_handler_t kp_rtn_handler)
 {
@@ -65,7 +68,7 @@ rscfl_probe_list_n *rscfl_init_rtn_kprobes(kprobe_opcode_t **subsys_addrs[],
    * |SUBSYS| -> 0x..., 0x..., 0x..., 0x...
    */
   int i;
-  for (i = 0; i < *num; i++) {
+  for (i = 0; i < num; i++) {
     kprobe_opcode_t **sub_addr = subsys_addrs[i];
     printk("\nIn new subsystem\n");
 
@@ -109,7 +112,7 @@ rscfl_probe_list_n *rscfl_init_rtn_kprobes(kprobe_opcode_t **subsys_addrs[],
     }
   }
   printk("Done creating and registering probes\n");
-  *num = success_count;
-  return probe_head;
+  probe_list = probe_head;
+  return success_count;
 }
 

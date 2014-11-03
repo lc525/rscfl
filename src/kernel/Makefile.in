@@ -1,4 +1,3 @@
-KBUILD_CLFAGS += @K_DBG@
 _KBUILD_CFLAGS := $(call flags,KBUILD_CFLAGS)
 stap_check_gcc = $(shell  if $(CC) $(1) -S -o /dev/null -xc /dev/null > /dev/null 2>&1; then echo "$(1)"; else echo "$(2)"; fi)
 CHECK_BUILD := $(CC) $(NOSTDINC_FLAGS) $(KBUILD_CPPFLAGS) $(CPPFLAGS) $(LINUXINCLUDE) $(_KBUILD_CFLAGS) $(CFLAGS_KERNEL) $(EXTRA_CFLAGS) $(CFLAGS) -DKBUILD_BASENAME=\"@stap_MOD_NAME@\" -Werror -S -o /dev/null -xc
@@ -7,6 +6,7 @@ SYSTEMTAP_RUNTIME = "@STAP_RUNTIME@"
 CONFIG_MODULE_SIG := n
 EXTRA_CFLAGS := @STAP_INCLUDES@
 EXTRA_CFLAGS += -Iinclude2/asm/mach-default
+EXTRA_CFLAGS += @K_DBG@
 STAPCONF_HEADER := @OUT_DIR@/stapconf_gen_@PROJECT_PATCH_VERSION@.h
 $(STAPCONF_HEADER):
 	@echo -n > $@
@@ -101,6 +101,7 @@ EXTRA_CFLAGS += -fasynchronous-unwind-tables
 EXTRA_CFLAGS += $(call cc-option,-Wframe-larger-than=512)
 EXTRA_CFLAGS += -Wno-unused -Werror
 EXTRA_CFLAGS += -I"@STAP_RUNTIME@"
+EXTRA_CFLAGS += @K_DBG@
 STAP_GEN_FILES := $(wildcard @OUT_DIR@/@stap_MOD_NAME@*.c)
 STAP_OBJ_FILES := $(patsubst %.c, %.o, $(STAP_GEN_FILES))
 obj-m := @stap_MOD_NAME@.o

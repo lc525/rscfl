@@ -20,9 +20,6 @@ struct kretprobe *rscfl_create_probe(kprobe_opcode_t *address,
                                      kretprobe_handler_t kp_pre_handler,
                                      kretprobe_handler_t kp_rtn_handler);
 
-// Un-register and free multiple probes
-void rscfl_unregister_kprobes(void);
-
 // Create and init multiple kprobes
 int rscfl_init_rtn_kprobes(kprobe_opcode_t **subsys_addrs[], int num,
                            kretprobe_handler_t kp_pre_handler,

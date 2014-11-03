@@ -32,6 +32,10 @@ function(STAP_BUILD MOD_NAME INCLUDES OUT_DIR GEN_SRC SRC)
   JOIN("${_stap_include_path}" " " _stap_includes)
   set(STAP_INCLUDES ${_stap_includes})
 
+  if(NOT DEFINED DEFINE_NDEBUG)
+    set(K_DBG "-g")
+  endif()
+
   # Generate extra files list
   foreach(SRC_FIL ${SRC})
     get_filename_component(ABS_PATH ${SRC_FIL} ABSOLUTE)

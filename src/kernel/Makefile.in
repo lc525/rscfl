@@ -1,3 +1,4 @@
+KBUILD_CLFAGS += @K_DBG@
 _KBUILD_CFLAGS := $(call flags,KBUILD_CFLAGS)
 stap_check_gcc = $(shell  if $(CC) $(1) -S -o /dev/null -xc /dev/null > /dev/null 2>&1; then echo "$(1)"; else echo "$(2)"; fi)
 CHECK_BUILD := $(CC) $(NOSTDINC_FLAGS) $(KBUILD_CPPFLAGS) $(CPPFLAGS) $(LINUXINCLUDE) $(_KBUILD_CFLAGS) $(CFLAGS_KERNEL) $(EXTRA_CFLAGS) $(CFLAGS) -DKBUILD_BASENAME=\"@stap_MOD_NAME@\" -Werror -S -o /dev/null -xc

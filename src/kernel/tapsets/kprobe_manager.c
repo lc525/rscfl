@@ -1,7 +1,6 @@
+#include "rscfl/kernel/kprobe_manager.h"
 #include <linux/kernel.h>
 #include <linux/slab.h>
-
-#include "kprobe_manager.h"
 
 static rscfl_probe_list_n *probe_list;
 
@@ -47,7 +46,8 @@ int rscfl_init_rtn_kprobes(kprobe_opcode_t **subsys_addrs[], int num,
   for (i = 0; i < num; i++) {
     kprobe_opcode_t **sub_addr = subsys_addrs[i];
 
-    while (*sub_addr != 0) {
+    while (*sub_addr) {
+      int rtn;
       /* Create a probe */
       struct kretprobe *probe = kzalloc(sizeof(struct kretprobe), GFP_KERNEL);
       if (!probe) {
@@ -59,9 +59,8 @@ int rscfl_init_rtn_kprobes(kprobe_opcode_t **subsys_addrs[], int num,
       probe->maxactive = 0;
 
       /* Try to register it */
-      int rtn;
       if ((rtn = register_kretprobe(probe)) < 0) {
-        printk("Error setting kprobe on address:%x error:%d\n", *sub_addr, rtn);
+        printk("Error setting kprobe on address:%x error:%d\n", **sub_addr, rtn);
         fail_count++;
         kfree(probe);
       } else {
@@ -89,6 +88,7 @@ int rscfl_init_rtn_kprobes(kprobe_opcode_t **subsys_addrs[], int num,
   return fail_count;
 
 error_no_mem:
+  rscfl_unregister_kprobes();
   return -ENOMEM;
 }
 

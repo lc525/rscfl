@@ -60,7 +60,7 @@ int rscfl_init_rtn_kprobes(kprobe_opcode_t **subsys_addrs[], int num,
 
       /* Try to register it */
       if ((rtn = register_kretprobe(probe)) < 0) {
-        printk("Error setting kprobe on address:%x error:%d\n", **sub_addr, rtn);
+        printk("Error setting kprobe on address:%p error:%d\n", *sub_addr, rtn);
         fail_count++;
         kfree(probe);
       } else {

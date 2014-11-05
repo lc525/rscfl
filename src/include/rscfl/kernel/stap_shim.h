@@ -27,7 +27,6 @@ extern syscall_acct_list_t *syscall_acct_list;
 int acct_next(pid_t, int);
 int _should_acct(pid_t pid, int syscall_nr, int probe_nest, const char *name,
                  struct accounting **);
-int _fill_struct(long, long, struct accounting *, long);
 int _clear_acct_next(pid_t, int);
 
 #endif

@@ -3,8 +3,10 @@
 
 #include "rscfl/costs.h"
 
-int rscfl_perf_get_current_vals(struct subsys_accounting*);
-
 int rscfl_perf_init(void);
+
+void rscfl_subsystem_entry(rscfl_subsys);
+
+void rscfl_subsystem_exit(rscfl_subsys);
 
 #endif /* _PERF_H_ */

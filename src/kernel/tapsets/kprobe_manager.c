@@ -2,17 +2,21 @@
 #include <linux/kernel.h>
 #include <linux/slab.h>
 
+#include "rscfl/kernel/perf.h"
+
 static rscfl_probe_list_n *probe_list;
 
 int rscfl_default_pre_handler(struct kretprobe_instance *probe,
                               struct pt_regs *regs)
 {
+  rscfl_subsystem_entry(NETWORKINGGENERAL);
   return 0;
 }
 
 int rscfl_default_rtn_handler(struct kretprobe_instance *probe,
                               struct pt_regs *regs)
 {
+  rscfl_subsystem_exit(NETWORKINGGENERAL);
   return 0;
 }
 
@@ -60,7 +64,8 @@ int rscfl_init_rtn_kprobes(kprobe_opcode_t **subsys_addrs[], int num,
 
       /* Try to register it */
       if ((rtn = register_kretprobe(probe)) < 0) {
-        printk("Error setting kprobe on address:%p error:%d\n", *sub_addr, rtn);
+        printk(KERN_ERR
+	       "Error setting kprobe on address:%p error:%d\n", *sub_addr, rtn);
         fail_count++;
         kfree(probe);
       } else {

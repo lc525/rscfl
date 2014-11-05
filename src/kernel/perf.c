@@ -27,8 +27,8 @@ static struct perf_event *event_counters[NUM_SW_EVENTS];
 /*
  * Use perf to read the current resources, and store them in acct_subsys.
  */
-static int rscfl_perf_get_current_vals(struct subsys_accounting *acct_subsys,
-                                       _Bool add)
+int rscfl_perf_get_current_vals(struct subsys_accounting *acct_subsys,
+                                _Bool add)
 {
   u64 enabled;
   u64 running;

@@ -38,37 +38,3 @@ function kpid:long()
 %{
   STAP_RETVALUE = current->pid;
 %}
-
-function should_acct:long(name:string)
-%{
-  int res = _should_acct(current->pid, -1, global(s_probe_nest),
-                         STAP_ARG_name, &acct);
-  STAP_RETVALUE = res;
-%}
-
-function should_acct_pid:long(pid:long, syscall_nr:long, name:string)
-%{
-  int res = _should_acct(STAP_ARG_pid, STAP_ARG_syscall_nr, &acct,
-                         global(s_probe_nest), STAP_ARG_name);
-  STAP_RETVALUE = res;
-%}
-
-function fill_struct(vfs:long, wall_clock_time:long, fill_type:long)
-%{
-  debugk("Nest %lld\n", global(s_probe_nest));
-//  rscfl_perf_get_current_vals(acct);
-  _fill_struct(STAP_ARG_vfs, STAP_ARG_wall_clock_time, acct,
-               STAP_ARG_fill_type);
-%}
-
-function clear_acct_next(pid:long, syscall_nr:long)
-%{
-  acct = NULL;
-  debugk("clear!\n");
-  _clear_acct_next(STAP_ARG_pid, STAP_ARG_syscall_nr);
-%}
-
-function acct_now:long()
-%{
-  STAP_RETVALUE = (acct != NULL && acct->syscall_id.pid == current->pid);
-%}

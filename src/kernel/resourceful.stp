@@ -1,9 +1,5 @@
 #!/usr/bin/stap -g
 
-global cycles=0;
-global wall_clock_time;
-global probe_nest = 0;
-
 /*--------------------------------
  * global probes (init/cleanup)
  */
@@ -34,86 +30,4 @@ probe rscfl.sched.ctxswitch,
       rscfl.sched.migrate,
       rscfl.sched.task_exit
 {
-}
-
-
-/*--------------------------------
- * call probes
- */
-
-probe kernel.function("__kmalloc").call,
-      kernel.function("kmem_cache_alloc").call,
-      kernel.function("sys_accept").call,
-      kernel.function("sys_socket").call,
-      kernel.function("sock_alloc_file").call,
-      kernel.function("inet_accept").call,
-      kernel.function("sock_sendpage").call,
-      kernel.function("new_inode_pseudo").call,
-      kernel.function("get_unused_fd_flags").call,
-      kernel.function("mntget").call,
-      kernel.function("sys_sendfile").call
-{
-  start = gettimeofday_us();
-  if(should_acct(probefunc())) {
-    probe_nest++;
-    cycles = get_cycles();
-    wall_clock_time = start;
-  }
-}
-
-/*----------------------------------
- * return probes (per subsystem)
- */
-
-/*
- * NET
- */
-probe kernel.function("sys_accept").return,
-      kernel.function("sys_socket").return,
-      kernel.function("sock_alloc_file").return,
-      kernel.function("inet_accept").return,
-      kernel.function("sock_sendpage").return
-{
-  if (acct_now()) {
-    fill_struct(get_cycles() - cycles, gettimeofday_us() - wall_clock_time,
-		%{NETWORKINGGENERAL%});
-    probe_nest -= 1;
-    if(probe_nest == 0){
-      clear_acct_next(kpid(), -1);
-    }
-  }
-}
-
-/*
- * FS
- */
-probe kernel.function("new_inode_pseudo").return,
-      kernel.function("get_unused_fd_flags").return,
-      kernel.function("mntget").return,
-      kernel.function("sys_sendfile").return
-{
-  if (acct_now()) {
-    fill_struct(get_cycles() - cycles, gettimeofday_us() - wall_clock_time,
-    %{FILESYSTEMSVFSANDINFRASTRUCTURE%});
-    probe_nest -= 1;
-    if(probe_nest == 0){
-      clear_acct_next(kpid(), -1);
-    }
-  }
-}
-
-/*
- * MM
- */
-probe kernel.function("kmem_cache_alloc").return,
-      kernel.function("__kmalloc").return
-{
-  if (acct_now()) {
-    fill_struct(get_cycles() - cycles, gettimeofday_us() - wall_clock_time,
-    %{FILESYSTEMSVFSANDINFRASTRUCTURE%});
-    probe_nest -= 1;
-    if(probe_nest == 0){
-      clear_acct_next(kpid(), -1);
-    }
-  }
 }

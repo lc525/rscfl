@@ -1,8 +1,11 @@
-#include "rscfl/costs.h"
 #include "rscfl/kernel/perf.h"
 
 #include "linux/nmi.h"
 #include "linux/perf_event.h"
+
+#include "rscfl/costs.h"
+#include "rscfl/kernel/cpu.h"
+#include "rscfl/kernel/stap_shim.h"
 
 #define NUM_SW_EVENTS sizeof(sw_events) / sizeof(sw_events[0])
 
@@ -24,7 +27,8 @@ static struct perf_event *event_counters[NUM_SW_EVENTS];
 /*
  * Use perf to read the current resources, and store them in acct_subsys.
  */
-int rscfl_perf_get_current_vals(struct subsys_accounting *acct_subsys)
+static int rscfl_perf_get_current_vals(struct subsys_accounting *acct_subsys,
+                                       _Bool add)
 {
   u64 enabled;
   u64 running;
@@ -37,15 +41,28 @@ int rscfl_perf_get_current_vals(struct subsys_accounting *acct_subsys)
     val = perf_event_read_value(event_counters[i], &enabled, &running);
     BUG_ON(!enabled);
     BUG_ON(!running);
-    switch (sw_events[i]) {
+    if (add) {
+      switch (sw_events[i]) {
       case PERF_COUNT_SW_CPU_CLOCK:
-        acct_subsys->cpu.cycles = val;
+        acct_subsys->cpu.cycles += val;
         break;
       case PERF_COUNT_SW_PAGE_FAULTS:
-        acct_subsys->mem.page_faults = val;
+        acct_subsys->mem.page_faults += val;
         break;
-      case PERF_COUNT_SW_ALIGNMENT_FAULTS: {
-        acct_subsys->mem.align_faults = val;
+      case PERF_COUNT_SW_ALIGNMENT_FAULTS:
+        acct_subsys->mem.align_faults += val;
+        break;
+      }
+    } else {
+      switch (sw_events[i]) {
+      case PERF_COUNT_SW_CPU_CLOCK:
+        acct_subsys->cpu.cycles -= val;
+        break;
+      case PERF_COUNT_SW_PAGE_FAULTS:
+        acct_subsys->mem.page_faults -= val;
+        break;
+      case PERF_COUNT_SW_ALIGNMENT_FAULTS:
+        acct_subsys->mem.align_faults -= val;
         break;
       }
     }

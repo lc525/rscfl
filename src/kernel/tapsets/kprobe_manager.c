@@ -2,7 +2,7 @@
 #include <linux/kernel.h>
 #include <linux/slab.h>
 
-#include "rscfl/kernel/perf.h"
+#include "rscfl/kernel/probes.h"
 
 static rscfl_probe_list_n *probe_list;
 

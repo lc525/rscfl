@@ -6,20 +6,6 @@
 
 static rscfl_probe_list_n *probe_list;
 
-int rscfl_default_pre_handler(struct kretprobe_instance *probe,
-                              struct pt_regs *regs)
-{
-  rscfl_subsystem_entry(NETWORKINGGENERAL);
-  return 0;
-}
-
-int rscfl_default_rtn_handler(struct kretprobe_instance *probe,
-                              struct pt_regs *regs)
-{
-  rscfl_subsystem_exit(NETWORKINGGENERAL);
-  return 0;
-}
-
 void rscfl_unregister_kprobes(void)
 {
   rscfl_probe_list_n *probes_head = probe_list;
@@ -34,8 +20,8 @@ void rscfl_unregister_kprobes(void)
 }
 
 int rscfl_init_rtn_kprobes(kprobe_opcode_t **subsys_addrs[], int num,
-                           kretprobe_handler_t kp_pre_handler,
-                           kretprobe_handler_t kp_rtn_handler)
+                           kretprobe_handler_t kp_pre_handler[],
+                           kretprobe_handler_t kp_rtn_handler[])
 {
   rscfl_probe_list_n *probe_head = NULL;
   rscfl_probe_list_n *probe_tail = NULL;
@@ -57,8 +43,8 @@ int rscfl_init_rtn_kprobes(kprobe_opcode_t **subsys_addrs[], int num,
       if (!probe) {
         goto error_no_mem;
       }
-      probe->handler = kp_rtn_handler;
-      probe->entry_handler = kp_pre_handler;
+      probe->handler = kp_rtn_handler[i];
+      probe->entry_handler = kp_pre_handler[i];
       probe->kp.addr = *sub_addr;
       probe->maxactive = 0;
 

@@ -17,8 +17,18 @@ int probes_init(void)
   kprobe_pre_handler_t pre_handler = pre_handler;
   int subsys_num;
   kprobe_opcode_t **probe_addrs_temp[] = {
-      NETWORKINGDRIVERS_ADDRS, NETWORKINGGENERAL_ADDRS,
-      FILESYSTEMSVFSANDINFRASTRUCTURE_ADDRS,
+    NETWORKINGDRIVERS_ADDRS, NETWORKINGGENERAL_ADDRS,
+    FILESYSTEMSVFSANDINFRASTRUCTURE_ADDRS,
+  };
+
+  kretprobe_handler_t probe_pre_handlers_temp[] = {
+    rscfl_pre_handler_NETWORKINGDRIVERS, rscfl_pre_handler_NETWORKINGGENERAL,
+    rscfl_pre_handler_FILESYSTEMSVFSANDINFRASTRUCTURE,
+  };
+
+  kretprobe_handler_t probe_post_handlers_temp[] = {
+    rscfl_rtn_handler_NETWORKINGDRIVERS, rscfl_rtn_handler_NETWORKINGGENERAL,
+    rscfl_rtn_handler_FILESYSTEMSVFSANDINFRASTRUCTURE,
   };
 
   // stap disables preemption even when running begin/end probes.
@@ -35,8 +45,8 @@ int probes_init(void)
   rcd = _rscfl_dev_init();
   rcn = _netlink_setup();
   rcp = rscfl_perf_init();
-  rckp = rscfl_init_rtn_kprobes(probe_addrs_temp, 3, rscfl_default_pre_handler,
-                                rscfl_default_rtn_handler);
+  rckp = rscfl_init_rtn_kprobes(probe_addrs_temp, 3, probe_pre_handlers_temp,
+                                probe_post_handlers_temp);
   preempt_disable();
 
   if (rcc) {

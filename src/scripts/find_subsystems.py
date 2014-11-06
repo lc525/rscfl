@@ -42,6 +42,20 @@ static kprobe_opcode_t *{{ subsystem }}_ADDRS[] = {{ '{' }}
 {% endfor %}
   0
 {{ '};' }}
+
+int rscfl_pre_handler_{{ subsystem }}(struct kretprobe_instance *probe,
+       struct pt_regs *regs)
+{{ '{' }}
+  rscfl_subsystem_entry({{ subsystem }});
+  return 0;
+{{ '}' }}
+
+int rscfl_rtn_handler_{{ subsystem }}(struct kretprobe_instance *probe,
+struct pt_regs *regs)
+{{ '{' }}
+  rscfl_subsystem_exit({{ subsystem }});
+  return 0;
+{{ '}' }}
 {% endfor %}
 
 static kprobe_opcode_t **probe_addrs[] = {{ '{'  }}
@@ -49,6 +63,21 @@ static kprobe_opcode_t **probe_addrs[] = {{ '{'  }}
   {{ subsys }}_ADDRS,
 {% endfor %}
 {{ '};' }}
+
+kretprobe_handler_t rscfl_pre_handlers[] = {{ '{' }}
+{% for subsys in subsystems %}
+  rscfl_pre_handler_{{ subsys }},
+{% endfor %}
+{{ '};' }}
+
+kretprobe_handler_t rscfl_post_handlers[] = {{ '{' }}
+{% for subsys in subsystems %}
+  rscfl_rtn_handler_{{ subsys }},
+{% endfor %}
+{{ '};' }}
+
+
+
 #endif
 """
 

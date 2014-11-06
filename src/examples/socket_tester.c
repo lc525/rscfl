@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
 
   if (!rscfl_read_acct(relay_f_data, &acct2)) {
     for (i = 0; i < NUM_SUBSYSTEMS; i++) {
-      subsys = get_subsys_accounting(relay_f_data, &acct, i);
+      subsys = get_subsys_accounting(relay_f_data, &acct2, i);
       if (subsys != NULL) {
 	printf("rscfl subsys %d: cpu_cycles=%llu\n"
 	       "wall_clock_time=%llu\n"

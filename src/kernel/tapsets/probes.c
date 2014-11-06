@@ -124,7 +124,6 @@ static struct subsys_accounting *get_subsys(rscfl_subsys subsys_id)
           // userspace and kernel space.
           subsys_offset = subsys_acct - rscfl_mem->subsyses;
           acct->acct_subsys[subsys_id] = subsys_offset;
-          subsys_acct->in_use = true;
           break;
         } else {
           subsys_acct++;
@@ -139,6 +138,7 @@ static struct subsys_accounting *get_subsys(rscfl_subsys subsys_id)
       // Now need to initialise the subsystem's resources to be 0.
       subsys_acct = &rscfl_mem->subsyses[subsys_offset];
       memset(subsys_acct, 0, sizeof(struct subsys_accounting));
+      subsys_acct->in_use = 1;
 
     } else {
       subsys_acct = &rscfl_mem->subsyses[subsys_offset];

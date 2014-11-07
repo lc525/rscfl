@@ -50,6 +50,7 @@ struct kprobe_priv {
   struct accounting *syscall_acct;
   long cycles;
   long wall_clock_time;
+  _Bool real_call;
 };
 typedef struct kprobe_priv kprobe_priv;
 

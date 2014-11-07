@@ -17,42 +17,30 @@ int probes_init(void)
   kprobe_pre_handler_t pre_handler = pre_handler;
   int subsys_num;
   kprobe_opcode_t **probe_addrs_temp[] = {
-    TTYLAYER_ADDRS,
     PERCPUMEMORYALLOCATOR_ADDRS,
     BLOCKLAYER_ADDRS,
-    NETWORKINGIPSEC_ADDRS,
     NETWORKINGIPV4IPV6_ADDRS,
-    IRQSUBSYSTEM_ADDRS,
     NETWORKINGGENERAL_ADDRS,
-    WORKQUEUE_ADDRS,
     EXT4FILESYSTEM_ADDRS,
     FILESYSTEMSVFSANDINFRASTRUCTURE_ADDRS,
     NETWORKINGDRIVERS_ADDRS,
   };
 
   kretprobe_handler_t probe_pre_handlers_temp[] = {
-    rscfl_pre_handler_TTYLAYER,
     rscfl_pre_handler_PERCPUMEMORYALLOCATOR,
     rscfl_pre_handler_BLOCKLAYER,
-    rscfl_pre_handler_NETWORKINGIPSEC,
     rscfl_pre_handler_NETWORKINGIPV4IPV6,
-    rscfl_pre_handler_IRQSUBSYSTEM,
     rscfl_pre_handler_NETWORKINGGENERAL,
-    rscfl_pre_handler_WORKQUEUE,
     rscfl_pre_handler_EXT4FILESYSTEM,
     rscfl_pre_handler_FILESYSTEMSVFSANDINFRASTRUCTURE,
     rscfl_pre_handler_NETWORKINGDRIVERS,
   };
 
   kretprobe_handler_t probe_post_handlers_temp[] = {
-    rscfl_rtn_handler_TTYLAYER,
     rscfl_rtn_handler_PERCPUMEMORYALLOCATOR,
     rscfl_rtn_handler_BLOCKLAYER,
-    rscfl_rtn_handler_NETWORKINGIPSEC,
     rscfl_rtn_handler_NETWORKINGIPV4IPV6,
-    rscfl_rtn_handler_IRQSUBSYSTEM,
     rscfl_rtn_handler_NETWORKINGGENERAL,
-    rscfl_rtn_handler_WORKQUEUE,
     rscfl_rtn_handler_EXT4FILESYSTEM,
     rscfl_rtn_handler_FILESYSTEMSVFSANDINFRASTRUCTURE,
     rscfl_rtn_handler_NETWORKINGDRIVERS,

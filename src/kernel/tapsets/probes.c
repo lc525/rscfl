@@ -17,7 +17,6 @@ int probes_init(void)
   kprobe_pre_handler_t pre_handler = pre_handler;
   int subsys_num;
   kprobe_opcode_t **probe_addrs_temp[] = {
-    PERCPUMEMORYALLOCATOR_ADDRS,
     BLOCKLAYER_ADDRS,
     NETWORKINGIPV4IPV6_ADDRS,
     NETWORKINGGENERAL_ADDRS,
@@ -27,7 +26,6 @@ int probes_init(void)
   };
 
   kretprobe_handler_t probe_pre_handlers_temp[] = {
-    rscfl_pre_handler_PERCPUMEMORYALLOCATOR,
     rscfl_pre_handler_BLOCKLAYER,
     rscfl_pre_handler_NETWORKINGIPV4IPV6,
     rscfl_pre_handler_NETWORKINGGENERAL,
@@ -37,7 +35,6 @@ int probes_init(void)
   };
 
   kretprobe_handler_t probe_post_handlers_temp[] = {
-    rscfl_rtn_handler_PERCPUMEMORYALLOCATOR,
     rscfl_rtn_handler_BLOCKLAYER,
     rscfl_rtn_handler_NETWORKINGIPV4IPV6,
     rscfl_rtn_handler_NETWORKINGGENERAL,

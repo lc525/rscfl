@@ -80,6 +80,7 @@ int _should_acct(pid_t pid, int syscall_nr, int probe_nest, const char *name,
         // We have a free struct accounting now, so use it.
         current_pid_acct->probe_data->syscall_acct = acct_buf;
         current_pid_acct->probe_data->nest_level = 0;
+        current_pid_acct->probe_data->real_call = 0;
         acct_buf->in_use = 1;
         acct_buf->syscall_id.pid = pid;
         acct_buf->syscall_id.id = e->syscall_nr;

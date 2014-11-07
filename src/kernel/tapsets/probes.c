@@ -168,7 +168,9 @@ void rscfl_subsystem_entry(rscfl_subsys subsys_id)
   if (subsys_acct != NULL) {
     BUG_ON(current_pid_acct == NULL); // As subsys_acct=>current_pid_acct.
     current_pid_acct->probe_data->nest_level++;
-    rscfl_perf_get_current_vals(subsys_acct, 0);
+    if (current_pid_acct->probe_data->real_call) {
+      rscfl_perf_get_current_vals(subsys_acct, 0);
+    }
   }
   preempt_enable();
 }
@@ -182,11 +184,18 @@ void rscfl_subsystem_exit(rscfl_subsys subsys_id)
       (current_pid_acct->probe_data->syscall_acct)) {
     // This syscall is being accounted for.
     struct subsys_accounting *subsys_acct = get_subsys(subsys_id);
-    rscfl_perf_get_current_vals(subsys_acct, 1);
-    current_pid_acct->probe_data->nest_level--;
-    if (!current_pid_acct->probe_data->nest_level) {
-      // We have backed out of all nesting.
-      _clear_acct_next(current->pid, -1);
+    if (current_pid_acct->probe_data->nest_level) {
+      if ((current_pid_acct->probe_data->real_call)) {
+        rscfl_perf_get_current_vals(subsys_acct, 1);
+      }
+      if (!--current_pid_acct->probe_data->nest_level) {
+        // We have backed out of all nesting.
+        if (current_pid_acct->probe_data->real_call) {
+          _clear_acct_next(current->pid, -1);
+        } else {
+          current_pid_acct->probe_data->real_call = true;
+        }
+      }
     }
   }
   preempt_enable();

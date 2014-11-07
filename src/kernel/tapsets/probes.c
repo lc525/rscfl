@@ -17,15 +17,8 @@ int probes_init(void)
   kprobe_pre_handler_t pre_handler = pre_handler;
   int subsys_num;
   kprobe_opcode_t **probe_addrs_temp[] = {
-    ERROR_DECODING_SUBSYS_ADDRS,
-    RANDOMNUMBERDRIVER_ADDRS,
-    CAPABILITIES_ADDRS,
-    CPUFREQUENCYDRIVERS_ADDRS,
-    TASKSTATSSTATISTICSINTERFACE_ADDRS,
-    APPARMORSECURITYMODULE_ADDRS,
     TTYLAYER_ADDRS,
     PERCPUMEMORYALLOCATOR_ADDRS,
-    INTELRTRUSTEDEXECUTIONTECHNOLOGYTXT_ADDRS,
     BLOCKLAYER_ADDRS,
     NETWORKINGIPSEC_ADDRS,
     NETWORKINGIPV4IPV6_ADDRS,
@@ -38,15 +31,8 @@ int probes_init(void)
   };
 
   kretprobe_handler_t probe_pre_handlers_temp[] = {
-    rscfl_pre_handler_ERROR_DECODING_SUBSYS,
-    rscfl_pre_handler_RANDOMNUMBERDRIVER,
-    rscfl_pre_handler_CAPABILITIES,
-    rscfl_pre_handler_CPUFREQUENCYDRIVERS,
-    rscfl_pre_handler_TASKSTATSSTATISTICSINTERFACE,
-    rscfl_pre_handler_APPARMORSECURITYMODULE,
     rscfl_pre_handler_TTYLAYER,
     rscfl_pre_handler_PERCPUMEMORYALLOCATOR,
-    rscfl_pre_handler_INTELRTRUSTEDEXECUTIONTECHNOLOGYTXT,
     rscfl_pre_handler_BLOCKLAYER,
     rscfl_pre_handler_NETWORKINGIPSEC,
     rscfl_pre_handler_NETWORKINGIPV4IPV6,
@@ -59,15 +45,8 @@ int probes_init(void)
   };
 
   kretprobe_handler_t probe_post_handlers_temp[] = {
-    rscfl_rtn_handler_ERROR_DECODING_SUBSYS,
-    rscfl_rtn_handler_RANDOMNUMBERDRIVER,
-    rscfl_rtn_handler_CAPABILITIES,
-    rscfl_rtn_handler_CPUFREQUENCYDRIVERS,
-    rscfl_rtn_handler_TASKSTATSSTATISTICSINTERFACE,
-    rscfl_rtn_handler_APPARMORSECURITYMODULE,
     rscfl_rtn_handler_TTYLAYER,
     rscfl_rtn_handler_PERCPUMEMORYALLOCATOR,
-    rscfl_rtn_handler_INTELRTRUSTEDEXECUTIONTECHNOLOGYTXT,
     rscfl_rtn_handler_BLOCKLAYER,
     rscfl_rtn_handler_NETWORKINGIPSEC,
     rscfl_rtn_handler_NETWORKINGIPV4IPV6,

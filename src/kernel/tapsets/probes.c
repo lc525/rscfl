@@ -166,9 +166,15 @@ void rscfl_subsystem_entry(rscfl_subsys subsys_id)
   subsys_acct = get_subsys(subsys_id);
   current_pid_acct = CPU_VAR(current_acct);
   if (subsys_acct != NULL) {
+    // We running acct_next on this syscall.
     BUG_ON(current_pid_acct == NULL); // As subsys_acct=>current_pid_acct.
     current_pid_acct->probe_data->nest_level++;
-    rscfl_perf_get_current_vals(subsys_acct, 0);
+    if (current_pid_acct->probe_data->real_call) {
+      // We don't want the perf values for the time spent in netlink, so use
+      // real_call to flag when we're in the actual syscall, rather than
+      // netlink.
+      rscfl_perf_get_current_vals(subsys_acct, 0);
+    }
   }
   preempt_enable();
 }
@@ -182,11 +188,25 @@ void rscfl_subsystem_exit(rscfl_subsys subsys_id)
       (current_pid_acct->probe_data->syscall_acct)) {
     // This syscall is being accounted for.
     struct subsys_accounting *subsys_acct = get_subsys(subsys_id);
-    rscfl_perf_get_current_vals(subsys_acct, 1);
-    current_pid_acct->probe_data->nest_level--;
-    if (!current_pid_acct->probe_data->nest_level) {
-      // We have backed out of all nesting.
-      _clear_acct_next(current->pid, -1);
+    if (current_pid_acct->probe_data->nest_level) {
+      // We are unrolling the nestings of subsystems, so we should do
+      // accounting.
+      if ((current_pid_acct->probe_data->real_call)) {
+	// We don't get the perf values if we haven't left the netlink, and
+	// gone into the real syscall.
+        rscfl_perf_get_current_vals(subsys_acct, 1);
+      }
+      if (!--current_pid_acct->probe_data->nest_level) {
+        // We have backed out of all nesting. This either means we have just
+        // popped out of the netlink, in which case we are ready to account for
+        // the real call. Otherweise, we have just finished the actual syscall
+        // and should clear_acct_next.
+        if (current_pid_acct->probe_data->real_call) {
+          _clear_acct_next(current->pid, -1);
+        } else {
+          current_pid_acct->probe_data->real_call = true;
+        }
+      }
     }
   }
   preempt_enable();

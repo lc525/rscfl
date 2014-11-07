@@ -27,6 +27,7 @@ int rscfl_init_rtn_kprobes(kprobe_opcode_t **subsys_addrs[], int num,
   rscfl_probe_list_n *probe_tail = NULL;
 
   int fail_count = 0;
+  int success_count = 0;
 
   /* Subsys addr layout:
    * |SUBSYS|,|SUBSYS|,|SUBSYS|
@@ -69,12 +70,13 @@ int rscfl_init_rtn_kprobes(kprobe_opcode_t **subsys_addrs[], int num,
             probe_tail->next = curr_probe;
             probe_tail = curr_probe;
           }
+          success_count++;
         }
       }
       sub_addr++;
     }
   }
-  printk("Done creating and registering probes\n");
+  printk("Done creating and registering: %d probes\n", success_count);
   probe_list = probe_head;
   return fail_count;
 

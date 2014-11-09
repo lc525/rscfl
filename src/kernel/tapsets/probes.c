@@ -57,8 +57,10 @@ int probes_init(void)
   rcd = _rscfl_dev_init();
   rcn = _netlink_setup();
   rcp = rscfl_perf_init();
-  rckp = rscfl_init_rtn_kprobes(probe_addrs_temp, 3, probe_pre_handlers_temp,
-                                probe_post_handlers_temp);
+  rckp =
+      rscfl_init_rtn_kprobes(probe_addrs_temp, sizeof(probe_pre_handlers_temp) /
+                                                   sizeof(kretprobe_handler_t),
+                             probe_pre_handlers_temp, probe_post_handlers_temp);
   preempt_disable();
 
   if (rcc) {

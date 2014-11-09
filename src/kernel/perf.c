@@ -43,34 +43,6 @@ int rscfl_perf_get_current_vals(struct subsys_accounting *acct_subsys,
   u64 val;
   int i;
 
-  for (i = 0; i < NUM_SW_EVENTS; i++) {
-    BUG_ON(event_counters[i] == NULL);
-    preempt_enable();
-    val = perf_event_read_value(event_counters[i], &enabled, &running);
-    preempt_disable();
-    BUG_ON(!enabled);
-    BUG_ON(!running);
-    if (add) {
-      switch (sw_events[i]) {
-      case PERF_COUNT_SW_PAGE_FAULTS:
-        acct_subsys->mem.page_faults += val;
-        break;
-      case PERF_COUNT_SW_ALIGNMENT_FAULTS:
-        acct_subsys->mem.align_faults += val;
-        break;
-      }
-    } else {
-      switch (sw_events[i]) {
-      case PERF_COUNT_SW_PAGE_FAULTS:
-        acct_subsys->mem.page_faults -= val;
-        break;
-      case PERF_COUNT_SW_ALIGNMENT_FAULTS:
-        acct_subsys->mem.align_faults -= val;
-        break;
-      }
-    }
-  }
-
   /* Get the CPU cycle count and set it */
   val = rscfl_get_cycles();
   if (add) {

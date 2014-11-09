@@ -43,6 +43,7 @@ int rscfl_perf_get_current_vals(struct subsys_accounting *acct_subsys,
   u64 val;
   int i;
 
+/*
   for (i = 0; i < NUM_SW_EVENTS; i++) {
     BUG_ON(event_counters[i] == NULL);
     preempt_enable();
@@ -70,6 +71,7 @@ int rscfl_perf_get_current_vals(struct subsys_accounting *acct_subsys,
       }
     }
   }
+*/
 
   /* Get the CPU cycle count and set it */
   val = rscfl_get_cycles();

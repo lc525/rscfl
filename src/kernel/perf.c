@@ -9,6 +9,13 @@
 
 #define NUM_SW_EVENTS sizeof(sw_events) / sizeof(sw_events[0])
 
+static __inline__ ru64 rscfl_get_cycles(void)
+{
+    unsigned int hi, lo;
+    __asm__ volatile("rdtsc" : "=a" (lo), "=d" (hi));
+    return ((ru64)hi << 32) | lo;
+}
+
 static void rscfl_perf_overflow_handler(struct perf_event *event,
                                         struct perf_sample_data *data,
                                         struct pt_regs *regs)
@@ -17,9 +24,9 @@ static void rscfl_perf_overflow_handler(struct perf_event *event,
 }
 
 static const __u64 sw_events[] = {
-    PERF_COUNT_SW_CPU_CLOCK,        PERF_COUNT_SW_PAGE_FAULTS,
-    PERF_COUNT_SW_TASK_CLOCK,       PERF_COUNT_SW_ALIGNMENT_FAULTS,
-    PERF_COUNT_SW_EMULATION_FAULTS,
+    PERF_COUNT_SW_PAGE_FAULTS,
+    PERF_COUNT_SW_TASK_CLOCK,
+    PERF_COUNT_SW_ALIGNMENT_FAULTS,
 };
 
 static struct perf_event *event_counters[NUM_SW_EVENTS];
@@ -45,9 +52,6 @@ int rscfl_perf_get_current_vals(struct subsys_accounting *acct_subsys,
     BUG_ON(!running);
     if (add) {
       switch (sw_events[i]) {
-      case PERF_COUNT_SW_CPU_CLOCK:
-        acct_subsys->cpu.cycles += val;
-        break;
       case PERF_COUNT_SW_PAGE_FAULTS:
         acct_subsys->mem.page_faults += val;
         break;
@@ -57,9 +61,6 @@ int rscfl_perf_get_current_vals(struct subsys_accounting *acct_subsys,
       }
     } else {
       switch (sw_events[i]) {
-      case PERF_COUNT_SW_CPU_CLOCK:
-        acct_subsys->cpu.cycles -= val;
-        break;
       case PERF_COUNT_SW_PAGE_FAULTS:
         acct_subsys->mem.page_faults -= val;
         break;
@@ -69,6 +70,15 @@ int rscfl_perf_get_current_vals(struct subsys_accounting *acct_subsys,
       }
     }
   }
+
+  /* Get the CPU cycle count and set it */
+  val = rscfl_get_cycles();
+  if (add) {
+    acct_subsys->cpu.cycles += val;
+  } else {
+    acct_subsys->cpu.cycles -= val;
+  }
+
   return 0;
 }
 

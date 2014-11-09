@@ -29,4 +29,6 @@ int _should_acct(pid_t pid, int syscall_nr, int probe_nest, const char *name,
                  struct accounting **);
 int _clear_acct_next(pid_t, int);
 
+void syscall_for_pid(char *);
+
 #endif

@@ -135,7 +135,7 @@ static struct subsys_accounting *get_subsys(rscfl_subsys subsys_id)
       debugk("looking for a subsys\n");
       // Need to find space in the page where we can store the subsystem.
       subsys_acct = rscfl_mem->subsyses;
-
+      current_pid_acct->probe_data->real_call = 1;
       // Walk through the subsyses, being careful not to wonder of the end of
       // our
       // memory.
@@ -183,7 +183,7 @@ void rscfl_subsystem_entry(rscfl_subsys subsys_id)
     // We running acct_next on this syscall.
     BUG_ON(current_pid_acct == NULL); // As subsys_acct=>current_pid_acct.
     current_pid_acct->probe_data->nest_level++;
-    if (current_pid_acct->probe_data->real_call) {
+    if (!current_pid_acct->probe_data->real_call) {
       // We don't want the perf values for the time spent in netlink, so use
       // real_call to flag when we're in the actual syscall, rather than
       // netlink.
@@ -205,7 +205,7 @@ void rscfl_subsystem_exit(rscfl_subsys subsys_id)
     if (current_pid_acct->probe_data->nest_level) {
       // We are unrolling the nestings of subsystems, so we should do
       // accounting.
-      if ((current_pid_acct->probe_data->real_call)) {
+      if (!current_pid_acct->probe_data->real_call) {
 	// We don't get the perf values if we haven't left the netlink, and
 	// gone into the real syscall.
         rscfl_perf_get_current_vals(subsys_acct, 1);
@@ -215,11 +215,9 @@ void rscfl_subsystem_exit(rscfl_subsys subsys_id)
         // popped out of the netlink, in which case we are ready to account for
         // the real call. Otherweise, we have just finished the actual syscall
         // and should clear_acct_next.
-        if (current_pid_acct->probe_data->real_call) {
+        if (!current_pid_acct->probe_data->real_call) {
           _clear_acct_next(current->pid, -1);
-        } else {
-          current_pid_acct->probe_data->real_call = true;
-        }
+	}
       }
     }
   }

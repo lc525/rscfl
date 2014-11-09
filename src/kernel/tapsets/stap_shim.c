@@ -152,3 +152,14 @@ int _clear_acct_next(pid_t pid, int syscall_nr)
   read_unlock(&lock);
   return rc;
 }
+
+void syscall_for_pid(char *c) {
+  pid_acct *current_pid_acct;
+  current_pid_acct = CPU_VAR(current_acct);
+  if (current_pid_acct != NULL) {
+    debugk("Syscall for process. syscall %s\n", c);
+    if (current_pid_acct->probe_data->real_call) {
+      current_pid_acct->probe_data->real_call--;
+    }
+  }
+}

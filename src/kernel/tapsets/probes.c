@@ -23,6 +23,7 @@ int probes_init(void)
     EXT4FILESYSTEM_ADDRS,
     FILESYSTEMSVFSANDINFRASTRUCTURE_ADDRS,
     NETWORKINGDRIVERS_ADDRS,
+    SECURITYSUBSYSTEM_ADDRS,
   };
 
   kretprobe_handler_t probe_pre_handlers_temp[] = {
@@ -32,6 +33,7 @@ int probes_init(void)
     rscfl_pre_handler_EXT4FILESYSTEM,
     rscfl_pre_handler_FILESYSTEMSVFSANDINFRASTRUCTURE,
     rscfl_pre_handler_NETWORKINGDRIVERS,
+    rscfl_pre_handler_SECURITYSUBSYSTEM,
   };
 
   kretprobe_handler_t probe_post_handlers_temp[] = {
@@ -41,6 +43,7 @@ int probes_init(void)
     rscfl_rtn_handler_EXT4FILESYSTEM,
     rscfl_rtn_handler_FILESYSTEMSVFSANDINFRASTRUCTURE,
     rscfl_rtn_handler_NETWORKINGDRIVERS,
+    rscfl_rtn_handler_SECURITYSUBSYSTEM,
   };
 
   // stap disables preemption even when running begin/end probes.

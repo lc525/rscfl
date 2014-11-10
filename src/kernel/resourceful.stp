@@ -31,3 +31,15 @@ probe rscfl.sched.ctxswitch,
       rscfl.sched.task_exit
 {
 }
+
+function _syscall(name:string) %{
+  syscall_for_pid(STAP_ARG_name);
+%}
+
+probe syscall.socket {
+  _syscall(probefunc());
+}
+
+probe syscall.sendfile {
+  _syscall(probefunc());
+}

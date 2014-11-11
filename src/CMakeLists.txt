@@ -16,7 +16,7 @@ cmake_minimum_required(VERSION 2.8)
 set(PNAME resourceful)
 
 # General cmake project definition follows. Customize as necessary
-project(${PNAME} C)
+project(${PNAME} C CXX)
 
 # variable definitions for generating configuration headers
 set(PROJECT_MAJOR_VERSION 0)
@@ -236,3 +236,5 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/examples)
 # build user-facing library
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/lib)
 
+# add tests
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/tests)

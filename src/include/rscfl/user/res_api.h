@@ -1,16 +1,22 @@
 #ifndef _RES_API_H_
 #define _RES_API_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "rscfl/costs.h"
 #include "rscfl/res_common.h"
 
 #define MAX_PAYLOAD 1024 /* maximum payload size*/
 
-typedef struct
+struct rscfl_handle_t
 {
   char *buf;
   rscfl_syscall_id_t lst_syscall;
-} *rscfl_handle;
+};
+
+typedef struct rscfl_handle_t *rscfl_handle;
 
 rscfl_handle rscfl_init();
 
@@ -36,4 +42,8 @@ struct subsys_accounting *get_subsys_accounting(rscfl_handle,
                                                 struct accounting *,
                                                 rscfl_subsys);
 
+
+#ifdef __cplusplus
+}
+#endif
 #endif

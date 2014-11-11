@@ -28,6 +28,8 @@ execute_process(
 string(REPLACE "\n" "" GIT_REV ${GIT_REV})
 set(PROJECT_PATCH_VERSION ${GIT_REV})
 
+# set default project build options:
+set(DEFAULT_WITH_TESTS ON)
 
 
 ###
@@ -70,12 +72,70 @@ set(LINUX_BUILD $ENV{RSCFL_LINUX_BUILD}
 set(LINUX_VMLINUX $ENV{RSCFL_LINUX_VMLINUX}
   CACHE PATH "The path towards a vmlinux that was built with CONFIG_DEBUG_INFO=y")
 
-###
-#
-# NO EXTERNAL PROJECT DEPENDENCIES (YET)
-#
-###
+#Google Testing Framework options
+# the options are mutually exclusive and are listed in order of preference,
+# but if Gtest is not found using the given option the other ones will be
+# attempted in turn.
+option(USE_PROJECT_GTEST # recommended, automatic fallthrough
+  "Use the local Gtest, if found within project subdirectories" ON)
+option(USE_REPO_GTEST
+  "Download and build gtest from online repository during make" OFF)
+#option(USE_SYSTEM_GTEST
+#  "Attempt using the system-wide Gtest installation" OFF)
+option(WITH_TESTS
+  "Build ${PNAME} tests" ${DEFAULT_WITH_TESTS})
 
+###
+#
+# EXTERNAL DEPENDENCIES
+#
+###
+include(ExternalProject)
+
+# Google Testing Framework
+set(FALLTHROUGH "0")
+if(USE_PROJECT_GTEST)
+  find_package(gtest)
+  if(NOT GTEST_FOUND)
+    set(FALLTHROUGH "1")
+  endif()
+endif()
+if(USE_REPO_GTEST OR FALLTHROUGH STREQUAL "1")
+  set(FALLTHROUGH "0")
+  set(GTEST_PREFIX ${CMAKE_SOURCE_DIR}/external/gtest)
+  MESSAGE(" \\-- Gtest will be downloaded and built in ${GTEST_PREFIX}")
+  ExternalProject_Add(
+      gtest
+      PREFIX ${CMAKE_SOURCE_DIR}/build/gtest
+      GIT_REPOSITORY https://github.com/lc525/gtest.git
+      GIT_TAG release-1.7.0
+      CMAKE_ARGS
+          -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+          -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+      INSTALL_COMMAND ""
+      UPDATE_COMMAND ""
+      TMP_DIR ${CMAKE_BINARY_DIR}/gtest
+      STAMP_DIR ${CMAKE_BINARY_DIR}/gtest
+      DOWNLOAD_DIR ${GTEST_PREFIX}
+      SOURCE_DIR ${GTEST_PREFIX}
+      BINARY_DIR ${GTEST_PREFIX}/build-aux
+      #INSTALL_DIR ${CMAKE_BINARY_DIR}/install
+  )
+  set(GTEST_LIBRARY "${GTEST_PREFIX}/build-aux/libgtest.a")
+  set(GTEST_MAIN_LIBRARY "${GTEST_PREFIX}/build-aux/libgtest_main.a")
+  set(GTEST_INCLUDE_DIR "${GTEST_PREFIX}/include")
+
+  set(GTEST_LIBRARIES ${GTEST_LIBRARY})
+  set(GTEST_MAIN_LIBRARIES ${GTEST_MAIN_LIBRARY})
+  set(GTEST_INCLUDE_DIRS ${GTEST_INCLUDE_DIR})
+endif()
+#  if(USE_SYSTEM_GTEST)
+#endif()
+
+if(WITH_TESTS)
+  add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} -V)
+  enable_testing()
+endif(WITH_TESTS)
 
 
 

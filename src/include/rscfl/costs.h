@@ -40,6 +40,11 @@
 #include <netinet/tcp.h>
 #endif
 
+#ifdef __cplusplus
+#define _Bool bool
+#endif
+
+
 #include "rscfl/subsys_list.h"
 
 #ifndef ru32

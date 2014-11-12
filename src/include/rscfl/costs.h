@@ -93,10 +93,12 @@ struct acct_CPU
 
 struct acct_Sys
 {
+  int placeholder;
 };
 
 struct acct_Proc
 {
+  int placeholder;
 };
 
 struct acct_Mem
@@ -160,6 +162,7 @@ struct call_cost
  */
 struct system_acct
 {
+  int placeholder;
   // struct system_quantum quanta[MAX_CONCURRENT_SYSCALLS];
   // int head_pos;
 };
@@ -181,7 +184,7 @@ struct sys_cost
 struct res_acct_cfg
 {
   // should enable filters and customization of desired resource accounting
-
+    int placeholder;
   // syscall_filter
   // resource_filter
 };

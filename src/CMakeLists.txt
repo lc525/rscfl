@@ -106,11 +106,11 @@ if(USE_REPO_GTEST OR FALLTHROUGH STREQUAL "1")
   MESSAGE(" \\-- Gtest will be downloaded and built in ${GTEST_PREFIX}")
   ExternalProject_Add(
       gtest
-      PREFIX ${CMAKE_SOURCE_DIR}/build/gtest
+      PREFIX ${CMAKE_BINARY_DIR}/gtest
       GIT_REPOSITORY https://github.com/lc525/gtest.git
       GIT_TAG release-1.7.0
       CMAKE_ARGS
-          -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+          -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} -std=c++0x
           -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
       INSTALL_COMMAND ""
       UPDATE_COMMAND ""

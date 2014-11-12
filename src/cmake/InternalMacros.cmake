@@ -50,7 +50,7 @@ function(lib_test test_NAME test_SOURCES)
     #add_dependencies(test ${test_NAME})
     #add_dependencies(check ${test_NAME})
     if(NOT GTEST_FOUND)
-      add_dependencies(${test_NAME} gtest_external)
+      add_dependencies(${test_NAME} gtest)
       #set_tests_properties(ctest_build_${test_NAME} PROPERTIES DEPENDS gtest_external)
     endif()
 

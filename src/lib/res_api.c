@@ -87,7 +87,7 @@ int rscfl_acct_next(rscfl_handle rhdl)
   src_addr.nl_family = AF_NETLINK;
   src_addr.nl_pid = (long int)syscall(__NR_gettid); /* self pid */
 
-  if (rc = bind(sock_fd, (struct sockaddr *)&src_addr, sizeof(src_addr))) {
+  if ((rc = bind(sock_fd, (struct sockaddr *)&src_addr, sizeof(src_addr)))) {
     return rc;
   }
 

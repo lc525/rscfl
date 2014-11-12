@@ -1,6 +1,8 @@
 #include <errno.h>
 #include <stdio.h>
 #include <sys/socket.h>
+#include <unistd.h>
+
 #include <rscfl/user/res_api.h>
 #include <rscfl/costs.h>
 

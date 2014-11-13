@@ -53,6 +53,8 @@ rscfl_handle rscfl_init()
     goto error;
   }
 
+  rhdl->lst_syscall.id = 0;
+
   return rhdl;
 
 error:
@@ -144,9 +146,9 @@ int rscfl_read_acct(rscfl_handle rhdl, struct accounting *acct)
       }
     }
   } else {
-    printf("shared_acct is null!\n");
+    return -EINVAL;
   }
-  return -1;
+  return -EINVAL;
 }
 
 /*

@@ -43,7 +43,7 @@ TEST_F(SendFileTest, TestSendFileTouchesVFS)
 {
   // We must be able to read our struct accounting back from rscfl.
   ASSERT_TRUE(get_subsys_accounting(
-      rhdl_, &acct_, FILESYSTEMSVFSANDINFRASTRUCTURE) != nullptr);
+                  rhdl_, &acct_, FILESYSTEMSVFSANDINFRASTRUCTURE) != nullptr);
 }
 
 TEST_F(SendFileTest, TestSendFileHasCPUCyclesForVFS)
@@ -55,7 +55,7 @@ TEST_F(SendFileTest, TestSendFileHasCPUCyclesForVFS)
   ASSERT_GT(subsys->cpu.cycles, 0);
 }
 
-TEST_F(SendFileTest, TestSendFileCPUCyclesIsBelievable)
+TEST_F(SendFileTest, TestSendFileVFSCPUCyclesIsBelievable)
 {
   struct subsys_accounting *subsys =
       get_subsys_accounting(rhdl_, &acct_, FILESYSTEMSVFSANDINFRASTRUCTURE);

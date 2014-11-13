@@ -27,7 +27,7 @@ class SocketTest : public testing::Test
   virtual void TearDown()
   {
     close(sockfd_);
-    //TODO(oc243): Cleanup rhdl_, and acct_. Needs code in res_api.
+    // TODO(oc243): Cleanup rhdl_, and acct_. Needs code in res_api.
   }
 
   rscfl_handle rhdl_;
@@ -92,10 +92,32 @@ TEST_F(SocketTest, SocketHasCPUCyclesForSecuritySubsys)
   ASSERT_GT(subsys->cpu.cycles, 0);
 }
 
+// Misc. tests.
 
-
-int main(int argc, char **argv)
+// If we open 3 sockets, they shouldn't all take the same number of cycles
+// to open.
+TEST_F(SocketTest, RscflGivesDifferentResultsForRepeatedSocketOpens)
 {
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
+  int cycles0 =
+      get_subsys_accounting(rhdl_, &acct_, SECURITYSUBSYSTEM)->cpu.cycles;
+
+  EXPECT_EQ(0, rscfl_acct_next(rhdl_));
+  sockfd_ = socket(AF_LOCAL, SOCK_RAW, 0);
+  // If we can't initialise a socket, something has gone wrong.
+  EXPECT_GT(sockfd_, 0);
+  // We must be able to read our struct accounting back from rscfl.
+  EXPECT_EQ(0, rscfl_read_acct(rhdl_, &acct_));
+  int cycles1 =
+      get_subsys_accounting(rhdl_, &acct_, SECURITYSUBSYSTEM)->cpu.cycles;
+
+  EXPECT_EQ(0, rscfl_acct_next(rhdl_));
+  sockfd_ = socket(AF_LOCAL, SOCK_RAW, 0);
+  // If we can't initialise a socket, something has gone wrong.
+  EXPECT_GT(sockfd_, 0);
+  // We must be able to read our struct accounting back from rscfl.
+  EXPECT_EQ(0, rscfl_read_acct(rhdl_, &acct_));
+  int cycles2 =
+      get_subsys_accounting(rhdl_, &acct_, SECURITYSUBSYSTEM)->cpu.cycles;
+
+  ASSERT_FALSE((cycles0 == cycles1) && (cycles1 == cycles2));
 }

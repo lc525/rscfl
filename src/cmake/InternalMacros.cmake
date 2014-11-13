@@ -37,7 +37,10 @@ function(lib_test test_NAME test_SOURCES)
 
     include_directories(${GTEST_INCLUDE_DIRS})
 
+    set(TEST_FLAGS "-std=c++0x")
     add_executable(${test_NAME} ${test_SOURCES})
+    set_source_files_properties(${test_SOURCES}
+                                PROPERTIES COMPILE_FLAGS ${TEST_FLAGS})
     target_link_libraries(${test_NAME} ${test_LINK})
 
     add_test(ctest_build_${test_NAME} "${CMAKE_COMMAND}" --build ${CMAKE_BINARY_DIR} --target ${test_NAME})

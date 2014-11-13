@@ -24,6 +24,12 @@ class SocketTest : public testing::Test
     EXPECT_EQ(0, rscfl_read_acct(rhdl_, &acct_));
   }
 
+  virtual void TearDown()
+  {
+    close(sockfd_);
+    //TODO(oc243): Cleanup rhdl_, and acct_. Needs code in res_api.
+  }
+
   rscfl_handle rhdl_;
   struct accounting acct_;
   int sockfd_;

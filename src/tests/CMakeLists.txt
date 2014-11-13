@@ -17,4 +17,10 @@ if(WITH_TESTS)
   )
   lib_test(socket_test "${socket_test_SOURCES}" "${TEST_LINK}")
 
+  set (sendfile_test_SOURCES
+    ${TESTS_DIR}/sendfile_test.cpp
+  )
+  lib_test(sendfile_test "${sendfile_test_SOURCES}" "${TEST_LINK}")
+
+
 endif(WITH_TESTS)

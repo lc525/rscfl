@@ -172,10 +172,31 @@ def get_addresses_of_boundary_calls(linux, build_dir, vmlinux_path):
     # Use objdump+grep to find all callq instructions.
     proc = subprocess.Popen('objdump -d %s' % vmlinux_path, shell=True,
                             stdout=subprocess.PIPE)
+
+    # Regex to match the entry point into every function, so we can see if it's
+    # a syscall.
+    p_fn_entry = re.compile("([0-9a-f]{16,16}) <(.*)>:$")
+
     # regex to match callq instructions, creating groups from the caller, and
     # callee addresses.
     p_callq = re.compile("([0-9a-f]{16,16}).*callq.*([0-9a-f]{16,16}).*$")
     for line in proc.stdout:
+
+        # If we are entering a system call handler, add a probe.
+        m = p_fn_entry.match(line)
+        if m:
+            fn_addr = m.group(1)
+            fn_name = m.group(2)
+            # Syscalls all have SyS_ in their name. Sometimes they may be
+            # prepended. e.g. compat_SyS_sendfile.
+            if "SyS_" in fn_name:
+                fn_subsys = get_subsys(fn_addr, addr2line, linux, build_dir)
+                fn_subsys = to_upper_alpha(fn_subsys)
+                if fn_subsys not in boundary_fns:
+                    boundary_fns[fn_subsys] = []
+                boundary_fns[fn_subsys].append(fn_addr)
+
+        # If this is a function call look to see if we're crosssing a boundary.
         m = p_callq.match(line)
         if m:
             caller_addr = m.group(1)

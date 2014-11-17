@@ -47,8 +47,8 @@ rscfl_subsys_addr_template = """
 
 {% for subsystem in subsystems %}
 static kprobe_opcode_t *{{ subsystem }}_ADDRS[] = {{ '{' }}
-{% for addr in subsystems[subsystem] %}
-  (kprobe_opcode_t *)(0x{{ addr }}),
+{% for (addr, name) in subsystems[subsystem] %}
+  (kprobe_opcode_t *)(0x{{ addr }}), {%- if name != "" %}   // {{ name }}{%- endif %}
 {% endfor %}
   0
 {{ '};' }}
@@ -203,7 +203,7 @@ def get_addresses_of_boundary_calls(linux, build_dir, vmlinux_path):
                 fn_subsys = get_subsys(fn_addr, addr2line, linux, build_dir)
                 if fn_subsys not in boundary_fns:
                     boundary_fns[fn_subsys] = []
-                boundary_fns[fn_subsys].append(fn_addr)
+                boundary_fns[fn_subsys].append((fn_addr, fn_name))
 
         # If this is a function call look to see if we're crosssing a boundary.
         m = p_callq.match(line)
@@ -217,7 +217,7 @@ def get_addresses_of_boundary_calls(linux, build_dir, vmlinux_path):
                 if callee_subsys not in boundary_fns:
                     boundary_fns[callee_subsys] = []
                 if callee_addr not in boundary_fns[callee_subsys]:
-                    boundary_fns[callee_subsys].append(callee_addr)
+                    boundary_fns[callee_subsys].append((callee_addr, ""))
     return boundary_fns
 
 

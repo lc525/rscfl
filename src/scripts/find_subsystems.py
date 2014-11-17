@@ -12,20 +12,30 @@ file_subsys_cache = {}
 addr_line_cache = {}
 
 # Code to be included at the top of the subsystems header.
-rscfl_subsys_header_top = \
-"""#ifndef _RSCFL_SUBSYS_H_
+rscfl_subsys_header_template = """
+#ifndef _RSCFL_SUBSYS_H_
 #define _RSCFL_SUBSYS_H_
 
-typedef enum {
-"""
+#define SUBSYS_TABLE(_) \\
+{%- for _, subsystem in subsystems %}
+_({{ subsystem.id }}, {{ subsystem.short_name }}, \"{{ subsystem.long_name }}\") \\
+{%- endfor %}
 
-# Code at the bottom of the subsystems header.
-rscfl_subsys_header_bottom = """
-  NUM_SUBSYSTEMS
+#define SUBSYS_AS_ENUM(a, b, c) b = a,
+#define SUBSYS_AS_STR(a, b, c) c,
+
+typedef enum {
+    SUBSYS_TABLE(SUBSYS_AS_ENUM)
+    NUM_SUBSYSTEMS
 } rscfl_subsys;
+
+const char *subsys_name[] = {
+    SUBSYS_TABLE(SUBSYS_AS_STR)
+};
 
 #endif /* _RSCFL_SUBSYS_H_ */
 """
+
 
 rscfl_subsys_addr_template = """
 #ifndef _RSCFL_SUBSYS_ADDR_H
@@ -191,7 +201,6 @@ def get_addresses_of_boundary_calls(linux, build_dir, vmlinux_path):
             # prepended. e.g. compat_SyS_sendfile.
             if "SyS_" in fn_name:
                 fn_subsys = get_subsys(fn_addr, addr2line, linux, build_dir)
-                fn_subsys = to_upper_alpha(fn_subsys)
                 if fn_subsys not in boundary_fns:
                     boundary_fns[fn_subsys] = []
                 boundary_fns[fn_subsys].append(fn_addr)
@@ -205,7 +214,6 @@ def get_addresses_of_boundary_calls(linux, build_dir, vmlinux_path):
             caller_subsys = get_subsys(caller_addr, addr2line, linux, build_dir)
             callee_subsys = get_subsys(callee_addr, addr2line, linux, build_dir)
             if callee_subsys != caller_subsys and callee_subsys is not None:
-                callee_subsys = to_upper_alpha(callee_subsys)
                 if callee_subsys not in boundary_fns:
                     boundary_fns[callee_subsys] = []
                 if callee_addr not in boundary_fns[callee_subsys]:
@@ -244,14 +252,14 @@ def append_to_json_file(json_fname, subsys_names):
     for subsys in subsys_names:
         if subsys not in json_entries:
             # Remove various bits of punctuation so we can index using the name.
-            clean_subsys_name = re.sub(r'\W+', '', subsys)
+            clean_subsys_name = re.sub(r'\W+', '', subsys).upper()
             json_entries[clean_subsys_name] = {}
-            json_entries[clean_subsys_name]['index'] = len(json_entries)
-            # long_name is used to deduplicate subsystems. Its value should not
-            # be modified in the ouputted JSON file.
-            json_entries[clean_subsys_name]['long_name'] = subsys
+            json_entries[clean_subsys_name]['id'] = len(json_entries)
+            # long_name is used for human output. Its value can be changed to be
+            # more human-friendly
+            json_entries[clean_subsys_name]['long_name'] = subsys.capitalize()
             # short_name is used as a key in enums. Its value can be modified to
-            # be more human/code-friendly.
+            # be more code-friendly.
             json_entries[clean_subsys_name]['short_name'] = clean_subsys_name
 
     json.dump(json_entries, json_file, indent=2)
@@ -268,11 +276,13 @@ def generate_rscfl_subsystems_header(json_fname, header_file):
     #     header_file: File to write a C header file containing an enum of
     #         possible subsystems.
     json_file = open(json_fname, 'r')
-    subsystems = json.load(json_file)
-    header_file.write(rscfl_subsys_header_top)
-    for i, subsystem in enumerate(subsystems):
-        header_file.write("  %s=%d,\n" % (subsystem, i))
-    header_file.write(rscfl_subsys_header_bottom)
+    subsys_json = json.load(json_file)
+    subsystems = sorted(subsys_json.items(), key=lambda x: x[1]['id'])
+    template = jinja2.Template(rscfl_subsys_header_template)
+    args = {}
+    args['subsystems'] = subsystems
+    header_file.write(template.render(args))
+
     json_file.close()
 
 
@@ -326,7 +336,8 @@ def main():
         template = jinja2.Template(rscfl_subsys_addr_template)
         args = {}
         args['subsys_list_header'] = os.path.basename(sharedh_fname)
-        args['subsystems'] = subsys_entries
+        args['subsystems'] = dict((to_upper_alpha(key), value) for (key, value)
+                                  in subsys_entries.items())
         print template.render(args)
 
 if __name__ == '__main__':

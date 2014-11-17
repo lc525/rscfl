@@ -251,7 +251,7 @@ void rscfl_subsystem_exit(rscfl_subsys subsys_id, struct kretprobe_instance *pro
         // and should clear_acct_next.
         if (!current_pid_acct->probe_data->real_call) {
           _clear_acct_next(current->pid, -1);
-	      }
+        }
       }
     }
   }

@@ -22,12 +22,16 @@ static const char VERSION[] = "@VERSION@";
 //                            (pid, current_accounting_region) pairs (K,V).
 #define CPU_PIDACCT_HTBL_LOGSIZE 6
 
-// communication parameters
-#define NETLINK_USER 31
-
 // character device properties
 // the device is mmap-ed in user space for reading accounting results
-#define RSCFL_MAJOR 91
-#define RSCFL_MINOR 0
+#define RSCFL_DATA_MAJOR 91
+#define RSCFL_DATA_MINOR 0
+
+
+// The control char device is also mmap-ed in userspace, but is used to
+// indicate to resourceful that we are interested in accounting the next
+// syscall.
+#define RSCFL_CTRL_MAJOR 92
+#define RSCFL_CTRL_MINOR 0
 #endif
 

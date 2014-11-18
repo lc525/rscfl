@@ -199,7 +199,6 @@ set (stap_SOURCES
   ${PROJECT_SOURCE_DIR}/tapsets/cpu.c
   ${PROJECT_SOURCE_DIR}/tapsets/hasht.c
   ${PROJECT_SOURCE_DIR}/tapsets/kprobe_manager.c
-  ${PROJECT_SOURCE_DIR}/tapsets/netlink.c
   ${PROJECT_SOURCE_DIR}/tapsets/probes.c
   ${PROJECT_SOURCE_DIR}/tapsets/sched.c
   ${PROJECT_SOURCE_DIR}/tapsets/stap_shim.c
@@ -210,6 +209,7 @@ set (stap_DEPS # if any of those files change, the stap ko is rebuilt
   ${PROJECT_BINARY_DIR}/rscfl/config.h
   ${PROJECT_INCLUDE_DIR}/rscfl/costs.h
   ${PROJECT_INCLUDE_DIR}/rscfl/PMurHash.h
+  ${PROJECT_INCLUDE_DIR}/rscfl/kernel/chardev.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/hasht.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/kprobe_manager.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/perf.h

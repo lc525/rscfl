@@ -186,7 +186,7 @@ void rscfl_subsystem_entry(rscfl_subsys subsys_id, struct kretprobe_instance *pr
     if (current_pid_acct->curr_subsys != subsys_id ||
         current_pid_acct->curr_subsys == -1) {
       rscfl_subsys *prev_subsys;
-      // We're new in this subsystem
+      // We're new in this subsystem.
       current_pid_acct->probe_data->nest_level++;
 
       // We don't want the perf values for the time spent in netlink, so use

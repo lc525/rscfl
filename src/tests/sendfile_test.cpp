@@ -22,7 +22,7 @@ class SendFileTest : public testing::Test
 
     int from_fd = open("/etc/hostname", O_RDONLY);
     EXPECT_LT(-1, from_fd);
-    int to_fd = open("/tmp/rscfl_test", O_WRONLY | O_CREAT);
+    int to_fd = open("/tmp/rscfl_test", O_WRONLY | O_CREAT, 0644);
     EXPECT_LT(-1, to_fd);
 
     // Account for the call to sendfile.

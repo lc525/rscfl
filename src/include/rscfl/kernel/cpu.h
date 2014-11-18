@@ -52,7 +52,6 @@ struct kprobe_priv {
   long cycles;
   long wall_clock_time;
   unsigned short real_call;
-  rscfl_subsys prev_subsys;
 };
 typedef struct kprobe_priv kprobe_priv;
 

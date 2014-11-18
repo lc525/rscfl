@@ -87,7 +87,6 @@ static int rscfl_mmap(struct file *filp, struct vm_area_struct *vma)
     kfree(shared_buf);
     return -ENOMEM;
   }
-  probe_data->prev_subsys = -1;
   pid_acct_node->curr_subsys = -1;
   pid_acct_node->pid = current->pid;
   pid_acct_node->shared_buf = (rscfl_shared_mem_layout_t *)shared_buf;

@@ -185,7 +185,7 @@ void rscfl_subsystem_entry(rscfl_subsys subsys_id, struct kretprobe_instance *pr
     BUG_ON(current_pid_acct == NULL); // As subsys_acct=>current_pid_acct.
     if (current_pid_acct->curr_subsys != subsys_id ||
         current_pid_acct->curr_subsys == -1) {
-      kprobe_priv *probe_data;
+      rscfl_subsys *prev_subsys;
       // We're new in this subsystem
       current_pid_acct->probe_data->nest_level++;
 
@@ -204,8 +204,8 @@ void rscfl_subsystem_entry(rscfl_subsys subsys_id, struct kretprobe_instance *pr
         rscfl_perf_get_current_vals(subsys_acct, 0);
       }
       // Update the subsystem tracking info.
-      probe_data = (kprobe_priv *) probe->data;
-      probe_data->prev_subsys = current_pid_acct->curr_subsys;
+      prev_subsys = (rscfl_subsys *) probe->data;
+      *prev_subsys = current_pid_acct->curr_subsys;
       current_pid_acct->curr_subsys = subsys_id;
     }
   }
@@ -225,22 +225,20 @@ void rscfl_subsystem_exit(rscfl_subsys subsys_id, struct kretprobe_instance *pro
       // We are unrolling the nestings of subsystems, so we should do
       // accounting.
       if (!current_pid_acct->probe_data->real_call) {
-        kprobe_priv *probe_data;
-        rscfl_subsys prev_subsys_id;
+        rscfl_subsys *prev_subsys;
 	      // We don't get the perf values if we haven't left the netlink, and
 	      // gone into the real syscall.
         rscfl_perf_get_current_vals(subsys_acct, 1);
 
         // Start counters again for the subsystem we're returning back to.
-        probe_data = (kprobe_priv *) probe->data;
-        prev_subsys_id = probe_data->prev_subsys;
-        if (prev_subsys_id != -1) {
+        prev_subsys = (rscfl_subsys *) probe->data;
+        if (*prev_subsys != -1) {
           struct subsys_accounting *prev_subsys_acct;
-          prev_subsys_acct = get_subsys(prev_subsys_id);
+          prev_subsys_acct = get_subsys(*prev_subsys);
           rscfl_perf_get_current_vals(prev_subsys_acct, 0);
 
           // Update subsystem tracking data.
-          current_pid_acct->curr_subsys = prev_subsys_id;
+          current_pid_acct->curr_subsys = *prev_subsys;
         }
       }
       if (!--current_pid_acct->probe_data->nest_level) {

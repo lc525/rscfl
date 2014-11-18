@@ -183,8 +183,7 @@ void rscfl_subsystem_entry(rscfl_subsys subsys_id, struct kretprobe_instance *pr
   if (subsys_acct != NULL) {
     // We running acct_next on this syscall.
     BUG_ON(current_pid_acct == NULL); // As subsys_acct=>current_pid_acct.
-    if (current_pid_acct->curr_subsys != subsys_id ||
-        current_pid_acct->curr_subsys == -1) {
+    if (current_pid_acct->curr_subsys != subsys_id) {
       rscfl_subsys *prev_subsys;
       // We're new in this subsystem.
       current_pid_acct->probe_data->nest_level++;
@@ -196,8 +195,8 @@ void rscfl_subsystem_entry(rscfl_subsys subsys_id, struct kretprobe_instance *pr
         // If this isn't the first subsys, stop the counters for the previous
         // one.
         if (current_pid_acct->curr_subsys != -1) {
-          struct subsys_accounting *prev_subsys_acct;
-          prev_subsys_acct = get_subsys(current_pid_acct->curr_subsys);
+          struct subsys_accounting *prev_subsys_acct =
+              get_subsys(current_pid_acct->curr_subsys);
           rscfl_perf_get_current_vals(prev_subsys_acct, 1);
         }
         //Start the couters for the subsystem we're entering.
@@ -226,15 +225,14 @@ void rscfl_subsystem_exit(rscfl_subsys subsys_id, struct kretprobe_instance *pro
       // accounting.
       if (!current_pid_acct->probe_data->real_call) {
         rscfl_subsys *prev_subsys;
-	      // We don't get the perf values if we haven't left the netlink, and
-	      // gone into the real syscall.
+        // We don't get the perf values if we haven't left the netlink, and
+        // gone into the real syscall.
         rscfl_perf_get_current_vals(subsys_acct, 1);
 
         // Start counters again for the subsystem we're returning back to.
         prev_subsys = (rscfl_subsys *) probe->data;
         if (*prev_subsys != -1) {
-          struct subsys_accounting *prev_subsys_acct;
-          prev_subsys_acct = get_subsys(*prev_subsys);
+          struct subsys_accounting *prev_subsys_acct = get_subsys(*prev_subsys);
           rscfl_perf_get_current_vals(prev_subsys_acct, 0);
 
           // Update subsystem tracking data.

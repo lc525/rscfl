@@ -201,11 +201,12 @@ void rscfl_subsystem_entry(rscfl_subsys subsys_id, struct kretprobe_instance *pr
         }
         //Start the couters for the subsystem we're entering.
         rscfl_perf_get_current_vals(subsys_acct, 0);
+        // Update the subsystem tracking info.
+        prev_subsys = (rscfl_subsys *) probe->data;
+        *prev_subsys = current_pid_acct->curr_subsys;
+        current_pid_acct->curr_subsys = subsys_id;
+        *prev_subsys, current_pid_acct->curr_subsys);
       }
-      // Update the subsystem tracking info.
-      prev_subsys = (rscfl_subsys *) probe->data;
-      *prev_subsys = current_pid_acct->curr_subsys;
-      current_pid_acct->curr_subsys = subsys_id;
     }
   }
   preempt_enable();

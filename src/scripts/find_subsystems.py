@@ -252,7 +252,7 @@ def append_to_json_file(json_fname, subsys_names):
 
     subsys_names.sort()
     for subsys in subsys_names:
-        if subsys not in json_entries:
+        if to_upper_alpha(subsys) not in json_entries:
             # Remove various bits of punctuation so we can index using the name.
             clean_subsys_name = re.sub(r'\W+', '', subsys).upper()
             json_entries[clean_subsys_name] = {}

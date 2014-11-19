@@ -10,6 +10,10 @@
 #include "rscfl/kernel/stap_shim.h"
 #include "rscfl/kernel/subsys_addr.h"
 
+const char *rscfl_subsys_name[] = {
+    SUBSYS_TABLE(SUBSYS_AS_STR_ARRAY)
+};
+
 int probes_init(void)
 {
   kprobe_opcode_t **probe_addr;

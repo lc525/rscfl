@@ -122,12 +122,6 @@ static struct subsys_accounting *get_subsys(rscfl_subsys subsys_id)
     rscfl_shared_mem_layout_t *rscfl_mem;
     int subsys_offset;
 
-
-    if (subsys_id == 89) {
-      debugk("NETGEN\n");
-    }
-
-
     current_pid_acct = CPU_VAR(current_acct);
     rscfl_mem = current_pid_acct->shared_buf;
     subsys_offset = acct->acct_subsys[subsys_id];
@@ -179,7 +173,6 @@ void rscfl_subsystem_entry(rscfl_subsys subsys_id)
   subsys_acct = get_subsys(subsys_id);
   current_pid_acct = CPU_VAR(current_acct);
   if (subsys_acct != NULL) {
-    debugk("Accounting\n");
     // We running acct_next on this syscall.
     BUG_ON(current_pid_acct == NULL); // As subsys_acct=>current_pid_acct.
     current_pid_acct->probe_data->nest_level++;

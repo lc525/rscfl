@@ -205,7 +205,6 @@ void rscfl_subsystem_entry(rscfl_subsys subsys_id, struct kretprobe_instance *pr
         prev_subsys = (rscfl_subsys *) probe->data;
         *prev_subsys = current_pid_acct->curr_subsys;
         current_pid_acct->curr_subsys = subsys_id;
-        *prev_subsys, current_pid_acct->curr_subsys);
       }
     }
   }

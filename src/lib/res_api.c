@@ -24,6 +24,11 @@ static struct iovec iov;
 static int sock_fd;
 static struct msghdr msg;
 
+// define subsystem name array for user-space includes of subsys_list.h
+const char *rscfl_subsys_name[] = {
+    SUBSYS_TABLE(SUBSYS_AS_STR_ARRAY)
+};
+
 // THIS IS HERE ONLY FOR THE HOTDEP PAPER
 // TODO(lc525): remove
 __thread rscfl_handle handle = NULL;

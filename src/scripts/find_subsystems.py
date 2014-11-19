@@ -29,7 +29,11 @@ typedef enum {
     NUM_SUBSYSTEMS
 } rscfl_subsys;
 
-extern const char *rscfl_subsys_name[NUM_SUBSYSTEMS]; // defined in kernel/tapsets/probes.c
+/* rscfl_subsys_name is defined in
+ *   kernel/tapsets/probes.c for the kernel side includes of this header
+ *   lib/res_api.c for the user-space includes of this header
+ */
+extern const char *rscfl_subsys_name[NUM_SUBSYSTEMS];
 
 #endif /* _RSCFL_SUBSYS_H_ */
 """

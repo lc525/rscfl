@@ -113,16 +113,17 @@ int probes_cleanup(void)
  */
 static struct subsys_accounting *get_subsys(rscfl_subsys subsys_id)
 {
-  struct accounting *acct = NULL;
   char x[] = "";
 
-  if (_should_acct(-1, 0, x, &acct)) {
+  if (should_acct()) {
+    struct accounting *acct;
     struct subsys_accounting *subsys_acct;
     pid_acct *current_pid_acct;
     rscfl_shared_mem_layout_t *rscfl_mem;
     int subsys_offset;
 
     current_pid_acct = CPU_VAR(current_acct);
+    acct = current_pid_acct->probe_data->syscall_acct;
     rscfl_mem = current_pid_acct->shared_buf;
     subsys_offset = acct->acct_subsys[subsys_id];
     if (subsys_offset == -1) {
@@ -148,9 +149,8 @@ static struct subsys_accounting *get_subsys(rscfl_subsys subsys_id)
       }
       if (subsys_offset == -1) {
         // We haven't found anywhere in the shared page where we can store
-        // this
-        // subsystem.
-	return NULL;
+        // this subsystem.
+        return NULL;
       }
       // Now need to initialise the subsystem's resources to be 0.
       subsys_acct = &rscfl_mem->subsyses[subsys_offset];
@@ -194,9 +194,10 @@ void rscfl_subsystem_exit(rscfl_subsys subsys_id)
       // We are unrolling the nestings of subsystems, so we should do
       // accounting.
       rscfl_perf_get_current_vals(subsys_acct, 1);
-      if (!--current_pid_acct->probe_data->nest_level) {
+      current_pid_acct->probe_data->nest_level--;
+      if (!current_pid_acct->probe_data->nest_level) {
         // We have backed out of all nesting.
-	_clear_acct_next(-1);
+        clear_acct_next();
       }
     }
   }

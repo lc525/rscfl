@@ -20,8 +20,7 @@ static rwlock_t lock = __RW_LOCK_UNLOCKED(lock);
  * if syscall_nr==-1 then we account for the next syscall, independent of which
  * syscall is executed.
  **/
-int _should_acct(int syscall_nr, int probe_nest, const char *name,
-                 struct accounting **acct)
+int should_acct(void)
 {
   syscall_interest_t *interest;
   struct accounting *acct_buf;
@@ -51,10 +50,7 @@ int _should_acct(int syscall_nr, int probe_nest, const char *name,
   // store the accounting data in.
 
   if (current_pid_acct->probe_data->syscall_acct) {
-    // We have already called this function for the current syscall, so we
-    // should reuse the struct accounting that we already found.
-
-    *acct = current_pid_acct->probe_data->syscall_acct;
+    // We have already called this function for the current syscall.
     preempt_enable();
     return 1;
   }
@@ -84,9 +80,8 @@ int _should_acct(int syscall_nr, int probe_nest, const char *name,
   // Initialise the subsys_accounting indices to -1, as they are used
   // to index an array, so 0 is valid.
   memset(acct_buf->acct_subsys, -1, sizeof(short) * NUM_SUBSYSTEMS);
-  debugk("_should_acct %s: (yes, nr %lu) %d, into %p\n", name,
-         interest->syscall_id, current_pid_acct->pid, (void *)acct_buf);
-  *acct = acct_buf;
+  debugk("_should_acct: (yes, nr %lu) %d, into %p\n", interest->syscall_id,
+         current_pid_acct->pid, (void *)acct_buf);
   preempt_enable();
   return 1;
 }
@@ -99,7 +94,7 @@ int _should_acct(int syscall_nr, int probe_nest, const char *name,
  *
  * if pid==-1 && syscall_nr==-1 then the resource consumption list is cleared
  **/
-int _clear_acct_next(int syscall_nr)
+int clear_acct_next(void)
 {
   pid_acct *current_pid_acct;
   syscall_interest_t *interest;

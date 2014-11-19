@@ -13,8 +13,7 @@ struct rscfl_shared_mem_layout_t
 
 typedef struct rscfl_shared_mem_layout_t rscfl_shared_mem_layout_t;
 
-int _should_acct(int syscall_nr, int probe_nest, const char *name,
-                 struct accounting **);
-int _clear_acct_next(int);
+int should_acct(void);
+int clear_acct_next(void);
 
 #endif

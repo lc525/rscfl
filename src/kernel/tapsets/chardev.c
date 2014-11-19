@@ -72,12 +72,9 @@ int _rscfl_dev_cleanup(void)
   return 0;
 }
 
-/* A process/thread needing resource accounting will first mmap
- * a character device within it's address space.
- *
- * rscfl_mmap allocates a new accounting buffer (an array of struct accounting),
- * creates kernel side data structures to map the pid to its accounting
- * buffers and then does the actual mmap-ing.
+/*
+ * Alloc and mmap some memory. Return the address of the memory through
+ * mapped_mem.
  */
 
 static int mmap_common(struct file *filp, struct vm_area_struct *vma,
@@ -115,14 +112,19 @@ static int mmap_common(struct file *filp, struct vm_area_struct *vma,
   return 0;
 }
 
+
+/*
+ * Perform memory mapping for the data driver. That is to say the driver
+ * that stores struct accountings and struct subsys_accountings.
+ */
 static int data_mmap(struct file *filp, struct vm_area_struct *vma)
 {
   pid_acct *pid_acct_node;
   kprobe_priv *probe_data;
-  char *shared_buf;
+  char *shared_data_buf;
   int rc;
 
-  // new pid wants resource accounting data, so add (pid, shared_buf) into
+  // new pid wants resource accounting data, so add (pid, shared_data_buf) into
   // per-cpu hash table.
   //
   // TODO(lc525, review discussion): decide on whether to add (pid, shared_buf)
@@ -140,13 +142,13 @@ static int data_mmap(struct file *filp, struct vm_area_struct *vma)
     return -ENOMEM;
   }
 
-  if ((rc = mmap_common(filp, vma, &shared_buf))) {
+  if ((rc = mmap_common(filp, vma, &shared_data_buf))) {
     kfree(probe_data);
     kfree(pid_acct_node);
     return rc;
   }
   pid_acct_node->pid = current->pid;
-  pid_acct_node->shared_buf = (rscfl_shared_mem_layout_t *)shared_buf;
+  pid_acct_node->shared_buf = (rscfl_shared_mem_layout_t *)shared_data_buf;
   pid_acct_node->probe_data = probe_data;
   preempt_disable();
   hash_add(CPU_TBL(pid_acct_tbl), &pid_acct_node->link, pid_acct_node->pid);
@@ -155,13 +157,18 @@ static int data_mmap(struct file *filp, struct vm_area_struct *vma)
   return 0;
 }
 
+
+/*
+ * Perform the mmap for the memory shared between resourceful kernel and user
+ * API. The location of the mapped page is stored in current_pid_acct->ctrl.
+ */
 static int ctrl_mmap(struct file *filp, struct vm_area_struct *vma)
 {
   int rc;
-  char *shared_buf;
+  char *shared_ctrl_buf;
   pid_acct *current_pid_acct;
 
-  if ((rc = mmap_common(filp, vma, &shared_buf))) {
+  if ((rc = mmap_common(filp, vma, &shared_ctrl_buf))) {
     return rc;
   }
 
@@ -170,7 +177,7 @@ static int ctrl_mmap(struct file *filp, struct vm_area_struct *vma)
   current_pid_acct = CPU_VAR(current_acct);
   // We need to store the address of the control page for the pid, so we
   // can see when an interest is raised.
-  current_pid_acct->ctrl = (syscall_interest_t *)shared_buf;
+  current_pid_acct->ctrl = (syscall_interest_t *)shared_ctrl_buf;
   preempt_enable();
 
   return 0;

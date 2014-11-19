@@ -42,8 +42,8 @@ rscfl_handle rscfl_init()
   }
 
   // mmap a chunk of data the size of all of the sub-buffers (def in config.h)
-  rhdl->buf =
-      mmap(NULL, MMAP_BUF_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
+  rhdl->buf = mmap(NULL, MMAP_BUF_SIZE, PROT_READ | PROT_WRITE,
+                   MAP_PRIVATE | MAP_POPULATE, fd, 0);
   if (rhdl == MAP_FAILED) {
     goto error;
   }

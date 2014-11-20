@@ -229,6 +229,5 @@ void rscfl_subsystem_exit(rscfl_subsys subsys_id, struct kretprobe_instance *pro
         clear_acct_next();
       }
     }
-  }
   preempt_enable();
 }

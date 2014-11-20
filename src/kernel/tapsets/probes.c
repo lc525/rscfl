@@ -154,6 +154,8 @@ static struct subsys_accounting *get_subsys(rscfl_subsys subsys_id)
       if (subsys_offset == -1) {
         // We haven't found anywhere in the shared page where we can store
         // this subsystem.
+        printk(KERN_ERR
+               "rscfl: Unable to allocate memory for syscall accounting\n");
         return NULL;
       }
       // Now need to initialise the subsystem's resources to be 0.
@@ -194,7 +196,7 @@ void rscfl_subsystem_exit(rscfl_subsys subsys_id)
       (current_pid_acct->probe_data->syscall_acct)) {
     // This syscall is being accounted for.
     struct subsys_accounting *subsys_acct = get_subsys(subsys_id);
-    if (current_pid_acct->probe_data->nest_level) {
+    if ((subsys_acct != NULL) && (current_pid_acct->probe_data->nest_level)) {
       // We are unrolling the nestings of subsystems, so we should do
       // accounting.
       rscfl_perf_get_current_vals(subsys_acct, 1);

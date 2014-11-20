@@ -1,11 +1,12 @@
 #include <errno.h>
+#include <fcntl.h>
 #include "gtest/gtest.h"
 #include <stdio.h>
 #include <sys/sendfile.h>
-#include <fcntl.h>
 #include <sys/socket.h>
 
 #include <rscfl/costs.h>
+#include <rscfl/subsys_list.h>
 #include <rscfl/user/res_api.h>
 
 class CyclesTest : public testing::Test
@@ -50,18 +51,19 @@ TEST_F(CyclesTest, SocketCyclesValidation)
   ASSERT_EQ(0, rscfl_read_acct(rhdl_, &acct_));
 
   // Now add all of the subsystem cycles
-  ru64 cycles_net =
-      get_subsys_accounting(rhdl_, &acct_, NETWORKINGGENERAL)->cpu.cycles;
+  ru64 kernel_cycles = 0;
+  struct subsys_accounting *subsys;
+  rscfl_subsys curr_sub;
+  for (int i = 1; i < NUM_SUBSYSTEMS; i++) {
+    curr_sub = (rscfl_subsys) i;
+    if ((subsys = get_subsys_accounting(rhdl_, &acct_, curr_sub)) != NULL) {
+      fprintf(stdout, "In subsys: %d\n", i);
+      fprintf(stdout, "Adding cycles: %llu\n", subsys->cpu.cycles);
+      kernel_cycles += subsys->cpu.cycles;
+    }
+  }
 
-  ru64 cycles_vfs =
-      get_subsys_accounting(rhdl_, &acct_, FILESYSTEMSVFSANDINFRASTRUCTURE)
-          ->cpu.cycles;
-
-  ru64 cycles_security =
-      get_subsys_accounting(rhdl_, &acct_, SECURITYSUBSYSTEM)->cpu.cycles;
-
-  ru64 kernel_cycles = cycles_net + cycles_vfs + cycles_security;
-
-  ASSERT_LT(kernel_cycles, user_cycles);
+  EXPECT_LT(kernel_cycles, user_cycles);
+  EXPECT_LT(kernel_cycles * 0.8, user_cycles);
 }
 

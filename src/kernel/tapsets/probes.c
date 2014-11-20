@@ -183,18 +183,17 @@ void rscfl_subsystem_entry(rscfl_subsys subsys_id, struct kretprobe_instance *pr
       rscfl_subsys *prev_subsys;
       // We're new in this subsystem.
       current_pid_acct->probe_data->nest_level++;
-        if (current_pid_acct->curr_subsys != -1) {
-          struct subsys_accounting *prev_subsys_acct =
-              get_subsys(current_pid_acct->curr_subsys);
-          rscfl_perf_get_current_vals(prev_subsys_acct, 1);
-        }
-        //Start the couters for the subsystem we're entering.
-        rscfl_perf_get_current_vals(subsys_acct, 0);
-        // Update the subsystem tracking info.
-        prev_subsys = (rscfl_subsys *) probe->data;
-        *prev_subsys = current_pid_acct->curr_subsys;
-        current_pid_acct->curr_subsys = subsys_id;
-      
+      if (current_pid_acct->curr_subsys != -1) {
+        struct subsys_accounting *prev_subsys_acct =
+            get_subsys(current_pid_acct->curr_subsys);
+        rscfl_perf_get_current_vals(prev_subsys_acct, 1);
+      }
+      //Start the couters for the subsystem we're entering.
+      rscfl_perf_get_current_vals(subsys_acct, 0);
+      // Update the subsystem tracking info.
+      prev_subsys = (rscfl_subsys *) probe->data;
+      *prev_subsys = current_pid_acct->curr_subsys;
+      current_pid_acct->curr_subsys = subsys_id;
     }
   }
   preempt_enable();
@@ -212,22 +211,22 @@ void rscfl_subsystem_exit(rscfl_subsys subsys_id, struct kretprobe_instance *pro
     if (current_pid_acct->probe_data->nest_level) {
       // We are unrolling the nestings of subsystems, so we should do
       // accounting.
-        rscfl_subsys *prev_subsys;
-        rscfl_perf_get_current_vals(subsys_acct, 1);
+      rscfl_subsys *prev_subsys;
+      rscfl_perf_get_current_vals(subsys_acct, 1);
 
-        // Start counters again for the subsystem we're returning back to.
-        prev_subsys = (rscfl_subsys *) probe->data;
-        if (*prev_subsys != -1) {
-          struct subsys_accounting *prev_subsys_acct = get_subsys(*prev_subsys);
-          rscfl_perf_get_current_vals(prev_subsys_acct, 0);
+      // Start counters again for the subsystem we're returning back to.
+      prev_subsys = (rscfl_subsys *) probe->data;
+      if (*prev_subsys != -1) {
+        struct subsys_accounting *prev_subsys_acct = get_subsys(*prev_subsys);
+        rscfl_perf_get_current_vals(prev_subsys_acct, 0);
 
-          // Update subsystem tracking data.
-          current_pid_acct->curr_subsys = *prev_subsys;
-        }
-      }
-      if (!--current_pid_acct->probe_data->nest_level) {
-        clear_acct_next();
+        // Update subsystem tracking data.
+        current_pid_acct->curr_subsys = *prev_subsys;
       }
     }
+    if (!--current_pid_acct->probe_data->nest_level) {
+      clear_acct_next();
+    }
+  }
   preempt_enable();
 }

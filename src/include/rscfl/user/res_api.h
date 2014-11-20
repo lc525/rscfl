@@ -14,6 +14,8 @@ struct rscfl_handle_t
 {
   char *buf;
   rscfl_syscall_id_t lst_syscall;
+
+  syscall_interest_t *interests;
 };
 
 typedef struct rscfl_handle_t *rscfl_handle;

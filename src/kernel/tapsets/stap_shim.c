@@ -13,91 +13,77 @@
 
 
 long syscall_id_c;
-syscall_acct_list_t *syscall_acct_list;
 
 static rwlock_t lock = __RW_LOCK_UNLOCKED(lock);
-
-int acct_next(pid_t pid, int syscall_nr)
-{
-  syscall_acct_list_t *to_acct =
-      (syscall_acct_list_t *)kzalloc(sizeof(syscall_acct_list_t), GFP_KERNEL);
-  debugk("acct_next %d\n", pid);
-  if (!to_acct) {
-    return -1;
-  }
-  to_acct->syscall_id = syscall_id_c++;
-  to_acct->pid = pid;
-  to_acct->syscall_nr = syscall_nr;
-  to_acct->next = syscall_acct_list;
-  write_lock(&lock);
-  syscall_acct_list = to_acct;
-  write_unlock(&lock);
-  return 0;
-}
 
 /**
  * if syscall_nr==-1 then we account for the next syscall, independent of which
  * syscall is executed.
  **/
-int _should_acct(pid_t pid, int syscall_nr, int probe_nest, const char *name,
-                 struct accounting **acct)
+int should_acct(void)
 {
-  syscall_acct_list_t *e;
+  syscall_interest_t *interest;
   struct accounting *acct_buf;
   pid_acct *current_pid_acct;
   rscfl_shared_mem_layout_t *rscfl_shared_mem;
 
-  read_lock(&lock);
+  preempt_disable();
   current_pid_acct = CPU_VAR(current_acct);
-  e = syscall_acct_list;
-  while (e) {
-    if ((e->pid == pid) &&
-        ((syscall_nr == -1) || (e->syscall_nr == syscall_nr))) {
-      if(current_pid_acct != NULL) {
-        if (current_pid_acct->probe_data->syscall_acct) {
-          *acct = current_pid_acct->probe_data->syscall_acct;
-          read_unlock(&lock);
-          return 1;
-        }
-        read_unlock(&lock);
 
-        // Find a free struct accounting in the shared memory that we can
-        // use.
-        rscfl_shared_mem = current_pid_acct->shared_buf;
-        acct_buf = rscfl_shared_mem->acct;
-        BUG_ON(!acct_buf);
-        while (acct_buf->in_use == 1) {
-          debugk("in use: %p for (pid, id):(%d, %ld)\n", (void *)acct_buf,
-              acct_buf->syscall_id.pid, acct_buf->syscall_id.id);
-          acct_buf++;
-          if ((void *)acct_buf + sizeof(struct accounting) >
-              (void *)current_pid_acct->shared_buf->subsyses){
-            acct_buf = current_pid_acct->shared_buf->acct;
-            debugk("_should_acct: wraparound!<<<<<<<\n");
-            break;
-          }
-        }
-        // We have a free struct accounting now, so use it.
-        current_pid_acct->probe_data->syscall_acct = acct_buf;
-        current_pid_acct->probe_data->nest_level = 0;
-        current_pid_acct->probe_data->real_call = 0;
-        acct_buf->in_use = 1;
-        acct_buf->syscall_id.pid = pid;
-        acct_buf->syscall_id.id = e->syscall_nr;
-        debugk("syscall_nr=%d\n", e->syscall_nr);
-        // Initialise the subsys_accounting indices to -1, as they are used
-        // to index an array, so 0 is valid.
-        memset(acct_buf->acct_subsys, -1, sizeof(short) * NUM_SUBSYSTEMS);
-        debugk("_should_acct %s: (yes, nr %d) %d, into %p\n", name,
-            e->syscall_nr, pid, (void *)acct_buf);
-        *acct = acct_buf;
-        return 1;
-      }
-    }
-    e = e->next;
+  // Need to test for ctrl != NULL as we first initialise current_pid_acct, on
+  // the first mmap in rscfl_init, and then initialise the ctrl page in a second
+  // mmap.
+  if ((current_pid_acct == NULL) || (current_pid_acct->ctrl == NULL)) {
+    // This pid has not initialised resourceful.
+    preempt_enable();
+    return 0;
   }
-  read_unlock(&lock);
-  return 0;
+
+  interest = current_pid_acct->ctrl;
+  if (!interest->syscall_id) {
+    // There are no interests registered for this pid.
+    preempt_enable();
+    return 0;
+  }
+
+  // We are now going to return 1, but need to find a struct accounting to
+  // store the accounting data in.
+
+  if (current_pid_acct->probe_data->syscall_acct) {
+    // We have already called this function for the current syscall.
+    preempt_enable();
+    return 1;
+  }
+
+  // Find a free struct accounting in the shared memory that we can
+  // use.
+  rscfl_shared_mem = current_pid_acct->shared_buf;
+  acct_buf = rscfl_shared_mem->acct;
+  BUG_ON(!acct_buf);
+  while (acct_buf->in_use) {
+    debugk("in use: %p for (pid, id):(%d, %lu)\n", (void *)acct_buf,
+           current_pid_acct->pid, acct_buf->syscall_id.id);
+    acct_buf++;
+    if ((void *)acct_buf + sizeof(struct accounting) >
+        (void *)current_pid_acct->shared_buf->subsyses) {
+      acct_buf = current_pid_acct->shared_buf->acct;
+      debugk("_should_acct: wraparound!<<<<<<<\n");
+      break;
+    }
+  }
+  // We have a free struct accounting now, so use it.
+  current_pid_acct->probe_data->syscall_acct = acct_buf;
+  current_pid_acct->probe_data->nest_level = 0;
+  acct_buf->in_use = 1;
+  acct_buf->syscall_id.id = interest->syscall_id;
+  debugk("syscall_id=%lu\n", interest->syscall_id);
+  // Initialise the subsys_accounting indices to -1, as they are used
+  // to index an array, so 0 is valid.
+  memset(acct_buf->acct_subsys, -1, sizeof(short) * NUM_SUBSYSTEMS);
+  debugk("_should_acct: (yes, nr %lu) %d, into %p\n", interest->syscall_id,
+         current_pid_acct->pid, (void *)acct_buf);
+  preempt_enable();
+  return 1;
 }
 
 /**
@@ -108,58 +94,20 @@ int _should_acct(pid_t pid, int syscall_nr, int probe_nest, const char *name,
  *
  * if pid==-1 && syscall_nr==-1 then the resource consumption list is cleared
  **/
-int _clear_acct_next(pid_t pid, int syscall_nr)
+int clear_acct_next(void)
 {
-  syscall_acct_list_t *entry;
-  syscall_acct_list_t *prev = NULL;
-  syscall_acct_list_t *next;
-
   pid_acct *current_pid_acct;
+  syscall_interest_t *interest;
 
-  int rc = -1;
-  debugk("clear_acct_next %d\n", pid);
-
-  read_lock(&lock);
-  entry = syscall_acct_list;
+  preempt_disable();
 
   current_pid_acct = CPU_VAR(current_acct);
+  interest = current_pid_acct->ctrl;
+  // Clear the cached pointer to the struct accounting.
   current_pid_acct->probe_data->syscall_acct = NULL;
+  // Reset the interest so we stop accounting.
+  interest->syscall_id = 0;
 
-  while (entry) {
-    debugk("clear_acct_next: in while\n");
-    if (((syscall_nr == -1) || (syscall_nr == entry->syscall_nr)) &&
-        ((pid == -1) || (pid = entry->pid))) {
-      if (prev) {
-        prev->next = entry->next;
-      } else {
-        syscall_acct_list = entry->next;
-      }
-      next = entry->next;
-      kfree(entry);
-      if (syscall_nr > 0) {
-        read_unlock(&lock);
-        return 0;
-      }
-      rc = 0;
-
-      entry = next;
-
-    } else {
-      prev = entry;
-      entry = entry->next;
-    }
-  }
-  read_unlock(&lock);
-  return rc;
-}
-
-void syscall_for_pid(char *c) {
-  pid_acct *current_pid_acct;
-  current_pid_acct = CPU_VAR(current_acct);
-  if (current_pid_acct != NULL) {
-    debugk("Syscall for process. syscall %s\n", c);
-    if (current_pid_acct->probe_data->real_call) {
-      current_pid_acct->probe_data->real_call--;
-    }
-  }
+  preempt_enable();
+  return 0;
 }

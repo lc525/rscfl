@@ -1,17 +1,22 @@
 #include "rscfl/kernel/probes.h"
 
+#include "linux/kprobes.h"
+
 #include "rscfl/kernel/chardev.h"
 #include "rscfl/kernel/cpu.h"
 #include "rscfl/kernel/kprobe_manager.h"
-#include "rscfl/kernel/netlink.h"
 #include "rscfl/kernel/perf.h"
 #include "rscfl/kernel/stap_shim.h"
 #include "rscfl/kernel/subsys_addr.h"
 
+const char *rscfl_subsys_name[] = {
+    SUBSYS_TABLE(SUBSYS_AS_STR_ARRAY)
+};
+
 int probes_init(void)
 {
   kprobe_opcode_t **probe_addr;
-  int rcd = 0, rcn = 0, rcc = 0, rcp = 0, rckp = 0;
+  int rcd = 0, rcc = 0, rcp = 0, rckp = 0;
   kprobe_pre_handler_t pre_handler = pre_handler;
   int subsys_num;
   kprobe_opcode_t **probe_addrs_temp[] = {
@@ -56,7 +61,6 @@ int probes_init(void)
   rcc = _rscfl_cpus_init();
   preempt_enable();
   rcd = _rscfl_dev_init();
-  rcn = _netlink_setup();
   rcp = rscfl_perf_init();
   rckp =
       rscfl_init_rtn_kprobes(probe_addrs_temp, sizeof(probe_pre_handlers_temp) /
@@ -69,12 +73,8 @@ int probes_init(void)
     return rcc;
   }
   if (rcd) {
-    printk(KERN_ERR "rscfl: cannot initialize rscfl driver\n");
+    printk(KERN_ERR "rscfl: cannot initialize rscfl drivers\n");
     return rcd;
-  }
-  if (rcn) {
-    printk(KERN_ERR "rscfl: cannot initialize netlink\n");
-    return rcn;
   }
   if (rcp) {
     printk(KERN_ERR "rscfl: cannot initialise perf\n");
@@ -89,27 +89,23 @@ int probes_init(void)
 
 int probes_cleanup(void)
 {
-  int rcd = 0, rcn = 0, rcc = 0 ;
+  int rcd = 0, rcc = 0 ;
 
   // see comment in probes_init for why we need to explicitly enable
   // preemption here
   preempt_enable();
-  rcn = _netlink_teardown();
   rcd = _rscfl_dev_cleanup();
   preempt_disable();
   rcc = _rscfl_cpus_cleanup();
   rscfl_unregister_kprobes();
 
-  if (rcn) {
-    printk(KERN_ERR "rscfl: cannot teardown netlink\n");
-  }
   if (rcd) {
-    printk(KERN_ERR "rscfl: cannot cleanup rscfl driver\n");
+    printk(KERN_ERR "rscfl: cannot cleanup rscfl drivers\n");
   }
   if (rcc) {
     printk(KERN_ERR "rscfl: cannot cleanup per-cpu hash tables\n");
  }
-  return (rcn | rcd | rcc);
+  return (rcd | rcc);
 }
 
 
@@ -121,22 +117,23 @@ int probes_cleanup(void)
  */
 static struct subsys_accounting *get_subsys(rscfl_subsys subsys_id)
 {
-  struct accounting *acct = NULL;
   char x[] = "";
 
-  if (_should_acct(current->pid, -1, 0, x, &acct)) {
+  if (should_acct()) {
+    struct accounting *acct;
     struct subsys_accounting *subsys_acct;
     pid_acct *current_pid_acct;
     rscfl_shared_mem_layout_t *rscfl_mem;
     int subsys_offset;
+
     current_pid_acct = CPU_VAR(current_acct);
+    acct = current_pid_acct->probe_data->syscall_acct;
     rscfl_mem = current_pid_acct->shared_buf;
     subsys_offset = acct->acct_subsys[subsys_id];
     if (subsys_offset == -1) {
-      debugk("looking for a subsys\n");
+      debugk("looking for a subsys for %d\n", subsys_id);
       // Need to find space in the page where we can store the subsystem.
       subsys_acct = rscfl_mem->subsyses;
-      current_pid_acct->probe_data->real_call = 1;
       // Walk through the subsyses, being careful not to wonder of the end of
       // our
       // memory.
@@ -156,9 +153,8 @@ static struct subsys_accounting *get_subsys(rscfl_subsys subsys_id)
       }
       if (subsys_offset == -1) {
         // We haven't found anywhere in the shared page where we can store
-        // this
-        // subsystem.
-	return NULL;
+        // this subsystem.
+        return NULL;
       }
       // Now need to initialise the subsystem's resources to be 0.
       subsys_acct = &rscfl_mem->subsyses[subsys_offset];
@@ -187,13 +183,6 @@ void rscfl_subsystem_entry(rscfl_subsys subsys_id, struct kretprobe_instance *pr
       rscfl_subsys *prev_subsys;
       // We're new in this subsystem.
       current_pid_acct->probe_data->nest_level++;
-
-      // We don't want the perf values for the time spent in netlink, so use
-      // real_call to flag when we're in the actual syscall, rather than
-      // netlink.
-      if (!current_pid_acct->probe_data->real_call) {
-        // If this isn't the first subsys, stop the counters for the previous
-        // one.
         if (current_pid_acct->curr_subsys != -1) {
           struct subsys_accounting *prev_subsys_acct =
               get_subsys(current_pid_acct->curr_subsys);
@@ -205,7 +194,7 @@ void rscfl_subsystem_entry(rscfl_subsys subsys_id, struct kretprobe_instance *pr
         prev_subsys = (rscfl_subsys *) probe->data;
         *prev_subsys = current_pid_acct->curr_subsys;
         current_pid_acct->curr_subsys = subsys_id;
-      }
+      
     }
   }
   preempt_enable();
@@ -223,7 +212,6 @@ void rscfl_subsystem_exit(rscfl_subsys subsys_id, struct kretprobe_instance *pro
     if (current_pid_acct->probe_data->nest_level) {
       // We are unrolling the nestings of subsystems, so we should do
       // accounting.
-      if (!current_pid_acct->probe_data->real_call) {
         rscfl_subsys *prev_subsys;
         // We don't get the perf values if we haven't left the netlink, and
         // gone into the real syscall.
@@ -247,7 +235,6 @@ void rscfl_subsystem_exit(rscfl_subsys subsys_id, struct kretprobe_instance *pro
         if (!current_pid_acct->probe_data->real_call) {
           _clear_acct_next(current->pid, -1);
         }
-      }
     }
   }
   preempt_enable();

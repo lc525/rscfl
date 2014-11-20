@@ -6,7 +6,7 @@
 #include <linux/types.h>
 #include <stddef.h>
 #include <stdio.h>
-#include <stdlib.h>  // malloc builtin; avoids debug compilation warning
+#include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
 #include <sys/socket.h>
@@ -18,11 +18,10 @@
 #include "rscfl/res_common.h"
 #include "rscfl/kernel/stap_shim.h"
 
-static struct sockaddr_nl src_addr, dest_addr;
-static struct nlmsghdr *nlh = NULL;
-static struct iovec iov;
-static int sock_fd;
-static struct msghdr msg;
+// define subsystem name array for user-space includes of subsys_list.h
+const char *rscfl_subsys_name[] = {
+    SUBSYS_TABLE(SUBSYS_AS_STR_ARRAY)
+};
 
 // THIS IS HERE ONLY FOR THE HOTDEP PAPER
 // TODO(lc525): remove
@@ -31,25 +30,37 @@ __thread rscfl_handle handle = NULL;
 rscfl_handle rscfl_init()
 {
   struct stat sb;
-  int fd = open("/dev/" RSCFL_DRIVER, O_RDWR);
+  void *ctrl;
+  int fd_data = open("/dev/" RSCFL_DATA_DRIVER, O_RDWR);
+  int fd_ctrl = open("/dev/" RSCFL_CTRL_DRIVER, O_RDWR);
   rscfl_handle rhdl = (rscfl_handle)malloc(sizeof(*rhdl));
   if (!rhdl) {
     return NULL;
   }
 
-  if (fd == -1) {
+  if ((fd_data == -1) || (fd_ctrl == -1)) {
     goto error;
   }
 
-  // mmap a chunk of data the size of all of the sub-buffers (def in config.h)
-  rhdl->buf =
-      mmap(NULL, MMAP_BUF_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
-  if (rhdl == MAP_FAILED) {
+  // mmap memory to store our struct accountings, and struct subsys_accountings.
+  rhdl->buf = mmap(NULL, MMAP_BUF_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE,
+                   fd_data, 0);
+  if (rhdl->buf == MAP_FAILED) {
     goto error;
   }
 
-  // Return the fd to the system
-  if (close(fd) == -1) {
+  // mmap memory to store our interests.
+  ctrl = mmap(NULL, MMAP_BUF_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd_ctrl,
+              0);
+  if (ctrl == MAP_FAILED) {
+    goto error;
+  }
+
+  // Initialise pointer so that we write our interests into the mmap-ed region
+  // of memory, so resourceful can read them.
+  rhdl->interests = ctrl;
+
+  if ((close(fd_data) == -1) || (close(fd_ctrl) == -1)) {
     goto error;
   }
 
@@ -58,9 +69,12 @@ rscfl_handle rscfl_init()
   return rhdl;
 
 error:
-  if (rhdl) {
-    if (rhdl->buf) {
+  if (rhdl != NULL) {
+    if (rhdl->buf != NULL) {
       munmap(rhdl->buf, MMAP_BUF_SIZE);
+    }
+    if (rhdl->interests != NULL) {
+      munmap(rhdl->interests, MMAP_BUF_SIZE);
     }
     free(rhdl);
   }
@@ -77,48 +91,15 @@ rscfl_handle rscfl_get_handle()
 
 int rscfl_acct_next(rscfl_handle rhdl)
 {
-  if (rhdl == NULL) return -1;
-
   int rc;
-  sock_fd = socket(PF_NETLINK, SOCK_RAW, NETLINK_USER);
-  if (sock_fd < 0) {
-    return -1;
+  syscall_interest_t *to_acct;
+  if (rhdl == NULL) {
+    return -EINVAL;
   }
 
-  memset(&src_addr, 0, sizeof(src_addr));
-  src_addr.nl_family = AF_NETLINK;
-  src_addr.nl_pid = (long int)syscall(__NR_gettid); /* self pid */
-
-  if ((rc = bind(sock_fd, (struct sockaddr *)&src_addr, sizeof(src_addr)))) {
-    return rc;
-  }
-
-  memset(&dest_addr, 0, sizeof(dest_addr));
-  memset(&dest_addr, 0, sizeof(dest_addr));
-  dest_addr.nl_family = AF_NETLINK;
-  dest_addr.nl_pid = 0;    /* For Linux Kernel */
-  dest_addr.nl_groups = 0; /* unicast */
-
-  nlh = (struct nlmsghdr *)malloc(NLMSG_SPACE(MAX_PAYLOAD));
-  memset(nlh, 0, NLMSG_SPACE(MAX_PAYLOAD));
-  nlh->nlmsg_len = NLMSG_SPACE(MAX_PAYLOAD);
-  nlh->nlmsg_pid = getpid();
-  nlh->nlmsg_flags = 0;
-
-  memcpy(NLMSG_DATA(nlh), &rhdl->lst_syscall, sizeof(rscfl_syscall_id_t));
-
-  iov.iov_base = (void *)nlh;
-  iov.iov_len = nlh->nlmsg_len;
-  msg.msg_name = (void *)&dest_addr;
-  msg.msg_namelen = sizeof(dest_addr);
-  msg.msg_iov = &iov;
-  msg.msg_iovlen = 1;
-
-  sendmsg(sock_fd, &msg, 0);
-
-  close(sock_fd);
-
-  rhdl->lst_syscall.id++;
+  to_acct = rhdl->interests;
+  to_acct->syscall_id = ++rhdl->lst_syscall.id;
+  to_acct->syscall_nr = -1;
 
   return 0;
 }
@@ -132,7 +113,7 @@ int rscfl_read_acct(rscfl_handle rhdl, struct accounting *acct)
   if (shared_acct != NULL) {
     while (i < STRUCT_ACCT_NUM) {
       if (shared_acct->in_use == 1) {
-        if (shared_acct->syscall_id.id == (rhdl->lst_syscall.id - 1)) {
+        if (shared_acct->syscall_id.id == rhdl->lst_syscall.id) {
           memcpy(acct, shared_acct, sizeof(struct accounting));
           shared_acct->in_use = 0;
           return 0;

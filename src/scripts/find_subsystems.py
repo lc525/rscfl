@@ -22,18 +22,11 @@ _({{ subsystem.id }}, {{ subsystem.short_name }}, \"{{ subsystem.long_name }}\")
 {%- endfor %}
 
 #define SUBSYS_AS_ENUM(a, b, c) b = a,
-#define SUBSYS_AS_STR_ARRAY(a, b, c) [a] = c,
 
 typedef enum {
     SUBSYS_TABLE(SUBSYS_AS_ENUM)
     NUM_SUBSYSTEMS
 } rscfl_subsys;
-
-/* rscfl_subsys_name is defined in
- *   kernel/tapsets/probes.c for the kernel side includes of this header
- *   lib/res_api.c for the user-space includes of this header
- */
-extern const char *rscfl_subsys_name[NUM_SUBSYSTEMS];
 
 #endif /* _RSCFL_SUBSYS_H_ */
 """

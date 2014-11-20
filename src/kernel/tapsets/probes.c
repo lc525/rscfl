@@ -50,7 +50,7 @@ int probes_init(void)
   };
 
   // stap disables preemption even when running begin/end probes.
-  // however, _rscfl_shim_init and/or _netlink_setup might sleep,
+  // however, _rscfl_shim_init might sleep,
   // causing an BUG: scheduled in atomic section kernel error (for
   // sleeping with preemption disabled).
   //
@@ -213,8 +213,6 @@ void rscfl_subsystem_exit(rscfl_subsys subsys_id, struct kretprobe_instance *pro
       // We are unrolling the nestings of subsystems, so we should do
       // accounting.
         rscfl_subsys *prev_subsys;
-        // We don't get the perf values if we haven't left the netlink, and
-        // gone into the real syscall.
         rscfl_perf_get_current_vals(subsys_acct, 1);
 
         // Start counters again for the subsystem we're returning back to.
@@ -228,13 +226,8 @@ void rscfl_subsystem_exit(rscfl_subsys subsys_id, struct kretprobe_instance *pro
         }
       }
       if (!--current_pid_acct->probe_data->nest_level) {
-        // We have backed out of all nesting. This either means we have just
-        // popped out of the netlink, in which case we are ready to account for
-        // the real call. Otherweise, we have just finished the actual syscall
-        // and should clear_acct_next.
-        if (!current_pid_acct->probe_data->real_call) {
-          _clear_acct_next(current->pid, -1);
-        }
+        clear_acct_next();
+      }
     }
   }
   preempt_enable();

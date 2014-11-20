@@ -22,5 +22,9 @@ if(WITH_TESTS)
   )
   lib_test(sendfile_test "${sendfile_test_SOURCES}" "${TEST_LINK}")
 
+  set (stress_test_SOURCES
+    ${TESTS_DIR}/stress_test.cpp
+  )
+  lib_test(stress_test "${stress_test_SOURCES}" "${TEST_LINK}")
 
 endif(WITH_TESTS)

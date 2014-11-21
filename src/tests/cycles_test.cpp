@@ -57,13 +57,10 @@ TEST_F(CyclesTest, SocketCyclesValidation)
   for (int i = 1; i < NUM_SUBSYSTEMS; i++) {
     curr_sub = (rscfl_subsys) i;
     if ((subsys = get_subsys_accounting(rhdl_, &acct_, curr_sub)) != NULL) {
-      fprintf(stdout, "In subsys: %d\n", i);
-      fprintf(stdout, "Adding cycles: %llu\n", subsys->cpu.cycles);
       kernel_cycles += subsys->cpu.cycles;
     }
   }
 
   EXPECT_LT(kernel_cycles, user_cycles);
-  EXPECT_LT(kernel_cycles * 0.8, user_cycles);
 }
 

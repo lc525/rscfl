@@ -7,8 +7,12 @@ extern "C" {
 
 #include "rscfl/costs.h"
 #include "rscfl/res_common.h"
+#include "rscfl/subsys_list.h"
 
 #define MAX_PAYLOAD 1024 /* maximum payload size*/
+#define SUBSYS_AS_STR_ARRAY(a, b, c) [a] = c,
+
+const char *rscfl_subsys_name[NUM_SUBSYSTEMS];
 
 struct rscfl_handle_t
 {

@@ -50,7 +50,7 @@ int probes_init(void)
   };
 
   // stap disables preemption even when running begin/end probes.
-  // however, _rscfl_shim_init and/or _netlink_setup might sleep,
+  // however, _rscfl_shim_init might sleep,
   // causing an BUG: scheduled in atomic section kernel error (for
   // sleeping with preemption disabled).
   //
@@ -171,7 +171,8 @@ static struct subsys_accounting *get_subsys(rscfl_subsys subsys_id)
   return NULL;
 }
 
-void rscfl_subsystem_entry(rscfl_subsys subsys_id)
+void rscfl_subsystem_entry(rscfl_subsys subsys_id,
+                           struct kretprobe_instance *probe)
 {
   pid_acct *current_pid_acct;
   struct subsys_accounting *subsys_acct;
@@ -181,13 +182,28 @@ void rscfl_subsystem_entry(rscfl_subsys subsys_id)
   if (subsys_acct != NULL) {
     // We running acct_next on this syscall.
     BUG_ON(current_pid_acct == NULL); // As subsys_acct=>current_pid_acct.
-    current_pid_acct->probe_data->nest_level++;
-    rscfl_perf_get_current_vals(subsys_acct, 0);
+    if (current_pid_acct->curr_subsys != subsys_id) {
+      rscfl_subsys *prev_subsys;
+      // We're new in this subsystem.
+      current_pid_acct->probe_data->nest_level++;
+      if (current_pid_acct->curr_subsys != -1) {
+        struct subsys_accounting *prev_subsys_acct =
+            get_subsys(current_pid_acct->curr_subsys);
+        rscfl_perf_get_current_vals(prev_subsys_acct, 1);
+      }
+      // Start the counters for the subsystem we're entering.
+      rscfl_perf_get_current_vals(subsys_acct, 0);
+      // Update the subsystem tracking info.
+      prev_subsys = (rscfl_subsys *) probe->data;
+      *prev_subsys = current_pid_acct->curr_subsys;
+      current_pid_acct->curr_subsys = subsys_id;
+    }
   }
   preempt_enable();
 }
 
-void rscfl_subsystem_exit(rscfl_subsys subsys_id)
+void rscfl_subsystem_exit(rscfl_subsys subsys_id,
+                          struct kretprobe_instance *probe)
 {
   pid_acct *current_pid_acct;
   preempt_disable();
@@ -199,12 +215,21 @@ void rscfl_subsystem_exit(rscfl_subsys subsys_id)
     if ((subsys_acct != NULL) && (current_pid_acct->probe_data->nest_level)) {
       // We are unrolling the nestings of subsystems, so we should do
       // accounting.
+      rscfl_subsys *prev_subsys;
       rscfl_perf_get_current_vals(subsys_acct, 1);
-      current_pid_acct->probe_data->nest_level--;
-      if (!current_pid_acct->probe_data->nest_level) {
-        // We have backed out of all nesting.
-        clear_acct_next();
+
+      // Start counters again for the subsystem we're returning back to.
+      prev_subsys = (rscfl_subsys *) probe->data;
+      if (*prev_subsys != -1) {
+        struct subsys_accounting *prev_subsys_acct = get_subsys(*prev_subsys);
+        rscfl_perf_get_current_vals(prev_subsys_acct, 0);
+
+        // Update subsystem tracking data.
+        current_pid_acct->curr_subsys = *prev_subsys;
       }
+    }
+    if (!--current_pid_acct->probe_data->nest_level) {
+      clear_acct_next();
     }
   }
   preempt_enable();

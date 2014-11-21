@@ -5,6 +5,7 @@
 #include "rscfl/costs.h"
 #include "rscfl/kernel/hasht.h"
 #include "rscfl/res_common.h"
+#include "rscfl/subsys_list.h"
 
 /* Per-CPU (pid -> accounting buf) hash table pid_to_acct_tbl
  *
@@ -60,6 +61,7 @@ struct pid_acct {
   struct rscfl_shared_mem_layout_t* shared_buf;        // shared with user-space
   struct kprobe_priv* probe_data;     // private data used by each kprobe
   syscall_interest_t *ctrl;  // pointer to the mapped data in the control driver.
+  rscfl_subsys curr_subsys;
 };
 typedef struct pid_acct pid_acct;
 

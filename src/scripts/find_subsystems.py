@@ -58,14 +58,14 @@ static kprobe_opcode_t *{{ subsystem }}_ADDRS[] = {{ '{' }}
 int rscfl_pre_handler_{{ subsystem }}(struct kretprobe_instance *probe,
        struct pt_regs *regs)
 {{ '{' }}
-  rscfl_subsystem_entry({{ subsystem }});
+  rscfl_subsystem_entry({{ subsystem }}, probe);
   return 0;
 {{ '}' }}
 
 int rscfl_rtn_handler_{{ subsystem }}(struct kretprobe_instance *probe,
 struct pt_regs *regs)
 {{ '{' }}
-  rscfl_subsystem_exit({{ subsystem }});
+  rscfl_subsystem_exit({{ subsystem }}, probe);
   return 0;
 {{ '}' }}
 {% endfor %}

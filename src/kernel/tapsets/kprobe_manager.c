@@ -2,7 +2,7 @@
 #include <linux/kernel.h>
 #include <linux/slab.h>
 
-#include "rscfl/kernel/probes.h"
+#include "rscfl/subsys_list.h"
 
 static rscfl_probe_list_n *probe_list;
 
@@ -48,6 +48,7 @@ int rscfl_init_rtn_kprobes(kprobe_opcode_t **subsys_addrs[], int num,
       probe->entry_handler = kp_pre_handler[i];
       probe->kp.addr = *sub_addr;
       probe->maxactive = 0;
+      probe->data_size = sizeof(rscfl_subsys);
 
       /* Try to register it */
       if ((rtn = register_kretprobe(probe)) < 0) {

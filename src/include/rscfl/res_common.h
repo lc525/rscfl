@@ -5,11 +5,23 @@
 
 #define RSCFL_DATA_DRIVER "rscfl-data"
 #define RSCFL_CTRL_DRIVER "rscfl-ctrl"
-#define MMAP_BUF_SIZE 81920  // need to think about this
-#define STRUCT_ACCT_NUM 10   // Need to think about this.
-#define ACCT_SUBSYS_RATIO 5  // Do we think that each syscall touches 5
-                             // subsystems?
-#define ACCT_SUBSYS_NUM STRUCT_ACCT_NUM* ACCT_SUBSYS_RATIO
+
+#define STRUCT_ACCT_NUM 136   // need to think about this
+#define ACCT_SUBSYS_RATIO 5   // assume one syscall touches ~ 5 subsystems
+
+#ifndef PAGE_SIZE
+#define PAGE_SIZE 4096
+#endif
+#define PAGE_ROUND_UP(x) ( (((unsigned int)(x)) + PAGE_SIZE - 1)               \
+                           & (~(PAGE_SIZE - 1)) )
+
+#define PAIR_ALLOC_SIZE (sizeof(struct accounting)                             \
+                         + ACCT_SUBSYS_RATIO * sizeof(struct subsys_accounting))
+#define MMAP_BUF_SIZE PAGE_ROUND_UP(STRUCT_ACCT_NUM * PAIR_ALLOC_SIZE)
+
+#define ACCT_SUBSYS_NUM ( (MMAP_BUF_SIZE                                       \
+                           - STRUCT_ACCT_NUM * sizeof(struct accounting)       \
+                          ) / sizeof(struct subsys_accounting) )
 
 #ifndef NDEBUG
 #define debugk(format, ...) printk(format, ##__VA_ARGS__)

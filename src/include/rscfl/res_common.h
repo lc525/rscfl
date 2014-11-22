@@ -6,7 +6,25 @@
 #define RSCFL_DATA_DRIVER "rscfl-data"
 #define RSCFL_CTRL_DRIVER "rscfl-ctrl"
 
-#define STRUCT_ACCT_NUM 136   // need to think about this
+/*
+ * as a point of reference,
+ *  STRUCT_ACCT_NUM 136
+ *  ACCT_SUBSYS_RATIO 5
+ *
+ *  allocates 81920 bytes (20 pages) per rscfl handle (thread using rscfl)
+ *  with space for 136 struct accounting
+ *                 684 struct subsys_accounting
+ *                 32 bytes wasted (aligning to PAGE_SIZE)
+ *  the ratio is not fully respected in order to optimize memory usage
+ *  (if more struct subsys_accounting fit because of the alignment, we'll
+ *  allow those as well)
+ *
+ *  estimates above done for
+ *    sizeof(struct accounting) = 240
+ *    sizeof(struct subsys_accounting) = 72
+ *
+ */
+#define STRUCT_ACCT_NUM 136
 #define ACCT_SUBSYS_RATIO 5   // assume one syscall touches ~ 5 subsystems
 
 #ifndef PAGE_SIZE

@@ -18,10 +18,19 @@ static int data_mmap(struct file *, struct vm_area_struct *);
 static int ctrl_mmap(struct file *, struct vm_area_struct *);
 
 static struct file_operations data_fops = {.mmap = data_mmap, };
-
 static struct file_operations ctrl_fops = {.mmap = ctrl_mmap, };
 
-static int drv_init(int major, int minor, char *drv_name,
+static int drv_dev_uevent_r(struct device *dev, struct kobj_uevent_env *env) {
+  add_uevent_var(env, "DEVMODE=%#o", 0444);
+  return 0;
+}
+static int drv_dev_uevent_rw(struct device *dev, struct kobj_uevent_env *env) {
+  add_uevent_var(env, "DEVMODE=%#o", 0666);
+  return 0;
+}
+
+
+static int drv_init(int major, int minor, char *drv_name, _Bool dev_rw,
                     struct file_operations *fops, struct cdev *cdev,
                     struct class **class)
 {
@@ -36,6 +45,11 @@ static int drv_init(int major, int minor, char *drv_name,
   }
 
   *class = class_create(THIS_MODULE, drv_name);
+  if (dev_rw) {
+    (*class)->dev_uevent = drv_dev_uevent_rw;
+  } else {
+    (*class)->dev_uevent = drv_dev_uevent_r;
+  }
   device_create(*class, NULL, dev_no, NULL, drv_name);
   if (rc < 0) {
     return rc;
@@ -48,13 +62,13 @@ int _rscfl_dev_init(void)
 {
   int rc;
   debugk("Init data driver\n");
-  rc = drv_init(RSCFL_DATA_MAJOR, RSCFL_DATA_MINOR, RSCFL_DATA_DRIVER,
+  rc = drv_init(RSCFL_DATA_MAJOR, RSCFL_DATA_MINOR, RSCFL_DATA_DRIVER, 0,
                 &data_fops, &rscfl_data_cdev, &data_class);
   if (rc) {
     return rc;
   }
   debugk("Init ctrl driver\n");
-  rc = drv_init(RSCFL_CTRL_MAJOR, RSCFL_CTRL_MINOR, RSCFL_CTRL_DRIVER,
+  rc = drv_init(RSCFL_CTRL_MAJOR, RSCFL_CTRL_MINOR, RSCFL_CTRL_DRIVER, 1,
                 &ctrl_fops, &rscfl_ctrl_cdev, &ctrl_class);
   if (rc) {
     printk(KERN_ERR "Cannot initialise ctrl driver\n");

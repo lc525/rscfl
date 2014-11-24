@@ -24,7 +24,7 @@
  *    sizeof(struct subsys_accounting) = 72
  *
  */
-#define STRUCT_ACCT_NUM 136
+#define STRUCT_ACCT_NUM 13
 #define ACCT_SUBSYS_RATIO 5   // assume one syscall touches ~ 5 subsystems
 
 #ifndef PAGE_SIZE

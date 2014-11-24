@@ -31,7 +31,7 @@ rscfl_handle rscfl_init()
 {
   struct stat sb;
   void *ctrl;
-  int fd_data = open("/dev/" RSCFL_DATA_DRIVER, O_RDWR);
+  int fd_data = open("/dev/" RSCFL_DATA_DRIVER, O_RDONLY);
   int fd_ctrl = open("/dev/" RSCFL_CTRL_DRIVER, O_RDWR);
   rscfl_handle rhdl = (rscfl_handle)malloc(sizeof(*rhdl));
   if (!rhdl) {

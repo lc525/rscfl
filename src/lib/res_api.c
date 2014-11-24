@@ -50,7 +50,7 @@ rscfl_handle rscfl_init()
   }
 
   // mmap memory to store our interests.
-  ctrl = mmap(NULL, MMAP_BUF_SIZE, PROT_READ | PROT_WRITE,
+  ctrl = mmap(NULL, MMAP_CTL_SIZE, PROT_READ | PROT_WRITE,
               MAP_PRIVATE | MAP_POPULATE, fd_ctrl, 0);
   if (ctrl == MAP_FAILED) {
     goto error;

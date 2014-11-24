@@ -36,6 +36,7 @@
 #define PAIR_ALLOC_SIZE (sizeof(struct accounting)                             \
                          + ACCT_SUBSYS_RATIO * sizeof(struct subsys_accounting))
 #define MMAP_BUF_SIZE PAGE_ROUND_UP(STRUCT_ACCT_NUM * PAIR_ALLOC_SIZE)
+#define MMAP_CTL_SIZE PAGE_SIZE
 
 #define ACCT_SUBSYS_NUM ( (MMAP_BUF_SIZE                                       \
                            - STRUCT_ACCT_NUM * sizeof(struct accounting)       \

@@ -55,6 +55,8 @@ int probes_init(void)
   // TODO(lc525): see if we need to restore IRQs as well
   //
   rcc = _rscfl_cpus_init();
+  debugk("per-thread mmap alloc: Total: %lu, /acct: %d, /subsys: %lu\n",
+         MMAP_BUF_SIZE, STRUCT_ACCT_NUM, ACCT_SUBSYS_NUM);
   preempt_enable();
   rcd = _rscfl_dev_init();
   rcp = rscfl_perf_init();
@@ -113,8 +115,6 @@ int probes_cleanup(void)
  */
 static struct subsys_accounting *get_subsys(rscfl_subsys subsys_id)
 {
-  char x[] = "";
-
   if (should_acct()) {
     struct accounting *acct;
     struct subsys_accounting *subsys_acct;
@@ -131,12 +131,10 @@ static struct subsys_accounting *get_subsys(rscfl_subsys subsys_id)
       // Need to find space in the page where we can store the subsystem.
       subsys_acct = rscfl_mem->subsyses;
       // Walk through the subsyses, being careful not to wonder of the end of
-      // our
-      // memory.
+      // our memory.
       while (subsys_acct - rscfl_mem->subsyses <= ACCT_SUBSYS_NUM) {
         if (!subsys_acct->in_use) {
-          // acct_subsys is an index that describes the offset from the start
-          // of
+          // acct_subsys is an index that describes the offset from the start of
           // subsyses as measured by number of struct subsys_accountings.
           // Recall that this is done as we need consistent indexing between
           // userspace and kernel space.

@@ -167,7 +167,7 @@ static struct subsys_accounting *get_subsys(rscfl_subsys subsys_id)
   return NULL;
 }
 
-void rscfl_subsystem_entry(rscfl_subsys subsys_id,
+int rscfl_subsystem_entry(rscfl_subsys subsys_id,
                            struct kretprobe_instance *probe)
 {
   pid_acct *current_pid_acct;
@@ -196,6 +196,7 @@ void rscfl_subsystem_entry(rscfl_subsys subsys_id,
     }
   }
   preempt_enable();
+  return !subsys_acct;
 }
 
 void rscfl_subsystem_exit(rscfl_subsys subsys_id,

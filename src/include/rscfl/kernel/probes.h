@@ -8,7 +8,7 @@
 int probes_init(void);
 int probes_cleanup(void);
 
-void rscfl_subsystem_entry(rscfl_subsys, struct kretprobe_instance *probe);
+int rscfl_subsystem_entry(rscfl_subsys, struct kretprobe_instance *probe);
 
 void rscfl_subsystem_exit(rscfl_subsys, struct kretprobe_instance *probe);
 

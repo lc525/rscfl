@@ -220,6 +220,7 @@ static int data_mmap(struct file *filp, struct vm_area_struct *vma)
     kfree(pid_acct_node);
     return rc;
   }
+  pid_acct_node->curr_subsys = -1;
   pid_acct_node->pid = current->pid;
   pid_acct_node->shared_buf = (rscfl_shared_mem_layout_t *)shared_data_buf;
   pid_acct_node->probe_data = probe_data;

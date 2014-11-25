@@ -35,7 +35,9 @@
 #ifdef __KERNEL__
 #include <linux/types.h>
 #include <linux/tcp.h>
+#include <linux/time.h>
 #else
+#include <time.h>
 #include <sys/types.h>
 #include <netinet/tcp.h>
 #endif
@@ -88,7 +90,7 @@ struct acct_CPU
   ru64 cycles;
   ru64 branch_mispredictions; //count
   ru64 instructions; //count
-  ru64 wall_clock_time;
+  struct timespec wall_clock_time;
 };
 
 struct acct_Sys

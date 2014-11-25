@@ -27,11 +27,11 @@ class WCTTest : public testing::Test
     int sockfd_;
 };
 
-time_t wct_test_get_time(void)
+timespec wct_test_get_time(void)
 {
   struct timespec ts = {0};
   clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts);
-  return ts.tv_nsec;
+  return ts;
 }
 
 /*
@@ -42,10 +42,10 @@ TEST_F(WCTTest, WallClockValidation)
 {
   ASSERT_EQ(0, rscfl_acct_next(rhdl_));
 
-  ru64 val_pre = (ru64) wct_test_get_time();
+  struct timespec val_pre =  wct_test_get_time();
   int sockfd_ = socket(AF_LOCAL, SOCK_RAW, 0);
-  ru64 val_post = (ru64) wct_test_get_time();
-  ru64 user_time = val_post - val_pre;
+  struct timespec val_post =  wct_test_get_time();
+  ru64 user_time = (ru64) val_post.tv_nsec - val_pre.tv_nsec;
 
   struct accounting acct_;
   ASSERT_EQ(0, rscfl_read_acct(rhdl_, &acct_));
@@ -57,7 +57,7 @@ TEST_F(WCTTest, WallClockValidation)
   for (int i = 1; i < NUM_SUBSYSTEMS; i++) {
     curr_sub = (rscfl_subsys) i;
     if ((subsys = get_subsys_accounting(rhdl_, &acct_, curr_sub)) != NULL) {
-      kernel_time += subsys->cpu.wall_clock_time;
+      kernel_time += (ru64) subsys->cpu.wall_clock_time.tv_nsec;
     }
   }
 

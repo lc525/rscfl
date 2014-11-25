@@ -8,6 +8,7 @@
 #include <string.h>
 #include <netinet/in.h>
 #include <stdlib.h>
+#include <time.h>
 #include <unistd.h>
 #include <arpa/inet.h>
 
@@ -57,8 +58,9 @@ int main(int argc, char *argv[])
   // RSCFL
   if (!rscfl_read_acct(r_handle, &acct_1)) {
     subsys_acct = get_subsys_accounting(r_handle, &acct_1, NETWORKINGGENERAL);
-    printf("rscfl: cpu_cycles=%llu wall_clock_time=%llu\n",
-           subsys_acct->cpu.cycles, subsys_acct->cpu.wall_clock_time);
+    printf("rscfl: cpu_cycles=%llu wall_clock_time_ns=%llu\n",
+           subsys_acct->cpu.cycles,
+           (ru64)subsys_acct->cpu.wall_clock_time.tv_nsec);
   } else {
     fprintf(stderr, "rscfl: read_acct 1 failed\n");
     return -1;
@@ -95,8 +97,9 @@ int main(int argc, char *argv[])
   // RSCFL
   if (!rscfl_read_acct(r_handle, &acct_2)) {
     subsys_acct = get_subsys_accounting(r_handle, &acct_1, NETWORKINGGENERAL);
-    printf("rscfl: cpu_cycles=%llu wall_clock_time=%llu\n",
-           subsys_acct->cpu.cycles, subsys_acct->cpu.wall_clock_time);
+    printf("rscfl: cpu_cycles=%llu wall_clock_time_ns=%llu\n",
+           subsys_acct->cpu.cycles,
+           (ru64)subsys_acct->cpu.wall_clock_time.tv_nsec);
   } else {
     fprintf(stderr, "rscfl: read_acct 2 failed\n");
     return -1;

@@ -35,11 +35,11 @@ static struct perf_event *event_counters[NUM_SW_EVENTS];
 /*
  * Returns a microsecond timestamp
  */
-time_t rscfl_get_timestamp(void)
+struct timespec rscfl_get_timestamp(void)
 {
   struct timespec ts = {0};
   getrawmonotonic(&ts);
-  return ts.tv_nsec;
+  return ts;
 }
 
 /*
@@ -52,7 +52,7 @@ int rscfl_perf_get_current_vals(struct subsys_accounting *acct_subsys,
   u64 running;
   struct perf_output_handle;
   u64 cycles;
-  u64 sec_t;
+  struct timespec tmp_time;
   int i;
 
   /* Get the CPU cycle count and set it */
@@ -64,11 +64,13 @@ int rscfl_perf_get_current_vals(struct subsys_accounting *acct_subsys,
   }
 
   /* Get the current wall clock time */
-  sec_t = (u64) rscfl_get_timestamp();
+  tmp_time = rscfl_get_timestamp();
   if (add) {
-    acct_subsys->cpu.wall_clock_time += sec_t;
+    acct_subsys->cpu.wall_clock_time.tv_sec += tmp_time.tv_sec;
+    acct_subsys->cpu.wall_clock_time.tv_nsec += tmp_time.tv_nsec;
   } else {
-    acct_subsys->cpu.wall_clock_time -= sec_t;
+    acct_subsys->cpu.wall_clock_time.tv_sec -= tmp_time.tv_sec;
+    acct_subsys->cpu.wall_clock_time.tv_nsec -= tmp_time.tv_nsec;
   }
   return 0;
 }

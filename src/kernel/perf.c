@@ -2,6 +2,7 @@
 
 #include "linux/nmi.h"
 #include "linux/perf_event.h"
+#include "linux/time.h"
 
 #include "rscfl/costs.h"
 #include "rscfl/kernel/cpu.h"
@@ -32,6 +33,16 @@ static const __u64 sw_events[] = {
 static struct perf_event *event_counters[NUM_SW_EVENTS];
 
 /*
+ * Returns a microsecond timestamp
+ */
+time_t rscfl_get_timestamp(void)
+{
+  struct timespec ts = {0};
+  getrawmonotonic(&ts);
+  return ts.tv_nsec;
+}
+
+/*
  * Use perf to read the current resources, and store them in acct_subsys.
  */
 int rscfl_perf_get_current_vals(struct subsys_accounting *acct_subsys,
@@ -40,17 +51,25 @@ int rscfl_perf_get_current_vals(struct subsys_accounting *acct_subsys,
   u64 enabled;
   u64 running;
   struct perf_output_handle;
-  u64 val;
+  u64 cycles;
+  u64 sec_t;
   int i;
 
   /* Get the CPU cycle count and set it */
-  val = rscfl_get_cycles();
+  cycles = rscfl_get_cycles();
   if (add) {
-    acct_subsys->cpu.cycles += val;
+    acct_subsys->cpu.cycles += cycles;
   } else {
-    acct_subsys->cpu.cycles -= val;
+    acct_subsys->cpu.cycles -= cycles;
   }
 
+  /* Get the current wall clock time */
+  sec_t = (u64) rscfl_get_timestamp();
+  if (add) {
+    acct_subsys->cpu.wall_clock_time += sec_t;
+  } else {
+    acct_subsys->cpu.wall_clock_time -= sec_t;
+  }
   return 0;
 }
 

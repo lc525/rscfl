@@ -86,7 +86,7 @@ TEST_F(SocketTest, SocketHasCPUCyclesForSecuritySubsys)
 {
   struct subsys_accounting *subsys =
     get_subsys_accounting(rhdl_, &acct_, SECURITYSUBSYSTEM);
-
+  ASSERT_NE(subsys, nullptr);
   // Ensure we have a number of CPU cycles > 0 for VFS on opening
   // a socket.
   ASSERT_GT(subsys->cpu.cycles, 0);
@@ -98,8 +98,9 @@ TEST_F(SocketTest, SocketHasCPUCyclesForSecuritySubsys)
 // to open.
 TEST_F(SocketTest, RscflGivesDifferentResultsForRepeatedSocketOpens)
 {
-  int cycles0 =
-      get_subsys_accounting(rhdl_, &acct_, SECURITYSUBSYSTEM)->cpu.cycles;
+  auto* subsys_acct = get_subsys_accounting(rhdl_, &acct_, SECURITYSUBSYSTEM);
+  ASSERT_NE(subsys_acct, nullptr);
+  int cycles0 = subsys_acct->cpu.cycles;
 
   ASSERT_EQ(0, rscfl_acct_next(rhdl_));
   sockfd_ = socket(AF_LOCAL, SOCK_RAW, 0);
@@ -107,8 +108,10 @@ TEST_F(SocketTest, RscflGivesDifferentResultsForRepeatedSocketOpens)
   EXPECT_GT(sockfd_, 0);
   // We must be able to read our struct accounting back from rscfl.
   ASSERT_EQ(0, rscfl_read_acct(rhdl_, &acct_));
-  int cycles1 =
-      get_subsys_accounting(rhdl_, &acct_, SECURITYSUBSYSTEM)->cpu.cycles;
+
+  subsys_acct = get_subsys_accounting(rhdl_, &acct_, SECURITYSUBSYSTEM);
+  ASSERT_NE(subsys_acct, nullptr);
+  int cycles1 = subsys_acct->cpu.cycles;
 
   ASSERT_EQ(0, rscfl_acct_next(rhdl_));
   sockfd_ = socket(AF_LOCAL, SOCK_RAW, 0);
@@ -116,8 +119,10 @@ TEST_F(SocketTest, RscflGivesDifferentResultsForRepeatedSocketOpens)
   EXPECT_GT(sockfd_, 0);
   // We must be able to read our struct accounting back from rscfl.
   ASSERT_EQ(0, rscfl_read_acct(rhdl_, &acct_));
-  int cycles2 =
-      get_subsys_accounting(rhdl_, &acct_, SECURITYSUBSYSTEM)->cpu.cycles;
+
+  subsys_acct = get_subsys_accounting(rhdl_, &acct_, SECURITYSUBSYSTEM);
+  ASSERT_NE(subsys_acct, nullptr);
+  int cycles2 = subsys_acct->cpu.cycles;
 
   ASSERT_FALSE((cycles0 == cycles1) && (cycles1 == cycles2));
 }

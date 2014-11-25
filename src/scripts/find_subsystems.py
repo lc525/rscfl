@@ -22,18 +22,11 @@ _({{ subsystem.id }}, {{ subsystem.short_name }}, \"{{ subsystem.long_name }}\")
 {%- endfor %}
 
 #define SUBSYS_AS_ENUM(a, b, c) b = a,
-#define SUBSYS_AS_STR_ARRAY(a, b, c) [a] = c,
 
 typedef enum {
     SUBSYS_TABLE(SUBSYS_AS_ENUM)
     NUM_SUBSYSTEMS
 } rscfl_subsys;
-
-/* rscfl_subsys_name is defined in
- *   kernel/tapsets/probes.c for the kernel side includes of this header
- *   lib/res_api.c for the user-space includes of this header
- */
-extern const char *rscfl_subsys_name[NUM_SUBSYSTEMS];
 
 #endif /* _RSCFL_SUBSYS_H_ */
 """
@@ -58,8 +51,7 @@ static kprobe_opcode_t *{{ subsystem }}_ADDRS[] = {{ '{' }}
 int rscfl_pre_handler_{{ subsystem }}(struct kretprobe_instance *probe,
        struct pt_regs *regs)
 {{ '{' }}
-  rscfl_subsystem_entry({{ subsystem }}, probe);
-  return 0;
+  return rscfl_subsystem_entry({{ subsystem }}, probe);
 {{ '}' }}
 
 int rscfl_rtn_handler_{{ subsystem }}(struct kretprobe_instance *probe,

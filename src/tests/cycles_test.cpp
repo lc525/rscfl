@@ -73,8 +73,11 @@ TEST_F(CyclesTest, TestSocketCyclesMeasuredInKernelAreLessThanInUserspace)
 TEST_F(CyclesTest,
        SocketCyclesMeasuredByRscflAccountForMostOfThoseMesauredByUserspace)
 {
+  double percent_explained = (double)(kernel_cycles_ / user_cycles_) * 100;
+
   // Ensure that resourceful's measurements account for the expected number
   // of cycles, as measured from userspace to ensure we are accounting
   // correctly.
-  EXPECT_GT(kernel_cycles_, user_cycles_ * kRscflAcctRatio);
+  EXPECT_GT(percent_explained, 50) << "Only explained " << percent_explained
+                                   << "%\n";
 }

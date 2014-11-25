@@ -49,9 +49,10 @@ TEST_F(SocketTest, SocketHasCPUCyclesForNetworkingGeneral)
   struct subsys_accounting *subsys =
       get_subsys_accounting(rhdl_, &acct_, NETWORKINGGENERAL);
 
+  ASSERT_NE(subsys, nullptr);
   // Ensure we have a number of CPU cycles > 0 for NetworkingGeneral on opening
   // a socket.
-  ASSERT_GT(subsys->cpu.cycles, 0);
+  EXPECT_GT(subsys->cpu.cycles, 0);
 }
 
 // Tests for VFS subsystem, as socket create a file descriptor.
@@ -68,9 +69,10 @@ TEST_F(SocketTest, SocketHasCPUCyclesForVFS)
   struct subsys_accounting *subsys =
     get_subsys_accounting(rhdl_, &acct_, FILESYSTEMSVFSANDINFRASTRUCTURE);
 
+  ASSERT_NE(subsys, nullptr);
   // Ensure we have a number of CPU cycles > 0 for VFS on opening
   // a socket.
-  ASSERT_GT(subsys->cpu.cycles, 0);
+  EXPECT_GT(subsys->cpu.cycles, 0);
 }
 
 // Tests for security subsystem, as opening a socket requires security checks.

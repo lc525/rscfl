@@ -107,7 +107,8 @@ int probes_cleanup(void)
  *
  * Must be called with preemption disabled as we cache the current process.
  */
-static struct subsys_accounting *get_subsys(rscfl_subsys subsys_id)
+static int get_subsys(rscfl_subsys subsys_id,
+                      struct subsys_accounting **subsys_acct_ret)
 {
   if (should_acct()) {
     struct accounting *acct;
@@ -143,7 +144,7 @@ static struct subsys_accounting *get_subsys(rscfl_subsys subsys_id)
         // We haven't found anywhere in the shared page where we can store
         // this subsystem.
         debugk("rscfl: Unable to allocate memory for syscall accounting\n");
-        return NULL;
+        return -ENOMEM;
       }
       // Now need to initialise the subsystem's resources to be 0.
       subsys_acct = &rscfl_mem->subsyses[subsys_offset];
@@ -153,30 +154,42 @@ static struct subsys_accounting *get_subsys(rscfl_subsys subsys_id)
     } else {
       subsys_acct = &rscfl_mem->subsyses[subsys_offset];
     }
-    return subsys_acct;
+    *subsys_acct_ret = subsys_acct;
+    return 0;
   }
-  return NULL;
+  *subsys_acct_ret = NULL;
+  return 1;
 }
 
+
+/*
+ * Returns 0 if we have entered a new subsystem, without errors.
+ * Returns 1 if we are not in a new subsystem, or there is an error.
+ */
 int rscfl_subsystem_entry(rscfl_subsys subsys_id,
                            struct kretprobe_instance *probe)
 {
-  pid_acct *current_pid_acct;
+  pid_acct *current_pid_acct = NULL;
   struct subsys_accounting *subsys_acct;
+  int rc;
+
   preempt_disable();
-  subsys_acct = get_subsys(subsys_id);
+  rc = get_subsys(subsys_id, &subsys_acct);
   current_pid_acct = CPU_VAR(current_acct);
-  if (subsys_acct != NULL) {
+  rc = get_subsys(subsys_id, &subsys_acct);
+  if (rc < 0) {
+    goto error;
+  }
+  if (!rc) {
     // We running acct_next on this syscall.
-    BUG_ON(current_pid_acct == NULL);  // As subsys_acct=>current_pid_acct.
+    BUG_ON(current_pid_acct == NULL);  // As get_subsys != 0.
     if (current_pid_acct->curr_subsys != subsys_id) {
       rscfl_subsys *prev_subsys;
       // We're new in this subsystem.
       if (current_pid_acct->curr_subsys != -1) {
-        struct subsys_accounting *prev_subsys_acct =
-            get_subsys(current_pid_acct->curr_subsys);
-        if (prev_subsys_acct == NULL) {
-          return 1;
+        struct subsys_accounting *prev_subsys_acct;
+        if (get_subsys(current_pid_acct->curr_subsys, &prev_subsys_acct)) {
+          goto error;
         }
         rscfl_perf_get_current_vals(prev_subsys_acct, 1);
       }
@@ -191,26 +204,44 @@ int rscfl_subsystem_entry(rscfl_subsys subsys_id,
   }
   preempt_enable();
   return 1;
+error:
+  // If we hit an error (eg ENOMEM, then stop accounting).
+  printk(KERN_ERR "rscfl: unexpected error in getting a subsystem.\n");
+  if (current_pid_acct != NULL) {
+    current_pid_acct->probe_data->syscall_acct->rc = rc;
+  }
+  clear_acct_next();
+  preempt_enable();
+  // Don't register the exit probe.
+  return 1;
 }
 
 void rscfl_subsystem_exit(rscfl_subsys subsys_id,
                           struct kretprobe_instance *probe)
 {
-  pid_acct *current_pid_acct;
+  pid_acct *current_pid_acct = NULL;
   rscfl_subsys *prev_subsys = (rscfl_subsys *)probe->data;
+  int rc;
 
   preempt_disable();
   current_pid_acct = CPU_VAR(current_acct);
   if ((current_pid_acct != NULL) &&
       (current_pid_acct->probe_data->syscall_acct)) {
     // This syscall is being accounted for.
-    struct subsys_accounting *subsys_acct = get_subsys(subsys_id);
-    if ((subsys_acct != NULL)) {
+    if (current_pid_acct->curr_subsys != -1) {
+      struct subsys_accounting *subsys_acct;
+      rc = get_subsys(subsys_id, &subsys_acct);
+      if (rc) {
+        goto error;
+      }
       rscfl_perf_get_current_vals(subsys_acct, 1);
 
       // Start counters again for the subsystem we're returning back to.
       if (*prev_subsys != -1) {
-        struct subsys_accounting *prev_subsys_acct = get_subsys(*prev_subsys);
+        struct subsys_accounting *prev_subsys_acct;
+        if (get_subsys(*prev_subsys, &prev_subsys_acct)) {
+          goto error;
+        }
         rscfl_perf_get_current_vals(prev_subsys_acct, 0);
       } else {
         clear_acct_next();
@@ -219,5 +250,10 @@ void rscfl_subsystem_exit(rscfl_subsys subsys_id,
       current_pid_acct->curr_subsys = *prev_subsys;
     }
   }
+  preempt_enable();
+  return;
+error:
+  current_pid_acct->probe_data->syscall_acct->rc = rc;
+  clear_acct_next();
   preempt_enable();
 }

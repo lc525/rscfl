@@ -116,7 +116,7 @@ int rscfl_read_acct(rscfl_handle rhdl, struct accounting *acct)
         if (shared_acct->syscall_id.id == rhdl->lst_syscall.id) {
           memcpy(acct, shared_acct, sizeof(struct accounting));
           shared_acct->in_use = 0;
-          return 0;
+          return shared_acct->rc;
         } else {
           shared_acct++;
           i++;

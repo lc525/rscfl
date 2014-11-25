@@ -54,7 +54,7 @@ TEST_F(CyclesTest, SocketCyclesValidation)
   ru64 kernel_cycles = 0;
   struct subsys_accounting *subsys;
   rscfl_subsys curr_sub;
-  for (int i = 1; i < NUM_SUBSYSTEMS; i++) {
+  for (int i = 0; i < NUM_SUBSYSTEMS; i++) {
     curr_sub = (rscfl_subsys) i;
     if ((subsys = get_subsys_accounting(rhdl_, &acct_, curr_sub)) != NULL) {
       kernel_cycles += subsys->cpu.cycles;

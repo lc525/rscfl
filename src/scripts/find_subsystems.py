@@ -248,7 +248,7 @@ def append_to_json_file(json_fname, subsys_names):
             # Remove various bits of punctuation so we can index using the name.
             clean_subsys_name = re.sub(r'\W+', '', subsys).upper()
             json_entries[clean_subsys_name] = {}
-            json_entries[clean_subsys_name]['id'] = len(json_entries)
+            json_entries[clean_subsys_name]['id'] = len(json_entries) - 1
             # long_name is used for human output. Its value can be changed to be
             # more human-friendly
             json_entries[clean_subsys_name]['long_name'] = subsys.capitalize()

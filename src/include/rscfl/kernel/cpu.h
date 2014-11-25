@@ -48,7 +48,6 @@
 // the application request for measuring the resources consumed by a system call
 // is considered completed when nest_level returns to 0.
 struct kprobe_priv {
-  u32 nest_level;
   struct accounting *syscall_acct;
   long cycles;
   long wall_clock_time;

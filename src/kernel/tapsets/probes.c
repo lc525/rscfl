@@ -9,6 +9,19 @@
 #include "rscfl/kernel/stap_shim.h"
 #include "rscfl/kernel/subsys_addr.h"
 
+#define PROBE_LIST(_)               \
+_(BLOCKLAYER)                       \
+_(NETWORKINGIPV4IPV6)               \
+_(NETWORKINGGENERAL)                \
+_(EXT4FILESYSTEM)                   \
+_(FILESYSTEMSVFSANDINFRASTRUCTURE)  \
+_(NETWORKINGDRIVERS)                \
+_(SECURITYSUBSYSTEM)
+
+#define PROBES_AS_ADDRS(a) a##_ADDRS,
+#define PROBES_AS_PRE_HANDLE(a) rscfl_pre_handler_##a,
+#define PROBES_AS_RTN_HANDLE(a) rscfl_rtn_handler_##a,
+
 int probes_init(void)
 {
   kprobe_opcode_t **probe_addr;
@@ -16,33 +29,15 @@ int probes_init(void)
   kprobe_pre_handler_t pre_handler = pre_handler;
   int subsys_num;
   kprobe_opcode_t **probe_addrs_temp[] = {
-    BLOCKLAYER_ADDRS,
-    NETWORKINGIPV4IPV6_ADDRS,
-    NETWORKINGGENERAL_ADDRS,
-    EXT4FILESYSTEM_ADDRS,
-    FILESYSTEMSVFSANDINFRASTRUCTURE_ADDRS,
-    NETWORKINGDRIVERS_ADDRS,
-    SECURITYSUBSYSTEM_ADDRS,
+    PROBE_LIST(PROBES_AS_ADDRS)
   };
 
   kretprobe_handler_t probe_pre_handlers_temp[] = {
-    rscfl_pre_handler_BLOCKLAYER,
-    rscfl_pre_handler_NETWORKINGIPV4IPV6,
-    rscfl_pre_handler_NETWORKINGGENERAL,
-    rscfl_pre_handler_EXT4FILESYSTEM,
-    rscfl_pre_handler_FILESYSTEMSVFSANDINFRASTRUCTURE,
-    rscfl_pre_handler_NETWORKINGDRIVERS,
-    rscfl_pre_handler_SECURITYSUBSYSTEM,
+    PROBE_LIST(PROBES_AS_PRE_HANDLE)
   };
 
   kretprobe_handler_t probe_post_handlers_temp[] = {
-    rscfl_rtn_handler_BLOCKLAYER,
-    rscfl_rtn_handler_NETWORKINGIPV4IPV6,
-    rscfl_rtn_handler_NETWORKINGGENERAL,
-    rscfl_rtn_handler_EXT4FILESYSTEM,
-    rscfl_rtn_handler_FILESYSTEMSVFSANDINFRASTRUCTURE,
-    rscfl_rtn_handler_NETWORKINGDRIVERS,
-    rscfl_rtn_handler_SECURITYSUBSYSTEM,
+    PROBE_LIST(PROBES_AS_RTN_HANDLE)
   };
 
   // stap disables preemption even when running begin/end probes.
@@ -60,10 +55,10 @@ int probes_init(void)
   preempt_enable();
   rcd = _rscfl_dev_init();
   rcp = rscfl_perf_init();
-  rckp =
-      rscfl_init_rtn_kprobes(probe_addrs_temp, sizeof(probe_pre_handlers_temp) /
-                                                   sizeof(kretprobe_handler_t),
-                             probe_pre_handlers_temp, probe_post_handlers_temp);
+  rckp = rscfl_init_rtn_kprobes(
+      probe_addrs_temp,
+      sizeof(probe_pre_handlers_temp) / sizeof(kretprobe_handler_t),
+      probe_pre_handlers_temp, probe_post_handlers_temp);
   preempt_disable();
 
   if (rcc) {
@@ -87,25 +82,24 @@ int probes_init(void)
 
 int probes_cleanup(void)
 {
-  int rcd = 0, rcc = 0 ;
+  int rcd = 0, rcc = 0;
 
   // see comment in probes_init for why we need to explicitly enable
   // preemption here
   preempt_enable();
   rcd = _rscfl_dev_cleanup();
+  rscfl_unregister_kprobes();
   preempt_disable();
   rcc = _rscfl_cpus_cleanup();
-  rscfl_unregister_kprobes();
 
   if (rcd) {
     printk(KERN_ERR "rscfl: cannot cleanup rscfl drivers\n");
   }
   if (rcc) {
     printk(KERN_ERR "rscfl: cannot cleanup per-cpu hash tables\n");
- }
+  }
   return (rcd | rcc);
 }
-
 
 /*
  * Find the subsys_accounting for the current struct accounting with the
@@ -148,8 +142,7 @@ static struct subsys_accounting *get_subsys(rscfl_subsys subsys_id)
       if (subsys_offset == -1) {
         // We haven't found anywhere in the shared page where we can store
         // this subsystem.
-        printk(KERN_ERR
-               "rscfl: Unable to allocate memory for syscall accounting\n");
+        debugk("rscfl: Unable to allocate memory for syscall accounting\n");
         return NULL;
       }
       // Now need to initialise the subsystem's resources to be 0.
@@ -175,56 +168,55 @@ int rscfl_subsystem_entry(rscfl_subsys subsys_id,
   current_pid_acct = CPU_VAR(current_acct);
   if (subsys_acct != NULL) {
     // We running acct_next on this syscall.
-    BUG_ON(current_pid_acct == NULL); // As subsys_acct=>current_pid_acct.
+    BUG_ON(current_pid_acct == NULL);  // As subsys_acct=>current_pid_acct.
     if (current_pid_acct->curr_subsys != subsys_id) {
       rscfl_subsys *prev_subsys;
       // We're new in this subsystem.
-      current_pid_acct->probe_data->nest_level++;
       if (current_pid_acct->curr_subsys != -1) {
         struct subsys_accounting *prev_subsys_acct =
             get_subsys(current_pid_acct->curr_subsys);
+        if (prev_subsys_acct == NULL) {
+          return 1;
+        }
         rscfl_perf_get_current_vals(prev_subsys_acct, 1);
       }
       // Start the counters for the subsystem we're entering.
       rscfl_perf_get_current_vals(subsys_acct, 0);
       // Update the subsystem tracking info.
-      prev_subsys = (rscfl_subsys *) probe->data;
+      prev_subsys = (rscfl_subsys *)probe->data;
       *prev_subsys = current_pid_acct->curr_subsys;
       current_pid_acct->curr_subsys = subsys_id;
+      return 0;
     }
   }
   preempt_enable();
-  return !subsys_acct;
+  return 1;
 }
 
 void rscfl_subsystem_exit(rscfl_subsys subsys_id,
                           struct kretprobe_instance *probe)
 {
   pid_acct *current_pid_acct;
+  rscfl_subsys *prev_subsys = (rscfl_subsys *)probe->data;
+
   preempt_disable();
   current_pid_acct = CPU_VAR(current_acct);
   if ((current_pid_acct != NULL) &&
       (current_pid_acct->probe_data->syscall_acct)) {
     // This syscall is being accounted for.
     struct subsys_accounting *subsys_acct = get_subsys(subsys_id);
-    if ((subsys_acct != NULL) && (current_pid_acct->probe_data->nest_level)) {
-      // We are unrolling the nestings of subsystems, so we should do
-      // accounting.
-      rscfl_subsys *prev_subsys;
+    if ((subsys_acct != NULL)) {
       rscfl_perf_get_current_vals(subsys_acct, 1);
 
       // Start counters again for the subsystem we're returning back to.
-      prev_subsys = (rscfl_subsys *) probe->data;
       if (*prev_subsys != -1) {
         struct subsys_accounting *prev_subsys_acct = get_subsys(*prev_subsys);
         rscfl_perf_get_current_vals(prev_subsys_acct, 0);
-
-        // Update subsystem tracking data.
-        current_pid_acct->curr_subsys = *prev_subsys;
+      } else {
+        clear_acct_next();
       }
-    }
-    if (!--current_pid_acct->probe_data->nest_level) {
-      clear_acct_next();
+      // Update subsystem tracking data.
+      current_pid_acct->curr_subsys = *prev_subsys;
     }
   }
   preempt_enable();

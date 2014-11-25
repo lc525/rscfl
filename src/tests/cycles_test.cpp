@@ -76,6 +76,6 @@ TEST_F(CyclesTest,
   // Ensure that resourceful's measurements account for the expected number
   // of cycles, as measured from userspace to ensure we are accounting
   // correctly.
-  EXPECT_GT(percent_explained, 50) << "Only explained " << percent_explained
+  EXPECT_GT(percent_explained, 40) << "Only explained " << percent_explained
                                    << "%\n";
 }

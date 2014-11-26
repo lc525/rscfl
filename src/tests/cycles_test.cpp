@@ -65,20 +65,14 @@ TEST_F(CyclesTest, TestSocketCyclesMeasuredInKernelAreLessThanInUserspace)
   EXPECT_LT(kernel_cycles_, user_cycles_);
 }
 
-// Now add all of the subsystem cycles
-ru64 kernel_cycles = 0;
-struct subsys_accounting *subsys;
-rscfl_subsys curr_sub;
-for (int i = 0; i < NUM_SUBSYSTEMS; i++) {
-  curr_sub = (rscfl_subsys)i;
-  if ((subsys = get_subsys_accounting(rhdl_, &acct_, curr_sub)) != NULL) {
-    kernel_cycles += subsys->cpu.cycles;
-  }
-}
+TEST_F(CyclesTest,
+       SocketCyclesMeasuredByRscflAccountForMostOfThoseMesauredByUserspace)
+{
+  double percent_explained = (kernel_cycles_ / (double)user_cycles_) * 100;
 
-// Ensure that resourceful's measurements account for the expected number
-// of cycles, as measured from userspace to ensure we are accounting
-// correctly.
-EXPECT_GT(percent_explained, 40) << "Only explained " << percent_explained
-                                 << "%\n";
+  // Ensure that resourceful's measurements account for the expected number
+  // of cycles, as measured from userspace to ensure we are accounting
+  // correctly.
+  EXPECT_GT(percent_explained, 40) << "Only explained " << percent_explained
+                                   << "%\n";
 }

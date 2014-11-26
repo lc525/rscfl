@@ -33,9 +33,9 @@
 #define _SYSCALL_COST_H_
 
 #ifdef __KERNEL__
-#include <linux/types.h>
 #include <linux/tcp.h>
 #include <linux/time.h>
+#include <linux/types.h>
 #else
 #include <time.h>
 #include <sys/types.h>

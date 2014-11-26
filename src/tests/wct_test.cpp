@@ -18,18 +18,12 @@ class WCTTest : public testing::Test
       ASSERT_NE(nullptr, rhdl_);
     }
 
-    virtual void TearDown()
-    {
-      close(sockfd_);
-    }
-
     rscfl_handle rhdl_;
-    int sockfd_;
 };
 
 static struct timespec wct_test_get_time(void)
 {
-  struct timespec ts = {0};
+  struct timespec ts;
   clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts);
   return ts;
 }
@@ -44,6 +38,7 @@ TEST_F(WCTTest, WallClock_Kernel_LT_User)
 
   struct timespec val_pre =  wct_test_get_time();
   int sockfd = socket(AF_LOCAL, SOCK_RAW, 0);
+  EXPECT_GT(sockfd, 0);
   struct timespec val_post =  wct_test_get_time();
   ru64 user_time = (ru64) val_post.tv_nsec - val_pre.tv_nsec;
 
@@ -55,8 +50,7 @@ TEST_F(WCTTest, WallClock_Kernel_LT_User)
   struct subsys_accounting *subsys;
   rscfl_subsys curr_sub;
   for (int i = 1; i < NUM_SUBSYSTEMS; i++) {
-    curr_sub = (rscfl_subsys) i;
-    if ((subsys = get_subsys_accounting(rhdl_, &acct, curr_sub)) != NULL) {
+    if ((subsys = get_subsys_accounting(rhdl_, &acct, (rscfl_subsys)i)) != NULL) {
       kernel_time += (ru64) subsys->cpu.wall_clock_time.tv_nsec;
     }
   }

@@ -37,7 +37,7 @@ static struct perf_event *event_counters[NUM_SW_EVENTS];
  */
 static struct timespec rscfl_get_timestamp(void)
 {
-  struct timespec ts = {0};
+  struct timespec ts;
   getrawmonotonic(&ts);
   return ts;
 }

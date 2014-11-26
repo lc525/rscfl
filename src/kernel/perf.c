@@ -2,6 +2,7 @@
 
 #include "linux/nmi.h"
 #include "linux/perf_event.h"
+#include "linux/time.h"
 
 #include "rscfl/costs.h"
 #include "rscfl/kernel/cpu.h"
@@ -32,25 +33,41 @@ static const __u64 sw_events[] = {
 static struct perf_event *event_counters[NUM_SW_EVENTS];
 
 /*
- * Use perf to read the current resources, and store them in acct_subsys.
+ * Returns a microsecond timestamp
  */
-int rscfl_perf_get_current_vals(struct subsys_accounting *acct_subsys,
-                                _Bool add)
+static struct timespec rscfl_get_timestamp(void)
+{
+  struct timespec ts;
+  getrawmonotonic(&ts);
+  return ts;
+}
+
+/*
+ * Read the current values of cpu cycles and wall clock time. Add these numbers
+ * to minus_subsys and add them to add_subsys. If either of these are NULL,
+ * the values for the other one are still updated.
+ */
+int rscfl_perf_update_subsys_vals(struct subsys_accounting *add_subsys,
+                                  struct subsys_accounting *minus_subsys)
+
 {
   u64 enabled;
   u64 running;
   struct perf_output_handle;
-  u64 val;
+  u64 cycles = rscfl_get_cycles();
+  struct timespec tmp_time = rscfl_get_timestamp();
   int i;
 
-  /* Get the CPU cycle count and set it */
-  val = rscfl_get_cycles();
-  if (add) {
-    acct_subsys->cpu.cycles += val;
-  } else {
-    acct_subsys->cpu.cycles -= val;
+  if (add_subsys != NULL) {
+    add_subsys->cpu.cycles += cycles;
+    add_subsys->cpu.wall_clock_time.tv_sec += tmp_time.tv_sec;
+    add_subsys->cpu.wall_clock_time.tv_nsec += tmp_time.tv_nsec;
   }
-
+  if (minus_subsys != NULL) {
+    minus_subsys->cpu.cycles -= cycles;
+    minus_subsys->cpu.wall_clock_time.tv_sec -= tmp_time.tv_sec;
+    minus_subsys->cpu.wall_clock_time.tv_nsec -= tmp_time.tv_nsec;
+  }
   return 0;
 }
 

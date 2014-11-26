@@ -107,117 +107,156 @@ int probes_cleanup(void)
  *
  * Must be called with preemption disabled as we cache the current process.
  */
-static struct subsys_accounting *get_subsys(rscfl_subsys subsys_id)
+static int get_subsys(rscfl_subsys subsys_id,
+                      struct subsys_accounting **subsys_acct_ret)
 {
-  if (should_acct()) {
-    struct accounting *acct;
-    struct subsys_accounting *subsys_acct;
-    pid_acct *current_pid_acct;
-    rscfl_shared_mem_layout_t *rscfl_mem;
-    int subsys_offset;
+  struct accounting *acct;
+  struct subsys_accounting *subsys_acct;
+  pid_acct *current_pid_acct;
+  rscfl_shared_mem_layout_t *rscfl_mem;
+  int subsys_offset;
 
-    current_pid_acct = CPU_VAR(current_acct);
-    acct = current_pid_acct->probe_data->syscall_acct;
-    rscfl_mem = current_pid_acct->shared_buf;
-    subsys_offset = acct->acct_subsys[subsys_id];
-    if (subsys_offset == -1) {
-      debugk("looking for a subsys for %d\n", subsys_id);
-      // Need to find space in the page where we can store the subsystem.
-      subsys_acct = rscfl_mem->subsyses;
-      // Walk through the subsyses, being careful not to wonder of the end of
-      // our memory.
-      while (subsys_acct - rscfl_mem->subsyses <= ACCT_SUBSYS_NUM) {
-        if (!subsys_acct->in_use) {
-          // acct_subsys is an index that describes the offset from the start of
-          // subsyses as measured by number of struct subsys_accountings.
-          // Recall that this is done as we need consistent indexing between
-          // userspace and kernel space.
-          subsys_offset = subsys_acct - rscfl_mem->subsyses;
-          acct->acct_subsys[subsys_id] = subsys_offset;
-          break;
-        } else {
-          subsys_acct++;
-        }
+  current_pid_acct = CPU_VAR(current_acct);
+  acct = current_pid_acct->probe_data->syscall_acct;
+  rscfl_mem = current_pid_acct->shared_buf;
+  subsys_offset = acct->acct_subsys[subsys_id];
+  if (subsys_offset == -1) {
+    debugk("looking for a subsys for %d\n", subsys_id);
+    // Need to find space in the page where we can store the subsystem.
+    subsys_acct = rscfl_mem->subsyses;
+    // Walk through the subsyses, being careful not to wonder of the end of
+    // our memory.
+    while (subsys_acct - rscfl_mem->subsyses <= ACCT_SUBSYS_NUM) {
+      if (!subsys_acct->in_use) {
+        // acct_subsys is an index that describes the offset from the start of
+        // subsyses as measured by number of struct subsys_accountings.
+        // Recall that this is done as we need consistent indexing between
+        // userspace and kernel space.
+        subsys_offset = subsys_acct - rscfl_mem->subsyses;
+        acct->acct_subsys[subsys_id] = subsys_offset;
+        break;
+      } else {
+        subsys_acct++;
       }
-      if (subsys_offset == -1) {
-        // We haven't found anywhere in the shared page where we can store
-        // this subsystem.
-        debugk("rscfl: Unable to allocate memory for syscall accounting\n");
-        return NULL;
-      }
-      // Now need to initialise the subsystem's resources to be 0.
-      subsys_acct = &rscfl_mem->subsyses[subsys_offset];
-      memset(subsys_acct, 0, sizeof(struct subsys_accounting));
-      subsys_acct->in_use = 1;
-
-    } else {
-      subsys_acct = &rscfl_mem->subsyses[subsys_offset];
     }
-    return subsys_acct;
+    if (subsys_offset == -1) {
+      // We haven't found anywhere in the shared page where we can store
+      // this subsystem.
+      debugk("rscfl: Unable to allocate memory for syscall accounting\n");
+      return -ENOMEM;
+    }
+    // Now need to initialise the subsystem's resources to be 0.
+    subsys_acct = &rscfl_mem->subsyses[subsys_offset];
+    memset(subsys_acct, 0, sizeof(struct subsys_accounting));
+    subsys_acct->in_use = 1;
+
+  } else {
+    subsys_acct = &rscfl_mem->subsyses[subsys_offset];
   }
-  return NULL;
+  *subsys_acct_ret = subsys_acct;
+  return 0;
 }
 
+
+/*
+ * Returns 0 if we have entered a new subsystem, without errors.
+ * Returns 1 if we are not in a new subsystem, or there is an error.
+ */
 int rscfl_subsystem_entry(rscfl_subsys subsys_id,
-                           struct kretprobe_instance *probe)
+                          struct kretprobe_instance *probe)
 {
   pid_acct *current_pid_acct;
-  struct subsys_accounting *subsys_acct;
+  struct subsys_accounting *new_subsys_acct;
+  struct subsys_accounting *curr_subsys_acct = NULL;
+  int err;
+
+  if (!should_acct()) {
+    // Not accounting for this syscall, so exit, and don't set the return probe.
+    return 1;
+  }
   preempt_disable();
-  subsys_acct = get_subsys(subsys_id);
   current_pid_acct = CPU_VAR(current_acct);
-  if (subsys_acct != NULL) {
-    // We running acct_next on this syscall.
-    BUG_ON(current_pid_acct == NULL);  // As subsys_acct=>current_pid_acct.
-    if (current_pid_acct->curr_subsys != subsys_id) {
-      rscfl_subsys *prev_subsys;
-      // We're new in this subsystem.
-      if (current_pid_acct->curr_subsys != -1) {
-        struct subsys_accounting *prev_subsys_acct =
-            get_subsys(current_pid_acct->curr_subsys);
-        if (prev_subsys_acct == NULL) {
-          return 1;
-        }
-        rscfl_perf_get_current_vals(prev_subsys_acct, 1);
+  err = get_subsys(subsys_id, &new_subsys_acct);
+  if (err < 0) {
+    goto error;
+  }
+  // We running acct_next on this syscall.
+  BUG_ON(current_pid_acct == NULL);  // As get_subsys != 0.
+  if (current_pid_acct->curr_subsys != subsys_id) {
+    rscfl_subsys *prev_subsys;
+    // We're new in this subsystem.
+    if (current_pid_acct->curr_subsys != -1) {
+      err = get_subsys(current_pid_acct->curr_subsys, &curr_subsys_acct);
+      if (err) {
+        goto error;
       }
-      // Start the counters for the subsystem we're entering.
-      rscfl_perf_get_current_vals(subsys_acct, 0);
-      // Update the subsystem tracking info.
-      prev_subsys = (rscfl_subsys *)probe->data;
-      *prev_subsys = current_pid_acct->curr_subsys;
-      current_pid_acct->curr_subsys = subsys_id;
-      return 0;
     }
+    rscfl_perf_update_subsys_vals(curr_subsys_acct, new_subsys_acct);
+
+    // Update the subsystem tracking info.
+    prev_subsys = (rscfl_subsys *)probe->data;
+    *prev_subsys = current_pid_acct->curr_subsys;
+    current_pid_acct->curr_subsys = subsys_id;
+    preempt_enable();
+    return 0;
   }
   preempt_enable();
+  return 1;
+error:
+  // If we hit an error (eg ENOMEM, then stop accounting).
+  printk(KERN_ERR "rscfl: unexpected error in getting a subsystem.\n");
+  if (current_pid_acct != NULL) {
+    current_pid_acct->probe_data->syscall_acct->rc = err;
+  }
+  clear_acct_next();
+  preempt_enable();
+  // Don't register the exit probe.
   return 1;
 }
 
 void rscfl_subsystem_exit(rscfl_subsys subsys_id,
                           struct kretprobe_instance *probe)
 {
-  pid_acct *current_pid_acct;
+  pid_acct *current_pid_acct = NULL;
   rscfl_subsys *prev_subsys = (rscfl_subsys *)probe->data;
+  int err;
+
+  if (!should_acct()) {
+    return;
+  }
 
   preempt_disable();
   current_pid_acct = CPU_VAR(current_acct);
   if ((current_pid_acct != NULL) &&
       (current_pid_acct->probe_data->syscall_acct)) {
     // This syscall is being accounted for.
-    struct subsys_accounting *subsys_acct = get_subsys(subsys_id);
-    if ((subsys_acct != NULL)) {
-      rscfl_perf_get_current_vals(subsys_acct, 1);
+    if (current_pid_acct->curr_subsys != -1) {
+      struct subsys_accounting *subsys_acct;
+      struct subsys_accounting *prev_subsys_acct = NULL;
+
+      err = get_subsys(subsys_id, &subsys_acct);
+      if (err) {
+        goto error;
+      }
 
       // Start counters again for the subsystem we're returning back to.
       if (*prev_subsys != -1) {
-        struct subsys_accounting *prev_subsys_acct = get_subsys(*prev_subsys);
-        rscfl_perf_get_current_vals(prev_subsys_acct, 0);
+        err = get_subsys(*prev_subsys, &prev_subsys_acct);
+        if (err) {
+          goto error;
+        }
       } else {
         clear_acct_next();
       }
+      rscfl_perf_update_subsys_vals(subsys_acct, prev_subsys_acct);
       // Update subsystem tracking data.
       current_pid_acct->curr_subsys = *prev_subsys;
     }
   }
+  preempt_enable();
+  return;
+error:
+  current_pid_acct->probe_data->syscall_acct->rc = err;
+  clear_acct_next();
   preempt_enable();
 }

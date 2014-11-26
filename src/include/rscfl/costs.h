@@ -33,9 +33,11 @@
 #define _SYSCALL_COST_H_
 
 #ifdef __KERNEL__
-#include <linux/types.h>
 #include <linux/tcp.h>
+#include <linux/time.h>
+#include <linux/types.h>
 #else
+#include <time.h>
 #include <sys/types.h>
 #include <netinet/tcp.h>
 #endif
@@ -88,7 +90,7 @@ struct acct_CPU
   ru64 cycles;
   ru64 branch_mispredictions; //count
   ru64 instructions; //count
-  ru64 wall_clock_time;
+  struct timespec wall_clock_time;
 };
 
 struct acct_Sys
@@ -137,6 +139,11 @@ struct subsys_accounting
 struct accounting
 {
   volatile _Bool in_use;
+  /*
+   * Used as the interface for the kernel code to return an error to the
+   * userspace.
+   */
+  volatile int rc;
   rscfl_syscall_id_t syscall_id;
   // Indexes into offsets from the start of the subsys section of
   // rscfl_pid_page->buf.

@@ -11,11 +11,40 @@
 
 class CyclesTest : public testing::Test
 {
-  protected:
+ protected:
+
+  static __inline__ ru64 test_get_cycles(void)
+  {
+    unsigned int hi, lo;
+    __asm__ volatile("rdtsc" : "=a" (lo), "=d" (hi));
+    return ((ru64)hi << 32) | lo;
+  }
+
+
     virtual void SetUp()
     {
       rhdl_ = rscfl_init();
       ASSERT_NE(nullptr, rhdl_);
+      ASSERT_EQ(0, rscfl_acct_next(rhdl_));
+
+      ru64 val_pre = test_get_cycles();
+      int sockfd_ = socket(AF_LOCAL, SOCK_RAW, 0);
+      ru64 val_post = test_get_cycles();
+      user_cycles_ = val_post - val_pre;
+
+      struct accounting acct_;
+      ASSERT_EQ(0, rscfl_read_acct(rhdl_, &acct_));
+
+      // Now add all of the subsystem cycles
+      kernel_cycles_ = 0;
+      struct subsys_accounting *subsys;
+      rscfl_subsys curr_sub;
+      for (int i = 1; i < NUM_SUBSYSTEMS; i++) {
+	curr_sub = (rscfl_subsys) i;
+	if ((subsys = get_subsys_accounting(rhdl_, &acct_, curr_sub)) != NULL) {
+	  kernel_cycles_ += subsys->cpu.cycles;
+	}
+      }
     }
 
     virtual void TearDown()
@@ -25,30 +54,19 @@ class CyclesTest : public testing::Test
 
     rscfl_handle rhdl_;
     int sockfd_;
+    ru64 user_cycles_;
+    ru64 kernel_cycles_;
 };
 
-static __inline__ ru64 test_get_cycles(void)
-{
-  unsigned int hi, lo;
-  __asm__ volatile("rdtsc" : "=a" (lo), "=d" (hi));
-  return ((ru64)hi << 32) | lo;
-}
 
 /*
  * Tests whether the number of cycles seen in the kernel is less than that seen
  * in user space. when opening a socket.
  */
-TEST_F(CyclesTest, SocketCyclesValidation)
+TEST_F(CyclesTest, TestSocketCyclesMeasuredInKernelAreLessThanInUserspace)
 {
-  ASSERT_EQ(0, rscfl_acct_next(rhdl_));
-
-  ru64 val_pre = test_get_cycles();
-  int sockfd_ = socket(AF_LOCAL, SOCK_RAW, 0);
-  ru64 val_post = test_get_cycles();
-  ru64 user_cycles = val_post - val_pre;
-
-  struct accounting acct_;
-  ASSERT_EQ(0, rscfl_read_acct(rhdl_, &acct_));
+  EXPECT_LT(kernel_cycles_, user_cycles_);
+}
 
   // Now add all of the subsystem cycles
   ru64 kernel_cycles = 0;
@@ -61,6 +79,9 @@ TEST_F(CyclesTest, SocketCyclesValidation)
     }
   }
 
-  EXPECT_LT(kernel_cycles, user_cycles);
+  // Ensure that resourceful's measurements account for the expected number
+  // of cycles, as measured from userspace to ensure we are accounting
+  // correctly.
+  EXPECT_GT(percent_explained, 40) << "Only explained " << percent_explained
+                                   << "%\n";
 }
-

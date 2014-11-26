@@ -35,7 +35,7 @@ static struct perf_event *event_counters[NUM_SW_EVENTS];
 /*
  * Returns a microsecond timestamp
  */
-struct timespec rscfl_get_timestamp(void)
+static struct timespec rscfl_get_timestamp(void)
 {
   struct timespec ts = {0};
   getrawmonotonic(&ts);

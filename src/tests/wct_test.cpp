@@ -27,7 +27,7 @@ class WCTTest : public testing::Test
     int sockfd_;
 };
 
-timespec wct_test_get_time(void)
+static struct timespec wct_test_get_time(void)
 {
   struct timespec ts = {0};
   clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts);
@@ -38,17 +38,17 @@ timespec wct_test_get_time(void)
  * Tests whether the number of cycles seen in the kernel is less than that seen
  * in user space. when opening a socket.
  */
-TEST_F(WCTTest, WallClockValidation)
+TEST_F(WCTTest, WallClock_Kernel_LT_User)
 {
   ASSERT_EQ(0, rscfl_acct_next(rhdl_));
 
   struct timespec val_pre =  wct_test_get_time();
-  int sockfd_ = socket(AF_LOCAL, SOCK_RAW, 0);
+  int sockfd = socket(AF_LOCAL, SOCK_RAW, 0);
   struct timespec val_post =  wct_test_get_time();
   ru64 user_time = (ru64) val_post.tv_nsec - val_pre.tv_nsec;
 
-  struct accounting acct_;
-  ASSERT_EQ(0, rscfl_read_acct(rhdl_, &acct_));
+  struct accounting acct;
+  ASSERT_EQ(0, rscfl_read_acct(rhdl_, &acct));
 
   // Now add all of the subsystem times
   ru64 kernel_time = 0;
@@ -56,7 +56,7 @@ TEST_F(WCTTest, WallClockValidation)
   rscfl_subsys curr_sub;
   for (int i = 1; i < NUM_SUBSYSTEMS; i++) {
     curr_sub = (rscfl_subsys) i;
-    if ((subsys = get_subsys_accounting(rhdl_, &acct_, curr_sub)) != NULL) {
+    if ((subsys = get_subsys_accounting(rhdl_, &acct, curr_sub)) != NULL) {
       kernel_time += (ru64) subsys->cpu.wall_clock_time.tv_nsec;
     }
   }

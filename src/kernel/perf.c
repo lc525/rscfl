@@ -43,34 +43,30 @@ static struct timespec rscfl_get_timestamp(void)
 }
 
 /*
- * Use perf to read the current resources, and store them in acct_subsys.
+ * Read the current values of cpu cycles and wall clock time. Add these numbers
+ * to minus_subsys and add them to add_subsys. If either of these are NULL,
+ * the values for the other one are still updated.
  */
-int rscfl_perf_get_current_vals(struct subsys_accounting *acct_subsys,
-                                _Bool add)
+int rscfl_perf_update_subsys_vals(struct subsys_accounting *add_subsys,
+                                  struct subsys_accounting *minus_subsys)
+
 {
   u64 enabled;
   u64 running;
   struct perf_output_handle;
-  u64 cycles;
-  struct timespec tmp_time;
+  u64 cycles = rscfl_get_cycles();
+  struct timespec tmp_time = rscfl_get_timestamp();
   int i;
 
-  /* Get the CPU cycle count and set it */
-  cycles = rscfl_get_cycles();
-  if (add) {
-    acct_subsys->cpu.cycles += cycles;
-  } else {
-    acct_subsys->cpu.cycles -= cycles;
+  if (add_subsys != NULL) {
+    add_subsys->cpu.cycles += cycles;
+    add_subsys->cpu.wall_clock_time.tv_sec += tmp_time.tv_sec;
+    add_subsys->cpu.wall_clock_time.tv_nsec += tmp_time.tv_nsec;
   }
-
-  /* Get the current wall clock time */
-  tmp_time = rscfl_get_timestamp();
-  if (add) {
-    acct_subsys->cpu.wall_clock_time.tv_sec += tmp_time.tv_sec;
-    acct_subsys->cpu.wall_clock_time.tv_nsec += tmp_time.tv_nsec;
-  } else {
-    acct_subsys->cpu.wall_clock_time.tv_sec -= tmp_time.tv_sec;
-    acct_subsys->cpu.wall_clock_time.tv_nsec -= tmp_time.tv_nsec;
+  if (minus_subsys != NULL) {
+    minus_subsys->cpu.cycles -= cycles;
+    minus_subsys->cpu.wall_clock_time.tv_sec -= tmp_time.tv_sec;
+    minus_subsys->cpu.wall_clock_time.tv_nsec -= tmp_time.tv_nsec;
   }
   return 0;
 }

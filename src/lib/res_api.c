@@ -176,8 +176,10 @@ int rscfl_merge_acct(rscfl_handle rhdl, struct accounting *acct)
             acct_subsys->cpu.cycles += rhdl_subsys->cpu.cycles;
             acct_subsys->cpu.branch_mispredictions +=
                 rhdl_subsys->cpu.branch_mispredictions;
-            acct_subsys->cpu.wall_clock_time +=
-                rhdl_subsys->cpu.wall_clock_time;
+            acct_subsys->cpu.wall_clock_time.tv_nsec +=
+                rhdl_subsys->cpu.wall_clock_time.tv_nsec;
+            acct_subsys->cpu.wall_clock_time.tv_sec +=
+                rhdl_subsys->cpu.wall_clock_time.tv_sec;
             acct_subsys->mem.alloc += rhdl_subsys->mem.alloc;
             acct_subsys->mem.freed += rhdl_subsys->mem.freed;
           }

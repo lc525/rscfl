@@ -137,6 +137,10 @@ struct subsys_accounting
 struct accounting
 {
   volatile _Bool in_use;
+  /*
+   * Used as the interface for the kernel code to return an error to the
+   * userspace.
+   */
   volatile int rc;
   rscfl_syscall_id_t syscall_id;
   // Indexes into offsets from the start of the subsys section of

@@ -170,31 +170,32 @@ int rscfl_subsystem_entry(rscfl_subsys subsys_id,
                            struct kretprobe_instance *probe)
 {
   pid_acct *current_pid_acct = NULL;
-  struct subsys_accounting *subsys_acct;
-  int rc;
+  struct subsys_accounting *new_subsys_acct;
+  int err;
 
   preempt_disable();
-  rc = get_subsys(subsys_id, &subsys_acct);
+  err = get_subsys(subsys_id, &new_subsys_acct);
   current_pid_acct = CPU_VAR(current_acct);
-  rc = get_subsys(subsys_id, &subsys_acct);
-  if (rc < 0) {
+  err = get_subsys(subsys_id, &new_subsys_acct);
+  if (err < 0) {
     goto error;
   }
-  if (!rc) {
+  if (!err) {
     // We running acct_next on this syscall.
     BUG_ON(current_pid_acct == NULL);  // As get_subsys != 0.
     if (current_pid_acct->curr_subsys != subsys_id) {
       rscfl_subsys *prev_subsys;
       // We're new in this subsystem.
       if (current_pid_acct->curr_subsys != -1) {
-        struct subsys_accounting *prev_subsys_acct;
-        if (get_subsys(current_pid_acct->curr_subsys, &prev_subsys_acct)) {
+        struct subsys_accounting *curr_subsys_acct;
+        err = get_subsys(current_pid_acct->curr_subsys, &curr_subsys_acct);
+        if (err) {
           goto error;
         }
-        rscfl_perf_get_current_vals(prev_subsys_acct, 1);
+        rscfl_perf_get_current_vals(curr_subsys_acct, 1);
       }
       // Start the counters for the subsystem we're entering.
-      rscfl_perf_get_current_vals(subsys_acct, 0);
+      rscfl_perf_get_current_vals(new_subsys_acct, 0);
       // Update the subsystem tracking info.
       prev_subsys = (rscfl_subsys *)probe->data;
       *prev_subsys = current_pid_acct->curr_subsys;
@@ -208,7 +209,7 @@ error:
   // If we hit an error (eg ENOMEM, then stop accounting).
   printk(KERN_ERR "rscfl: unexpected error in getting a subsystem.\n");
   if (current_pid_acct != NULL) {
-    current_pid_acct->probe_data->syscall_acct->rc = rc;
+    current_pid_acct->probe_data->syscall_acct->rc = err;
   }
   clear_acct_next();
   preempt_enable();
@@ -221,7 +222,7 @@ void rscfl_subsystem_exit(rscfl_subsys subsys_id,
 {
   pid_acct *current_pid_acct = NULL;
   rscfl_subsys *prev_subsys = (rscfl_subsys *)probe->data;
-  int rc;
+  int err;
 
   preempt_disable();
   current_pid_acct = CPU_VAR(current_acct);
@@ -230,8 +231,8 @@ void rscfl_subsystem_exit(rscfl_subsys subsys_id,
     // This syscall is being accounted for.
     if (current_pid_acct->curr_subsys != -1) {
       struct subsys_accounting *subsys_acct;
-      rc = get_subsys(subsys_id, &subsys_acct);
-      if (rc) {
+      err = get_subsys(subsys_id, &subsys_acct);
+      if (err) {
         goto error;
       }
       rscfl_perf_get_current_vals(subsys_acct, 1);
@@ -239,7 +240,8 @@ void rscfl_subsystem_exit(rscfl_subsys subsys_id,
       // Start counters again for the subsystem we're returning back to.
       if (*prev_subsys != -1) {
         struct subsys_accounting *prev_subsys_acct;
-        if (get_subsys(*prev_subsys, &prev_subsys_acct)) {
+        err = get_subsys(*prev_subsys, &prev_subsys_acct);
+        if (err) {
           goto error;
         }
         rscfl_perf_get_current_vals(prev_subsys_acct, 0);
@@ -253,7 +255,7 @@ void rscfl_subsystem_exit(rscfl_subsys subsys_id,
   preempt_enable();
   return;
 error:
-  current_pid_acct->probe_data->syscall_acct->rc = rc;
+  current_pid_acct->probe_data->syscall_acct->rc = err;
   clear_acct_next();
   preempt_enable();
 }

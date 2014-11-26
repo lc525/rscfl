@@ -167,6 +167,7 @@ int rscfl_subsystem_entry(rscfl_subsys subsys_id,
 {
   pid_acct *current_pid_acct;
   struct subsys_accounting *new_subsys_acct;
+  struct subsys_accounting *curr_subsys_acct = NULL;
   int err;
 
   if (!should_acct()) {
@@ -185,15 +186,13 @@ int rscfl_subsystem_entry(rscfl_subsys subsys_id,
     rscfl_subsys *prev_subsys;
     // We're new in this subsystem.
     if (current_pid_acct->curr_subsys != -1) {
-      struct subsys_accounting *curr_subsys_acct;
       err = get_subsys(current_pid_acct->curr_subsys, &curr_subsys_acct);
       if (err) {
         goto error;
       }
-      rscfl_perf_get_current_vals(curr_subsys_acct, 1);
     }
-    // Start the counters for the subsystem we're entering.
-    rscfl_perf_get_current_vals(new_subsys_acct, 0);
+    rscfl_perf_update_subsys_vals(curr_subsys_acct, new_subsys_acct);
+
     // Update the subsystem tracking info.
     prev_subsys = (rscfl_subsys *)probe->data;
     *prev_subsys = current_pid_acct->curr_subsys;
@@ -233,23 +232,23 @@ void rscfl_subsystem_exit(rscfl_subsys subsys_id,
     // This syscall is being accounted for.
     if (current_pid_acct->curr_subsys != -1) {
       struct subsys_accounting *subsys_acct;
+      struct subsys_accounting *prev_subsys_acct = NULL;
+
       err = get_subsys(subsys_id, &subsys_acct);
       if (err) {
         goto error;
       }
-      rscfl_perf_get_current_vals(subsys_acct, 1);
 
       // Start counters again for the subsystem we're returning back to.
       if (*prev_subsys != -1) {
-        struct subsys_accounting *prev_subsys_acct;
         err = get_subsys(*prev_subsys, &prev_subsys_acct);
         if (err) {
           goto error;
         }
-        rscfl_perf_get_current_vals(prev_subsys_acct, 0);
       } else {
         clear_acct_next();
       }
+      rscfl_perf_update_subsys_vals(subsys_acct, prev_subsys_acct);
       // Update subsystem tracking data.
       current_pid_acct->curr_subsys = *prev_subsys;
     }

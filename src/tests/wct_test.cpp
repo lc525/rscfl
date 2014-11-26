@@ -49,7 +49,7 @@ TEST_F(WCTTest, WallClock_Kernel_LT_User)
   ru64 kernel_time = 0;
   struct subsys_accounting *subsys;
   rscfl_subsys curr_sub;
-  for (int i = 1; i < NUM_SUBSYSTEMS; i++) {
+  for (int i = 0; i < NUM_SUBSYSTEMS; i++) {
     if ((subsys = get_subsys_accounting(rhdl_, &acct, (rscfl_subsys)i)) !=
         NULL) {
       kernel_time += (ru64)subsys->cpu.wall_clock_time.tv_nsec;

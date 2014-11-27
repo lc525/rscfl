@@ -40,14 +40,14 @@ class SocketTest : public testing::Test
 TEST_F(SocketTest, SocketTouchesNetworkingGeneral)
 {
   // Socket must have touched networking general.
-  ASSERT_TRUE(get_subsys_accounting(rhdl_, &acct_, NETWORKINGGENERAL) !=
+  ASSERT_TRUE(rscfl_get_subsys_by_id(rhdl_, &acct_, NETWORKINGGENERAL) !=
               nullptr);
 }
 
 TEST_F(SocketTest, SocketHasCPUCyclesForNetworkingGeneral)
 {
   struct subsys_accounting *subsys =
-      get_subsys_accounting(rhdl_, &acct_, NETWORKINGGENERAL);
+      rscfl_get_subsys_by_id(rhdl_, &acct_, NETWORKINGGENERAL);
 
   ASSERT_NE(subsys, nullptr);
   // Ensure we have a number of CPU cycles > 0 for NetworkingGeneral on opening
@@ -60,14 +60,14 @@ TEST_F(SocketTest, SocketHasCPUCyclesForNetworkingGeneral)
 TEST_F(SocketTest, SocketTouchesVFS)
 {
   // Socket must have touched networking general.
-  ASSERT_TRUE(get_subsys_accounting(
+  ASSERT_TRUE(rscfl_get_subsys_by_id(
                   rhdl_, &acct_, FILESYSTEMSVFSANDINFRASTRUCTURE) != nullptr);
 }
 
 TEST_F(SocketTest, SocketHasCPUCyclesForVFS)
 {
   struct subsys_accounting *subsys =
-    get_subsys_accounting(rhdl_, &acct_, FILESYSTEMSVFSANDINFRASTRUCTURE);
+    rscfl_get_subsys_by_id(rhdl_, &acct_, FILESYSTEMSVFSANDINFRASTRUCTURE);
 
   ASSERT_NE(subsys, nullptr);
   // Ensure we have a number of CPU cycles > 0 for VFS on opening
@@ -80,14 +80,14 @@ TEST_F(SocketTest, SocketHasCPUCyclesForVFS)
 TEST_F(SocketTest, SocketTouchesSecuritySubsys)
 {
   // Socket must have touched networking general.
-  ASSERT_TRUE(get_subsys_accounting(
+  ASSERT_TRUE(rscfl_get_subsys_by_id(
 		rhdl_, &acct_, SECURITYSUBSYSTEM) != nullptr);
 }
 
 TEST_F(SocketTest, SocketHasCPUCyclesForSecuritySubsys)
 {
   struct subsys_accounting *subsys =
-    get_subsys_accounting(rhdl_, &acct_, SECURITYSUBSYSTEM);
+    rscfl_get_subsys_by_id(rhdl_, &acct_, SECURITYSUBSYSTEM);
   ASSERT_NE(subsys, nullptr);
   // Ensure we have a number of CPU cycles > 0 for VFS on opening
   // a socket.
@@ -100,7 +100,7 @@ TEST_F(SocketTest, SocketHasCPUCyclesForSecuritySubsys)
 // to open.
 TEST_F(SocketTest, RscflGivesDifferentResultsForRepeatedSocketOpens)
 {
-  auto* subsys_acct = get_subsys_accounting(rhdl_, &acct_, SECURITYSUBSYSTEM);
+  auto* subsys_acct = rscfl_get_subsys_by_id(rhdl_, &acct_, SECURITYSUBSYSTEM);
   ASSERT_NE(subsys_acct, nullptr);
   int cycles0 = subsys_acct->cpu.cycles;
 
@@ -111,7 +111,7 @@ TEST_F(SocketTest, RscflGivesDifferentResultsForRepeatedSocketOpens)
   // We must be able to read our struct accounting back from rscfl.
   ASSERT_EQ(0, rscfl_read_acct(rhdl_, &acct_));
 
-  subsys_acct = get_subsys_accounting(rhdl_, &acct_, SECURITYSUBSYSTEM);
+  subsys_acct = rscfl_get_subsys_by_id(rhdl_, &acct_, SECURITYSUBSYSTEM);
   ASSERT_NE(subsys_acct, nullptr);
   int cycles1 = subsys_acct->cpu.cycles;
 
@@ -122,7 +122,7 @@ TEST_F(SocketTest, RscflGivesDifferentResultsForRepeatedSocketOpens)
   // We must be able to read our struct accounting back from rscfl.
   ASSERT_EQ(0, rscfl_read_acct(rhdl_, &acct_));
 
-  subsys_acct = get_subsys_accounting(rhdl_, &acct_, SECURITYSUBSYSTEM);
+  subsys_acct = rscfl_get_subsys_by_id(rhdl_, &acct_, SECURITYSUBSYSTEM);
   ASSERT_NE(subsys_acct, nullptr);
   int cycles2 = subsys_acct->cpu.cycles;
 

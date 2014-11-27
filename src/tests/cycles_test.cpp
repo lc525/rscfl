@@ -39,7 +39,7 @@ class CyclesTest : public testing::Test
     rscfl_subsys curr_sub;
     for (int i = 0; i < NUM_SUBSYSTEMS; i++) {
       curr_sub = (rscfl_subsys)i;
-      if ((subsys = get_subsys_accounting(rhdl_, &acct_, curr_sub)) != NULL) {
+      if ((subsys = rscfl_get_subsys_by_id(rhdl_, &acct_, curr_sub)) != NULL) {
         kernel_cycles_ += subsys->cpu.cycles;
       }
     }

@@ -35,11 +35,13 @@ TEST_F(StressTest, TestAcctForAThousandSocketOpens)
     // Ensure that we are able to read back the struct accounting.
     ASSERT_EQ(0, rscfl_read_acct(rhdl_, &acct_))
         << "Failed at accounting for socket creation at attempt" << i;
+    rscfl_subsys_free(rhdl_, &acct_);
 
     // Account for closing the socket again.
     ASSERT_EQ(0, rscfl_acct_next(rhdl_));
     close(sock_fd);
     ASSERT_EQ(0, rscfl_read_acct(rhdl_, &acct_))
         << "Failed at closing socket at attempt " << i;
+    rscfl_subsys_free(rhdl_, &acct_);
   }
 }

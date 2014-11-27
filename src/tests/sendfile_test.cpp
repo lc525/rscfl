@@ -42,14 +42,14 @@ class SendFileTest : public testing::Test
 TEST_F(SendFileTest, TestSendFileTouchesVFS)
 {
   // We must be able to read our struct accounting back from rscfl.
-  ASSERT_TRUE(get_subsys_accounting(
-                  rhdl_, &acct_, FILESYSTEMSVFSANDINFRASTRUCTURE) != nullptr);
+  ASSERT_TRUE(rscfl_get_subsys_by_id(
+              rhdl_, &acct_, FILESYSTEMSVFSANDINFRASTRUCTURE) != nullptr);
 }
 
 TEST_F(SendFileTest, TestSendFileHasCPUCyclesForVFS)
 {
   struct subsys_accounting *subsys =
-      get_subsys_accounting(rhdl_, &acct_, FILESYSTEMSVFSANDINFRASTRUCTURE);
+      rscfl_get_subsys_by_id(rhdl_, &acct_, FILESYSTEMSVFSANDINFRASTRUCTURE);
 
   // Ensure we have a number of CPU cycles > 0 for VFS on using sendfile.
   ASSERT_GT(subsys->cpu.cycles, 0);
@@ -58,7 +58,7 @@ TEST_F(SendFileTest, TestSendFileHasCPUCyclesForVFS)
 TEST_F(SendFileTest, TestSendFileVFSCPUCyclesIsBelievable)
 {
   struct subsys_accounting *subsys =
-      get_subsys_accounting(rhdl_, &acct_, FILESYSTEMSVFSANDINFRASTRUCTURE);
+      rscfl_get_subsys_by_id(rhdl_, &acct_, FILESYSTEMSVFSANDINFRASTRUCTURE);
 
   // Ensure the CPU cycles don't look like an overflow has occurred.
   ASSERT_LT(subsys->cpu.cycles, kSuspectedOverflow);

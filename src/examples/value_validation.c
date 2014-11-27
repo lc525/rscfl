@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
 
   // RSCFL
   if (!rscfl_read_acct(r_handle, &acct_1)) {
-    subsys_acct = get_subsys_accounting(r_handle, &acct_1, NETWORKINGGENERAL);
+    subsys_acct = rscfl_get_subsys_by_id(r_handle, &acct_1, NETWORKINGGENERAL);
     printf("rscfl: cpu_cycles=%llu wall_clock_time_ns=%llu\n",
            subsys_acct->cpu.cycles,
            (ru64)subsys_acct->cpu.wall_clock_time.tv_nsec);
@@ -96,7 +96,7 @@ int main(int argc, char *argv[])
 
   // RSCFL
   if (!rscfl_read_acct(r_handle, &acct_2)) {
-    subsys_acct = get_subsys_accounting(r_handle, &acct_1, NETWORKINGGENERAL);
+    subsys_acct = rscfl_get_subsys_by_id(r_handle, &acct_1, NETWORKINGGENERAL);
     printf("rscfl: cpu_cycles=%llu wall_clock_time_ns=%llu\n",
            subsys_acct->cpu.cycles,
            (ru64)subsys_acct->cpu.wall_clock_time.tv_nsec);

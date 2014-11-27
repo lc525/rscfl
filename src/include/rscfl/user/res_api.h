@@ -28,7 +28,7 @@ typedef struct rscfl_handle_t *rscfl_handle;
 
 struct subsys_idx_set {
   short idx[NUM_SUBSYSTEMS];
-  struct subsys_accounting *set;  // array of pointers
+  struct subsys_accounting *set;
   short set_size;
   short max_set_size;
 };

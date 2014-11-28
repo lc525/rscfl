@@ -1,35 +1,3 @@
-/* Resourceful user-facing API
- * Usage example:
- *
- * rscfl_init(); // called on each thread - allocates two shared memory regions
- *               // between user and kernel space: one that holds resource
- *               // accounting data and a second for storing expressions of
- *               // interest
- * int filter = SYS | PROC | NET_SOCK; // defines what resources we're
- *                                     // interested in, default: ALL (include
- *                                     // all resources)
- * // declare interest in measuring the resource consumption of the next
- * // syscall by calling rscfl_acct_next
- * call_cost* cost_o = rscfl_acct_next(filter);
- * int fd = open("/../file_path", O_CREAT); // syscall being measured
- *
- * call_cost* cost_w = acct_next(filter);
- * int res = write(fd, &buf, BUF_SIZE);
- *
- * // if the write is asynchronous, cost_w will keep being updated by the
- * // kernel for a while
- *
- * // do whatever you want with the call_cost data. you can read the sync
- * // component as soon as the syscall is done, but you should touch the async
- * // component only when the kernel has set the async_done flag to true
- * // you can register a callback for when that happens with:
- * cost_callback_async(cost_w, callback_function);
- *
- * //...und so weiter
- *
- * fini_resource_acct(); // de-allocate resource accounting structures
- *
- */
 #include "rscfl/user/res_api.h"
 
 #include <errno.h>
@@ -164,95 +132,6 @@ int rscfl_read_acct(rscfl_handle rhdl, struct accounting *acct)
   return -EINVAL;
 }
 
-/*!
- * \brief merge the data measured in two kernel subsystems
- *
- * \param [in,out] e the subsys_accounting in which data will be aggregated
- *                   (the existing subsys_accounting)
- * \param [in]     c the current subsys_accounting. The measurement data for
- *                   this subsystem will be added to the exising
- *                   subsys_accounting
- */
-inline void rscfl_subsys_merge(struct subsys_accounting *e,
-                               struct subsys_accounting *c) {
-  e->cpu.cycles                  += c->cpu.cycles;
-  e->cpu.branch_mispredictions   += c->cpu.branch_mispredictions;
-  e->cpu.instructions            += c->cpu.instructions;
-
-  e->cpu.wall_clock_time.tv_sec  += c->cpu.wall_clock_time.tv_sec;
-  e->cpu.wall_clock_time.tv_nsec += c->cpu.wall_clock_time.tv_nsec;
-  if(e->cpu.wall_clock_time.tv_nsec > 1e9) {
-    e->cpu.wall_clock_time.tv_nsec -= 1e9;
-    e->cpu.wall_clock_time.tv_sec++;
-  }
-
-  e->mem.alloc                   += c->mem.alloc;
-  e->mem.freed                   += c->mem.freed;
-  e->mem.page_faults             += c->mem.page_faults;
-  e->mem.align_faults            += c->mem.align_faults;
-}
-
-
-/*!
- * \brief gets the measurements done for acct in a particular kernel subsystem
- *
- * \param rhdl the resourceful handle for the thread where measurement is done
- *             (typically the current thread)
- * \param [in] acct a pointer to the accounting data structure obtained from
- *                  calling rscfl_acct_read
- * \param subsys_id the id of the subsystem (one of the values in the
- *                  rscfl_subsys enum)
- *
- * returns NULL if the measured code path did not touch subsystem subsys_id
- */
-struct subsys_accounting* rscfl_get_subsys_by_id(rscfl_handle rhdl,
-                                                 struct accounting *acct,
-                                                 rscfl_subsys subsys_id)
-{
-  if (!acct || acct->acct_subsys[subsys_id] == -1) {
-    return NULL;
-  }
-  rscfl_shared_mem_layout_t *rscfl_data = (rscfl_shared_mem_layout_t*)rhdl->buf;
-  if (!rscfl_data) {
-    return NULL;
-  }
-  return &rscfl_data->subsyses[acct->acct_subsys[subsys_id]];
-}
-
-/*!
- * \brief marks the kernel-side memory used for subsystem accounting storage as
- *        free
- *
- *  The memory for all subsystems touched during measurements done for acct is
- *  marked as available.
- */
-void rscfl_subsys_free(rscfl_handle rhdl, struct accounting *acct)
-{
-  int i;
-  if(acct == NULL) return;
-
-  for(i = 0; i < NUM_SUBSYSTEMS; ++i) {
-    struct subsys_accounting *subsys = rscfl_get_subsys_by_id(rhdl, acct, i);
-    if(subsys != NULL) subsys->in_use = 0;
-  }
-}
-
-
-/*!
- * \brief reads the per-subsystem resource accounting that was measured for acct
- *
- * It returns a subsys_idx_set structure, containing both the set of subsystems
- * that were active for the measured system call(s), and an subsystem_id-based
- * index for fast querying.
- *
- * The resource accounting data is copied to userspace, freeing the
- * corresponding kernel resources
- *
- * \param rhdl the resourceful handle for the thread where measurement is done
- *             (typically the current thread)
- * \param [in] acct a pointer to the accounting data structure obtained from
- *                  calling rscfl_acct_read
- */
 subsys_idx_set* rscfl_get_subsys(rscfl_handle rhdl, struct accounting *acct)
 {
   int curr_set_ix = 0, i;
@@ -289,18 +168,6 @@ subsys_idx_set* rscfl_get_subsys(rscfl_handle rhdl, struct accounting *acct)
   return ret_subsys_idx;
 }
 
-/*!
- * \brief returns an empty subsys_idx_set capable of holding resource accounting
- *        data for no_subsystems.
- *
- * This can be used when aggregating data across multiple acct_next calls, by
- * passing the resulting subsys_idx_set to rscfl_merge_acct_into.
- *
- * \param no_subsystems the maximum number of subsystems which the aggregator
- *                      will be able to hold. Calling this with NUM_SUBSYSTEMS
- *                      means the aggregator can hold everything (safest option
- *                      but it also allocates quite a bit more memory)
- */
 subsys_idx_set* rscfl_get_new_aggregator(unsigned short no_subsystems)
 {
   subsys_idx_set *ret_subsys_idx;
@@ -322,31 +189,6 @@ subsys_idx_set* rscfl_get_new_aggregator(unsigned short no_subsystems)
   return ret_subsys_idx;
 }
 
-
-/*!
- * \brief rscfl_merge_acct_into allows fast aggregation of subsys accounting
- *        data in user space
- *
- * \param rhdl the resourceful handle for the thread where measurement is done
- *             (typically the current thread)
- * \param [in] acct_from the acct data structure from where we want to take the
- *                       per-subsystem information
- * \param [in] aggregator_into the subsys_idx_set aggregator to which we'll add
- *                             the data measured for acct_from.
- *
- * If acct_from has touched subsystems not present in subsys_idx_set before,
- * those will be added to the aggregator (a set union of the subsystems is
- * performed).
- *
- * If the aggregator is not large enough to hold the union, the
- * number of subsystems that couldn't be added is returned. 0 is returned on
- * normal exit.
- *
- * This function frees the kernel-side resources allocated for the subsystems
- * that we have aggregated. If aggregator_into already contains data for
- * a particular subsystem, no extra copies of the new subsystem data are done
- * in user-space.
- */
 int rscfl_merge_acct_into(rscfl_handle rhdl, struct accounting *acct_from,
                           subsys_idx_set *aggregator_into)
 {
@@ -383,4 +225,51 @@ int rscfl_merge_acct_into(rscfl_handle rhdl, struct accounting *acct_from,
   }
   return rc;
 }
+
+
+
+inline void rscfl_subsys_merge(struct subsys_accounting *e,
+                               struct subsys_accounting *c) {
+  e->cpu.cycles                  += c->cpu.cycles;
+  e->cpu.branch_mispredictions   += c->cpu.branch_mispredictions;
+  e->cpu.instructions            += c->cpu.instructions;
+
+  e->cpu.wall_clock_time.tv_sec  += c->cpu.wall_clock_time.tv_sec;
+  e->cpu.wall_clock_time.tv_nsec += c->cpu.wall_clock_time.tv_nsec;
+  if(e->cpu.wall_clock_time.tv_nsec > 1e9) {
+    e->cpu.wall_clock_time.tv_nsec -= 1e9;
+    e->cpu.wall_clock_time.tv_sec++;
+  }
+
+  e->mem.alloc                   += c->mem.alloc;
+  e->mem.freed                   += c->mem.freed;
+  e->mem.page_faults             += c->mem.page_faults;
+  e->mem.align_faults            += c->mem.align_faults;
+}
+
+struct subsys_accounting* rscfl_get_subsys_by_id(rscfl_handle rhdl,
+                                                 struct accounting *acct,
+                                                 rscfl_subsys subsys_id)
+{
+  if (!acct || acct->acct_subsys[subsys_id] == -1) {
+    return NULL;
+  }
+  rscfl_shared_mem_layout_t *rscfl_data = (rscfl_shared_mem_layout_t*)rhdl->buf;
+  if (!rscfl_data) {
+    return NULL;
+  }
+  return &rscfl_data->subsyses[acct->acct_subsys[subsys_id]];
+}
+
+void rscfl_subsys_free(rscfl_handle rhdl, struct accounting *acct)
+{
+  int i;
+  if(acct == NULL) return;
+
+  for(i = 0; i < NUM_SUBSYSTEMS; ++i) {
+    struct subsys_accounting *subsys = rscfl_get_subsys_by_id(rhdl, acct, i);
+    if(subsys != NULL) subsys->in_use = 0;
+  }
+}
+
 

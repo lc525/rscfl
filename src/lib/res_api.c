@@ -193,7 +193,7 @@ int rscfl_merge_acct_into(rscfl_handle rhdl, struct accounting *acct_from,
                           subsys_idx_set *aggregator_into)
 {
   int curr_set_ix, i, rc = 0;
-  if(!acct_from || !aggregator_into) return -1;
+  if(!acct_from || !aggregator_into) return -EINVAL;
 
   curr_set_ix = aggregator_into->set_size;
 

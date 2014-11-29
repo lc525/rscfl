@@ -226,7 +226,8 @@ void rscfl_subsys_free(rscfl_handle rhdl, struct accounting *acct);
  */
 
 #define DEFINE_SELECT_FCT_PTR(pname, rtype) \
-  typedef rtype (*subsys_select_##pname)(struct subsys_accounting*)
+  typedef rtype (*subsys_select_##pname)(struct subsys_accounting*,            \
+                                         rscfl_subsys)
 
 #define DEFINE_COMBINE_FCT_PTR(pname, rtype) \
   typedef void (*subsys_combine_##pname)(rtype*, rtype)
@@ -235,7 +236,7 @@ void rscfl_subsys_free(rscfl_handle rhdl, struct accounting *acct);
 #define COMBINE_FCT_PTR(pname) subsys_combine_##pname
 
 #define DEFINE_REDUCE_FUNCTION(pname, rtype)                                   \
-rtype rscfl_subsys_reduce_##pname(rscfl_handle rhdl, struct accounting* acct,  \
+rtype rscfl_subsys_reduce_##pname(rscfl_handle rhdl, struct accounting *acct,  \
                                   int free_subsys,                             \
                                   rtype accum_zero, rtype ret_on_err,          \
                                   SELECT_FCT_PTR(pname) select,                \
@@ -250,7 +251,7 @@ rtype rscfl_subsys_reduce_##pname(rscfl_handle rhdl, struct accounting* acct,  \
       rscfl_get_subsys_by_id(rhdl, acct, (rscfl_subsys)i);                     \
     rtype current;                                                             \
     if(subsys != NULL) {                                                       \
-      current = select(subsys);                                                \
+      current = select(subsys, (rscfl_subsys)i);                                                \
       if(free_subsys) subsys->in_use = 0;                                      \
       combine(&accum, current);                                                \
     }                                                                          \

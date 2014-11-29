@@ -73,6 +73,6 @@ TEST_F(CyclesTest,
   // correctly.
   EXPECT_GT(percent_explained, 40) << "Only explained " << percent_explained
                                    << "%\n";
-  std::cout << "[          ] RSCFL explained " << percent_explained
-            << "% of cycles seen in user space\n";
+  std::cout << "\033[0;32m[          ] \033[mRSCFL explained "
+            << percent_explained << "% of cycles seen in user space\n";
 }

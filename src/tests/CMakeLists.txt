@@ -32,6 +32,11 @@ if(WITH_TESTS)
   )
   lib_test(cycles_test "${cycles_test_SOURCES}" "${TEST_LINK}")
 
+  set (api_test_SOURCES
+    ${TESTS_DIR}/api_test.cpp
+  )
+  lib_test(api_test "${api_test_SOURCES}" "${TEST_LINK}")
+
   set (wct_test_SOURCES
     ${TESTS_DIR}/wct_test.cpp
   )

@@ -63,8 +63,15 @@ extern "C" {
  * RSCFL API data structures
  */
 
+/* array containing the user-friendly names of each subsystem */
 extern const char *rscfl_subsys_name[NUM_SUBSYSTEMS];
 
+/*
+ * rscfl_handle_t* (typedef-ed to rscfl_handle) represents the user-space
+ * descriptor for interacting with the kernel module. This is obtained
+ * per-thread by calling rscfl_init() and has to then be passed to all other API
+ * functions.
+ */
 struct rscfl_handle_t {
   char *buf;
   rscfl_syscall_id_t lst_syscall;
@@ -73,6 +80,22 @@ struct rscfl_handle_t {
 };
 typedef struct rscfl_handle_t *rscfl_handle;
 
+
+/*
+ * subsys_idx_set holds subsystem accounting data in user space, indexed by
+ * subsystem id.
+ *
+ * idx is the index: idx[i] holds the offset in the set array where the data for
+ *                   subsystem i is held. idx[i] == -1 if there is no data for
+ *                   subsystem i
+ *
+ * set is an array: each element holds data for one subsystem. this is typically
+ *                  accessed through set[idx[i]] when idx[i] != -1
+ *
+ * set_size:        the number of subsystems currently stored in the set array
+ * max_set_size:    the maximum number of subsystems that can be stored in the
+ *                  set array. this is the allocated size of set.
+ */
 struct subsys_idx_set {
   short idx[NUM_SUBSYSTEMS];
   struct subsys_accounting *set;
@@ -86,8 +109,7 @@ typedef struct subsys_idx_set subsys_idx_set;
  *
  * Basic API
  *
- ****************************
- */
+ ****************************/
 
 /*
  * -- common functionality --
@@ -112,7 +134,10 @@ int rscfl_read_acct(rscfl_handle handle, struct accounting *acct);
  * index for fast querying.
  *
  * The resource accounting data is copied to userspace, freeing the
- * corresponding kernel resources
+ * corresponding kernel resources.
+ *
+ * The returned subsys_idx_set pointer is owned by the calling application, and
+ * it will have to be freed using free_subsys_idx_set(...).
  *
  * \param rhdl the resourceful handle for the thread where measurement is done
  *             (typically the current thread)
@@ -128,6 +153,9 @@ subsys_idx_set* rscfl_get_subsys(rscfl_handle rhdl, struct accounting *acct);
  * This can be used when aggregating data across multiple acct_next calls, by
  * passing the resulting subsys_idx_set to rscfl_merge_acct_into.
  *
+ * The returned subsys_idx_set pointer is owned by the calling application, and
+ * it will have to be freed using free_subsys_idx_set(...).
+ *
  * \param no_subsystems the maximum number of subsystems which the aggregator
  *                      will be able to hold. Calling this with NUM_SUBSYSTEMS
  *                      means the aggregator can hold everything (safest option
@@ -138,6 +166,7 @@ subsys_idx_set* rscfl_get_new_aggregator(unsigned short no_subsystems);
 /*!
  * \brief rscfl_merge_acct_into allows fast aggregation of subsys accounting
  *        data in user space
+ *
  *
  * \param rhdl the resourceful handle for the thread where measurement is done
  *             (typically the current thread)
@@ -163,6 +192,13 @@ int rscfl_merge_acct_into(rscfl_handle rhdl, struct accounting *acct_from,
                           subsys_idx_set *aggregator_into);
 
 
+/*!
+ * \brief free_subsys_idx_set: free memory once the user space is done using the
+ *                             subsystem data
+ */
+int free_subsys_idx_set(subsys_idx_set *subsys_set);
+
+
 /*
  * -- low level API functions --
  *
@@ -175,7 +211,7 @@ int rscfl_merge_acct_into(rscfl_handle rhdl, struct accounting *acct_from,
  * afterwards.
  *
  * failing to use the proper calling protocol of those functions might lead to
- * kernel panics.
+ * leaking kernel memory and system instability
  *
  */
 
@@ -189,7 +225,12 @@ int rscfl_merge_acct_into(rscfl_handle rhdl, struct accounting *acct_from,
  *                   subsys_accounting
  */
 void rscfl_subsys_merge(struct subsys_accounting *existing_subsys,
-                        struct subsys_accounting *new_subsys);
+                        const struct subsys_accounting *new_subsys);
+
+/*!
+ * \brief utility function for adding two timespec structures
+ */
+void timespec_add(struct timespec *to, const struct timespec *from);
 
 /*!
  * \brief gets the measurements done for acct in a particular kernel subsystem
@@ -222,15 +263,14 @@ void rscfl_subsys_free(rscfl_handle rhdl, struct accounting *acct);
  *
  * Advanced API
  *
- ****************************
- */
+ ****************************/
 
 #define DEFINE_SELECT_FCT_PTR(pname, rtype) \
   typedef rtype (*subsys_select_##pname)(struct subsys_accounting*,            \
                                          rscfl_subsys)
 
 #define DEFINE_COMBINE_FCT_PTR(pname, rtype) \
-  typedef void (*subsys_combine_##pname)(rtype*, rtype)
+  typedef void (*subsys_combine_##pname)(rtype*, const rtype)
 
 #define SELECT_FCT_PTR(pname) subsys_select_##pname
 #define COMBINE_FCT_PTR(pname) subsys_combine_##pname
@@ -238,7 +278,8 @@ void rscfl_subsys_free(rscfl_handle rhdl, struct accounting *acct);
 #define DEFINE_REDUCE_FUNCTION(pname, rtype)                                   \
 rtype rscfl_subsys_reduce_##pname(rscfl_handle rhdl, struct accounting *acct,  \
                                   int free_subsys,                             \
-                                  rtype accum_zero, rtype ret_on_err,          \
+                                  rtype accum_zero,                            \
+                                  rtype ret_on_err,                            \
                                   SELECT_FCT_PTR(pname) select,                \
                                   COMBINE_FCT_PTR(pname) combine)              \
 {                                                                              \

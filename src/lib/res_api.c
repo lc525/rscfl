@@ -115,7 +115,6 @@ int rscfl_read_acct(rscfl_handle rhdl, struct accounting *acct)
         if (shared_acct->syscall_id.id == rhdl->lst_syscall.id) {
           memcpy(acct, shared_acct, sizeof(struct accounting));
           shared_acct->in_use = 0;
-          //TODO(lc525) shouldn't we mark all subsystems as "-1" as well?
           return shared_acct->rc;
         } else {
           shared_acct++;
@@ -206,7 +205,7 @@ int rscfl_merge_acct_into(rscfl_handle rhdl, struct accounting *acct_from,
         if(curr_set_ix < aggregator_into->max_set_size) {
           aggregator_into->idx[i] = curr_set_ix;
           memcpy(&aggregator_into->set[curr_set_ix], new_subsys,
-              sizeof(struct subsys_accounting));
+                 sizeof(struct subsys_accounting));
           new_subsys->in_use = 0;
           curr_set_ix++;
           aggregator_into->set_size++;
@@ -226,25 +225,40 @@ int rscfl_merge_acct_into(rscfl_handle rhdl, struct accounting *acct_from,
   return rc;
 }
 
+int free_subsys_idx_set(subsys_idx_set *subsys_set) {
+  if(subsys_set != NULL){
+    free(subsys_set->set);
+  }
+  free(subsys_set);
+}
+
 
 
 inline void rscfl_subsys_merge(struct subsys_accounting *e,
-                               struct subsys_accounting *c) {
+                               const struct subsys_accounting *c) {
   e->cpu.cycles                  += c->cpu.cycles;
   e->cpu.branch_mispredictions   += c->cpu.branch_mispredictions;
   e->cpu.instructions            += c->cpu.instructions;
 
-  e->cpu.wall_clock_time.tv_sec  += c->cpu.wall_clock_time.tv_sec;
-  e->cpu.wall_clock_time.tv_nsec += c->cpu.wall_clock_time.tv_nsec;
-  if(e->cpu.wall_clock_time.tv_nsec > 1e9) {
-    e->cpu.wall_clock_time.tv_nsec -= 1e9;
-    e->cpu.wall_clock_time.tv_sec++;
-  }
+  timespec_add(&(e->cpu.wall_clock_time), &(c->cpu.wall_clock_time));
 
   e->mem.alloc                   += c->mem.alloc;
   e->mem.freed                   += c->mem.freed;
   e->mem.page_faults             += c->mem.page_faults;
   e->mem.align_faults            += c->mem.align_faults;
+}
+
+inline void timespec_add(struct timespec *to, const struct timespec *from) {
+  to->tv_sec += from->tv_sec;
+  to->tv_nsec += from->tv_nsec;
+
+  // 1s = 1e9 ns; if tv_nsec is above 1s, then we have to add that to the
+  // seconds field (tv_sec) and reduce tv_nsec accordingly
+  if(to->tv_nsec > 1e9) {
+    to->tv_nsec -= 1e9;
+    to->tv_sec++;
+  }
+
 }
 
 struct subsys_accounting* rscfl_get_subsys_by_id(rscfl_handle rhdl,
@@ -255,9 +269,6 @@ struct subsys_accounting* rscfl_get_subsys_by_id(rscfl_handle rhdl,
     return NULL;
   }
   rscfl_shared_mem_layout_t *rscfl_data = (rscfl_shared_mem_layout_t*)rhdl->buf;
-  if (!rscfl_data) {
-    return NULL;
-  }
   return &rscfl_data->subsyses[acct->acct_subsys[subsys_id]];
 }
 
@@ -271,5 +282,4 @@ void rscfl_subsys_free(rscfl_handle rhdl, struct accounting *acct)
     if(subsys != NULL) subsys->in_use = 0;
   }
 }
-
 

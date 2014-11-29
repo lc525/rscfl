@@ -23,7 +23,6 @@ class APITest : public testing::Test
 
   virtual void SetUp()
   {
-    sockaddr_un local_addr;
     int bind_err = 0;
 
     rhdl_ = rscfl_init();
@@ -53,6 +52,7 @@ class APITest : public testing::Test
   virtual void TearDown()
   {
     close(sockfd_);
+    unlink(local_addr.sun_path);
     rscfl_subsys_free(rhdl_, &acct_);
     rscfl_subsys_free(rhdl_, &acct2_);
     free_subsys_idx_set(one_acct_);
@@ -61,6 +61,7 @@ class APITest : public testing::Test
 
   rscfl_handle rhdl_;
   int sockfd_;
+  sockaddr_un local_addr;
   struct accounting acct_;
   struct accounting acct2_;
   subsys_idx_set *subsys_agg_;

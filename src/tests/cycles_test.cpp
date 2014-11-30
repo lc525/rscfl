@@ -36,9 +36,10 @@ class CyclesTest : public testing::Test
 
     // select cpu.cycles from all subsystems of a given acct and reduce
     // them to one value (their sum)
-    kernel_cycles_ = REDUCE_SUBSYS(rint, rhdl_, &acct_, 1, 0, -1,
+    //                                                  free, zero, err
+    kernel_cycles_ = REDUCE_SUBSYS(rint, rhdl_, &acct_, 1,    0,    -1,
       [](struct subsys_accounting *s, rscfl_subsys id){ return s->cpu.cycles; },
-      [](ru64 *acct, ru64 elem){ *acct += elem; });
+      [](ru64 *acct, const ru64 elem){ *acct += elem; });
 
     ASSERT_NE(-1, kernel_cycles_);
   }

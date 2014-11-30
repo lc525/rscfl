@@ -14,12 +14,6 @@
 class APITest : public testing::Test
 {
  protected:
-  static __inline__ ru64 test_get_cycles(void)
-  {
-    unsigned int hi, lo;
-    __asm__ volatile("rdtsc" : "=a"(lo), "=d"(hi));
-    return ((ru64)hi << 32) | lo;
-  }
 
   virtual void SetUp()
   {

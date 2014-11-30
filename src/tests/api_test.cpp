@@ -90,6 +90,20 @@ TEST_F(APITest,
 }
 
 TEST_F(APITest,
+       SubsysIndexAndIdArraysAreConsistent)
+{
+  int no_subsys_in_idx = 0;
+  one_acct_ = rscfl_get_subsys(rhdl_, &acct_);
+  EXPECT_TRUE(one_acct_ != NULL);
+
+  // check that the index and id's array data match
+  // constraint: idx(id(i)) == i
+  for(int i = 0; i < one_acct_->set_size; ++i) {
+    EXPECT_EQ(i, one_acct_->idx[one_acct_->ids[i]]);
+  }
+}
+
+TEST_F(APITest,
        UserAcctAggregators)
 {
   subsys_agg_ = rscfl_get_new_aggregator(7);

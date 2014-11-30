@@ -92,6 +92,8 @@ typedef struct rscfl_handle_t *rscfl_handle;
  * set is an array: each element holds data for one subsystem. this is typically
  *                  accessed through set[idx[i]] when idx[i] != -1
  *
+ * ids: ids[j] is the id of the subsystem data stored in set[j]
+ *
  * set_size:        the number of subsystems currently stored in the set array
  * max_set_size:    the maximum number of subsystems that can be stored in the
  *                  set array. this is the allocated size of set.
@@ -99,6 +101,7 @@ typedef struct rscfl_handle_t *rscfl_handle;
 struct subsys_idx_set {
   short idx[NUM_SUBSYSTEMS];
   struct subsys_accounting *set;
+  short *ids;
   short set_size;
   short max_set_size;
 };
@@ -196,7 +199,7 @@ int rscfl_merge_acct_into(rscfl_handle rhdl, struct accounting *acct_from,
  * \brief free_subsys_idx_set: free memory once the user space is done using the
  *                             subsystem data
  */
-int free_subsys_idx_set(subsys_idx_set *subsys_set);
+void free_subsys_idx_set(subsys_idx_set *subsys_set);
 
 
 /*
@@ -275,6 +278,15 @@ void rscfl_subsys_free(rscfl_handle rhdl, struct accounting *acct);
 #define SELECT_FCT_PTR(pname) subsys_select_##pname
 #define COMBINE_FCT_PTR(pname) subsys_combine_##pname
 
+#define DECLARE_REDUCE_FUNCTION(pname, rtype)                                  \
+rtype rscfl_subsys_reduce_##pname(rscfl_handle rhdl, struct accounting *acct,  \
+                                  int free_subsys,                             \
+                                  rtype accum_zero,                            \
+                                  rtype ret_on_err,                            \
+                                  SELECT_FCT_PTR(pname) select,                \
+                                  COMBINE_FCT_PTR(pname) combine);             \
+
+
 #define DEFINE_REDUCE_FUNCTION(pname, rtype)                                   \
 rtype rscfl_subsys_reduce_##pname(rscfl_handle rhdl, struct accounting *acct,  \
                                   int free_subsys,                             \
@@ -310,7 +322,7 @@ rtype rscfl_subsys_reduce_##pname(rscfl_handle rhdl, struct accounting *acct,  \
 DEFINE_SELECT_FCT_PTR(rint, ru64);
 DEFINE_COMBINE_FCT_PTR(rint, ru64);
 
-DEFINE_REDUCE_FUNCTION(rint, ru64)
+DECLARE_REDUCE_FUNCTION(rint, ru64)
 
 #ifdef __cplusplus
 }

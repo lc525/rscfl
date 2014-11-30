@@ -1,6 +1,7 @@
+#include "gtest/gtest.h"
+
 #include <errno.h>
 #include <fcntl.h>
-#include "gtest/gtest.h"
 #include <stdio.h>
 #include <sys/sendfile.h>
 #include <sys/socket.h>
@@ -33,16 +34,14 @@ class CyclesTest : public testing::Test
     struct accounting acct_;
     ASSERT_EQ(0, rscfl_read_acct(rhdl_, &acct_));
 
-    // Now add all of the subsystem cycles
-    kernel_cycles_ = 0;
-    struct subsys_accounting *subsys;
-    rscfl_subsys curr_sub;
-    for (int i = 0; i < NUM_SUBSYSTEMS; i++) {
-      curr_sub = (rscfl_subsys)i;
-      if ((subsys = get_subsys_accounting(rhdl_, &acct_, curr_sub)) != NULL) {
-        kernel_cycles_ += subsys->cpu.cycles;
-      }
-    }
+    // select cpu.cycles from all subsystems of a given acct and reduce
+    // them to one value (their sum)
+    //                                                  free, zero, err
+    kernel_cycles_ = REDUCE_SUBSYS(rint, rhdl_, &acct_, 1,    0,    -1,
+      [](struct subsys_accounting *s, rscfl_subsys id){ return s->cpu.cycles; },
+      [](ru64 *acct, const ru64 elem){ *acct += elem; });
+
+    ASSERT_NE(-1, kernel_cycles_);
   }
 
   virtual void TearDown()
@@ -75,4 +74,6 @@ TEST_F(CyclesTest,
   // correctly.
   EXPECT_GT(percent_explained, 40) << "Only explained " << percent_explained
                                    << "%\n";
+  std::cout << "\033[0;32m[          ] \033[mRSCFL explained "
+            << percent_explained << "% of cycles seen in user space\n";
 }

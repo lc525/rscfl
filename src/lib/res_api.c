@@ -230,6 +230,7 @@ int free_subsys_idx_set(subsys_idx_set *subsys_set) {
     free(subsys_set->set);
   }
   free(subsys_set);
+  return 0;
 }
 
 

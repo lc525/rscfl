@@ -108,10 +108,10 @@ int rscfl_snapshot_perf(struct subsys_accounting *add_subsys,
         break;
       case PERF_COUNT_SW_ALIGNMENT_FAULTS:
         if (add_subsys != NULL) {
-          add_subsys->sys.alignment_faults += val;
+          add_subsys->cpu.alignment_faults += val;
         }
         if (minus_subsys != NULL) {
-          minus_subsys->sys.alignment_faults -= val;
+          minus_subsys->cpu.alignment_faults -= val;
         }
         break;
     }

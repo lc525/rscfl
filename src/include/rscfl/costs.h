@@ -53,17 +53,8 @@ struct acct_CPU
   ru64 cycles;
   ru64 branch_mispredictions; //count
   ru64 instructions; //count
-  struct timespec wall_clock_time;
-};
-
-struct acct_Sys
-{
   ru64 alignment_faults;
-};
-
-struct acct_Proc
-{
-  int placeholder;
+  struct timespec wall_clock_time;
 };
 
 struct acct_Mem
@@ -90,7 +81,6 @@ struct subsys_accounting
 {
   struct acct_CPU cpu;
   struct acct_Mem mem;
-  struct acct_Sys sys;
   volatile _Bool in_use;
 };
 

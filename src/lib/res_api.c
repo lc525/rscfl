@@ -18,6 +18,9 @@
 #include "rscfl/res_common.h"
 #include "rscfl/kernel/stap_shim.h"
 
+// macro function definitions
+DEFINE_REDUCE_FUNCTION(rint, ru64)
+
 // define subsystem name array for user-space includes of subsys_list.h
 const char *rscfl_subsys_name[NUM_SUBSYSTEMS] = {
     SUBSYS_TABLE(SUBSYS_AS_STR_ARRAY)
@@ -150,6 +153,12 @@ subsys_idx_set* rscfl_get_subsys(rscfl_handle rhdl, struct accounting *acct)
     free(ret_subsys_idx);
     return NULL;
   }
+  ret_subsys_idx->ids = malloc(sizeof(short) * acct->nr_subsystems);
+  if(!ret_subsys_idx->ids) {
+    free(ret_subsys_idx->set);
+    free(ret_subsys_idx);
+    return NULL;
+  }
 
   for(i = 0; i < NUM_SUBSYSTEMS; ++i) {
     struct subsys_accounting *subsys = rscfl_get_subsys_by_id(rhdl, acct, i);
@@ -157,6 +166,7 @@ subsys_idx_set* rscfl_get_subsys(rscfl_handle rhdl, struct accounting *acct)
       ret_subsys_idx->idx[i] = curr_set_ix;
       memcpy(&ret_subsys_idx->set[curr_set_ix], subsys,
              sizeof(struct subsys_accounting));
+      ret_subsys_idx->ids[curr_set_ix] = i;
       subsys->in_use = 0;
       curr_set_ix++;
     } else {
@@ -185,6 +195,13 @@ subsys_idx_set* rscfl_get_new_aggregator(unsigned short no_subsystems)
   }
   memset(ret_subsys_idx->idx, -1, sizeof(short) * NUM_SUBSYSTEMS);
 
+  ret_subsys_idx->ids = malloc(sizeof(short) * no_subsystems);
+  if(!ret_subsys_idx->ids) {
+    free(ret_subsys_idx->set);
+    free(ret_subsys_idx);
+    return NULL;
+  }
+
   return ret_subsys_idx;
 }
 
@@ -206,6 +223,7 @@ int rscfl_merge_acct_into(rscfl_handle rhdl, struct accounting *acct_from,
           aggregator_into->idx[i] = curr_set_ix;
           memcpy(&aggregator_into->set[curr_set_ix], new_subsys,
                  sizeof(struct subsys_accounting));
+          aggregator_into->ids[curr_set_ix] = i;
           new_subsys->in_use = 0;
           curr_set_ix++;
           aggregator_into->set_size++;
@@ -225,12 +243,12 @@ int rscfl_merge_acct_into(rscfl_handle rhdl, struct accounting *acct_from,
   return rc;
 }
 
-int free_subsys_idx_set(subsys_idx_set *subsys_set) {
+void free_subsys_idx_set(subsys_idx_set *subsys_set) {
   if(subsys_set != NULL){
     free(subsys_set->set);
+    free(subsys_set->ids);
   }
   free(subsys_set);
-  return 0;
 }
 
 

@@ -193,8 +193,9 @@ set (stap_gen_SOURCES
   ${PROJECT_SOURCE_DIR}/resourceful.stp
 )
 set (stap_SOURCES
+  ${PROJECT_SOURCE_DIR}/counters/measurement.c
+  ${PROJECT_SOURCE_DIR}/counters/perf.c
   ${PROJECT_SOURCE_DIR}/PMurHash.c
-  ${PROJECT_SOURCE_DIR}/perf.c
   ${PROJECT_SOURCE_DIR}/tapsets/chardev.c
   ${PROJECT_SOURCE_DIR}/tapsets/cpu.c
   ${PROJECT_SOURCE_DIR}/tapsets/hasht.c
@@ -212,6 +213,7 @@ set (stap_DEPS # if any of those files change, the stap ko is rebuilt
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/chardev.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/hasht.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/kprobe_manager.h
+  ${PROJECT_INCLUDE_DIR}/rscfl/kernel/measurement.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/perf.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/probes.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/sched.h

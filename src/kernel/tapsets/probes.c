@@ -5,7 +5,7 @@
 #include "rscfl/kernel/chardev.h"
 #include "rscfl/kernel/cpu.h"
 #include "rscfl/kernel/kprobe_manager.h"
-#include "rscfl/kernel/perf.h"
+#include "rscfl/kernel/measurement.h"
 #include "rscfl/kernel/stap_shim.h"
 #include "rscfl/kernel/subsys_addr.h"
 
@@ -54,7 +54,7 @@ int probes_init(void)
          MMAP_BUF_SIZE, STRUCT_ACCT_NUM, ACCT_SUBSYS_NUM);
   preempt_enable();
   rcd = _rscfl_dev_init();
-  rcp = rscfl_perf_init();
+  rcp = rscfl_counters_init();
   rckp = rscfl_init_rtn_kprobes(
       probe_addrs_temp,
       sizeof(probe_pre_handlers_temp) / sizeof(kretprobe_handler_t),
@@ -89,6 +89,7 @@ int probes_cleanup(void)
   preempt_enable();
   rcd = _rscfl_dev_cleanup();
   rscfl_unregister_kprobes();
+  rscfl_counters_stop();
   preempt_disable();
   rcc = _rscfl_cpus_cleanup();
 
@@ -192,7 +193,7 @@ int rscfl_subsystem_entry(rscfl_subsys subsys_id,
         goto error;
       }
     }
-    rscfl_perf_update_subsys_vals(curr_subsys_acct, new_subsys_acct);
+    rscfl_counters_update_subsys_vals(curr_subsys_acct, new_subsys_acct);
 
     // Update the subsystem tracking info.
     prev_subsys = (rscfl_subsys *)probe->data;
@@ -249,7 +250,7 @@ void rscfl_subsystem_exit(rscfl_subsys subsys_id,
       } else {
         clear_acct_next();
       }
-      rscfl_perf_update_subsys_vals(subsys_acct, prev_subsys_acct);
+      rscfl_counters_update_subsys_vals(subsys_acct, prev_subsys_acct);
       // Update subsystem tracking data.
       current_pid_acct->curr_subsys = *prev_subsys;
     }

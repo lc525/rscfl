@@ -40,22 +40,21 @@ TEST_F(WCTTest, WallClock_Kernel_LT_User)
   int sockfd = socket(AF_LOCAL, SOCK_RAW, 0);
   EXPECT_GT(sockfd, 0);
   struct timespec val_post = wct_test_get_time();
-  ru64 user_time = (ru64)val_post.tv_nsec - val_pre.tv_nsec;
+  timespec_diff(&val_post, &val_pre);
 
   struct accounting acct;
   ASSERT_EQ(0, rscfl_read_acct(rhdl_, &acct));
 
   // Now add all of the subsystem times
-  ru64 kernel_time = 0;
-  struct subsys_accounting *subsys;
-  rscfl_subsys curr_sub;
-  for (int i = 0; i < NUM_SUBSYSTEMS; i++) {
-    if ((subsys = rscfl_get_subsys_by_id(rhdl_, &acct, (rscfl_subsys)i)) !=
-        NULL) {
-      kernel_time += (ru64)subsys->cpu.wall_clock_time.tv_nsec;
-    }
-  }
+  timespec kernel_time = {0, 0};
+  int reduce_err = 0;
+  reduce_err = REDUCE_SUBSYS(wc, rhdl_, &acct, 1, &kernel_time,
+    [](subsys_accounting *s, rscfl_subsys id){ return &s->cpu.wall_clock_time;},
+    timespec_add);
 
-  EXPECT_LT(kernel_time, user_time);
+  EXPECT_EQ(-1, timespec_compare(&kernel_time, &val_post)) <<
+    "expected (kernel_time) < (val_post) actual: (" <<
+    kernel_time.tv_sec << " s, " << kernel_time.tv_nsec <<" ns) vs (" <<
+    val_post.tv_sec << " s, " << val_post.tv_nsec <<" ns)";
 }
 

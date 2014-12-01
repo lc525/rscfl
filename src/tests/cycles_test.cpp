@@ -34,14 +34,16 @@ class CyclesTest : public testing::Test
     struct accounting acct_;
     ASSERT_EQ(0, rscfl_read_acct(rhdl_, &acct_));
 
+    kernel_cycles_ = 0;
+    int reduce_err = 0;
     // select cpu.cycles from all subsystems of a given acct and reduce
     // them to one value (their sum)
-    //                                                  free, zero, err
-    kernel_cycles_ = REDUCE_SUBSYS(rint, rhdl_, &acct_, 1,    0,    -1,
-      [](struct subsys_accounting *s, rscfl_subsys id){ return s->cpu.cycles; },
-      [](ru64 *acct, const ru64 elem){ *acct += elem; });
+    reduce_err = REDUCE_SUBSYS(rint, rhdl_, &acct_, 1, &kernel_cycles_,
+      [](subsys_accounting *s, rscfl_subsys id){ return &s->cpu.cycles; },
+      [](ru64 *acct, const ru64* elem){ *acct += *elem; });
 
-    ASSERT_NE(-1, kernel_cycles_);
+    ASSERT_EQ(0, reduce_err);
+    ASSERT_NE(0, kernel_cycles_);
   }
 
   virtual void TearDown()

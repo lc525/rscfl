@@ -236,6 +236,22 @@ void rscfl_subsys_merge(struct subsys_accounting *existing_subsys,
 void timespec_add(struct timespec *to, const struct timespec *from);
 
 /*!
+ * \brief utility function for substracting two timespec structures
+ *
+ * timespec end is updated to contain the end-start duration if end > start
+ * and zero otherwise
+ */
+void timespec_diff(struct timespec *end, const struct timespec *start);
+
+/*!
+ * \brief utility function for comparing two timespec structures
+ * returns -1 if time1 < time2
+ *          0 if time1 = time2
+ *          1 if time1 > time2
+ */
+int timespec_compare(struct timespec *time1, struct timespec *time2);
+
+/*!
  * \brief gets the measurements done for acct in a particular kernel subsystem
  *
  * \param rhdl the resourceful handle for the thread where measurement is done
@@ -261,68 +277,66 @@ struct subsys_accounting* rscfl_get_subsys_by_id(rscfl_handle rhdl,
 void rscfl_subsys_free(rscfl_handle rhdl, struct accounting *acct);
 
 
-
 /****************************
  *
  * Advanced API
  *
  ****************************/
 
+
 #define DEFINE_SELECT_FCT_PTR(pname, rtype) \
-  typedef rtype (*subsys_select_##pname)(struct subsys_accounting*,            \
+  typedef rtype* (*subsys_select_##pname)(struct subsys_accounting*,           \
                                          rscfl_subsys)
 
 #define DEFINE_COMBINE_FCT_PTR(pname, rtype) \
-  typedef void (*subsys_combine_##pname)(rtype*, const rtype)
+  typedef void (*subsys_combine_##pname)(rtype*, const rtype*)
 
 #define SELECT_FCT_PTR(pname) subsys_select_##pname
 #define COMBINE_FCT_PTR(pname) subsys_combine_##pname
 
 #define DECLARE_REDUCE_FUNCTION(pname, rtype)                                  \
-rtype rscfl_subsys_reduce_##pname(rscfl_handle rhdl, struct accounting *acct,  \
+int rscfl_subsys_reduce_##pname(rscfl_handle rhdl, struct accounting *acct,    \
                                   int free_subsys,                             \
-                                  rtype accum_zero,                            \
-                                  rtype ret_on_err,                            \
+                                  rtype *accum,                                \
                                   SELECT_FCT_PTR(pname) select,                \
-                                  COMBINE_FCT_PTR(pname) combine);             \
+                                  COMBINE_FCT_PTR(pname) combine)              \
 
 
 #define DEFINE_REDUCE_FUNCTION(pname, rtype)                                   \
-rtype rscfl_subsys_reduce_##pname(rscfl_handle rhdl, struct accounting *acct,  \
+int rscfl_subsys_reduce_##pname(rscfl_handle rhdl, struct accounting *acct,    \
                                   int free_subsys,                             \
-                                  rtype accum_zero,                            \
-                                  rtype ret_on_err,                            \
+                                  rtype *accum,                                \
                                   SELECT_FCT_PTR(pname) select,                \
                                   COMBINE_FCT_PTR(pname) combine)              \
 {                                                                              \
   int i;                                                                       \
-  rtype accum = accum_zero;                                                    \
-  if(acct == NULL) return ret_on_err;                                          \
+  if(acct == NULL) return -EINVAL;                                             \
                                                                                \
   for(i = 0; i < NUM_SUBSYSTEMS; ++i) {                                        \
     struct subsys_accounting *subsys =                                         \
       rscfl_get_subsys_by_id(rhdl, acct, (rscfl_subsys)i);                     \
-    rtype current;                                                             \
+    rtype* current;                                                            \
     if(subsys != NULL) {                                                       \
-      current = select(subsys, (rscfl_subsys)i);                                                \
+      current = select(subsys, (rscfl_subsys)i);                               \
+      combine(accum, current);                                                 \
       if(free_subsys) subsys->in_use = 0;                                      \
-      combine(&accum, current);                                                \
     }                                                                          \
   }                                                                            \
                                                                                \
-  return accum;                                                                \
+  return 0;                                                                    \
 }
 
-#define REDUCE_SUBSYS(pname, rhdl, acct, free_subsys, zero, err,               \
-                      select, combine)                                         \
-  rscfl_subsys_reduce_##pname(rhdl, acct, free_subsys, zero, err,              \
-                              select, combine)
+#define REDUCE_SUBSYS(pname, rhdl, acct, free_subsys, accum, select, combine)  \
+  rscfl_subsys_reduce_##pname(rhdl, acct, free_subsys, accum, select, combine)
 
 
 DEFINE_SELECT_FCT_PTR(rint, ru64);
 DEFINE_COMBINE_FCT_PTR(rint, ru64);
+DECLARE_REDUCE_FUNCTION(rint, ru64);
 
-DECLARE_REDUCE_FUNCTION(rint, ru64)
+DEFINE_SELECT_FCT_PTR(wc, struct timespec);
+DEFINE_COMBINE_FCT_PTR(wc, struct timespec);
+DECLARE_REDUCE_FUNCTION(wc, struct timespec);
 
 #ifdef __cplusplus
 }

@@ -95,7 +95,7 @@ struct acct_CPU
 
 struct acct_Sys
 {
-  int placeholder;
+  ru64 alignment_faults;
 };
 
 struct acct_Proc
@@ -133,6 +133,7 @@ struct subsys_accounting
 {
   struct acct_CPU cpu;
   struct acct_Mem mem;
+  struct acct_Sys sys;
   volatile _Bool in_use;
 };
 

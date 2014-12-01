@@ -135,6 +135,7 @@ static int get_subsys(rscfl_subsys subsys_id,
         // userspace and kernel space.
         subsys_offset = subsys_acct - rscfl_mem->subsyses;
         acct->acct_subsys[subsys_id] = subsys_offset;
+        acct->nr_subsystems++;
         break;
       } else {
         subsys_acct++;

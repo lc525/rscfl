@@ -74,6 +74,7 @@ int should_acct(void)
   // We have a free struct accounting now, so use it.
   current_pid_acct->probe_data->syscall_acct = acct_buf;
   acct_buf->in_use = 1;
+  acct_buf->nr_subsystems = 0;
   acct_buf->syscall_id.id = interest->syscall_id;
   debugk("syscall_id=%lu\n", interest->syscall_id);
   // Initialise the subsys_accounting indices to -1, as they are used

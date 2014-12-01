@@ -18,8 +18,11 @@
 #include "rscfl/res_common.h"
 #include "rscfl/kernel/stap_shim.h"
 
+// macro function definitions
+DEFINE_REDUCE_FUNCTION(rint, ru64)
+
 // define subsystem name array for user-space includes of subsys_list.h
-const char *rscfl_subsys_name[] = {
+const char *rscfl_subsys_name[NUM_SUBSYSTEMS] = {
     SUBSYS_TABLE(SUBSYS_AS_STR_ARRAY)
 };
 
@@ -65,7 +68,6 @@ rscfl_handle rscfl_init()
   }
 
   rhdl->lst_syscall.id = 0;
-
   return rhdl;
 
 error:
@@ -132,89 +134,171 @@ int rscfl_read_acct(rscfl_handle rhdl, struct accounting *acct)
   return -EINVAL;
 }
 
-/*
- * Given a userspace rscfl handle (rhdl), add to its struct accounting the
- * costs that the kernel has measured in acct.
- *
- * Walk through all of the struct accountings that exist in the current
- * rscfl_handle. For each struct accounting in rscfl, we check to see if its
- * syscall_id is the same as that in acct. If so, we add the costs of that
- * struct accounting to what is already in
- */
-int rscfl_merge_acct(rscfl_handle rhdl, struct accounting *acct)
+subsys_idx_set* rscfl_get_subsys(rscfl_handle rhdl, struct accounting *acct)
 {
-  int i = 0;
-  int subsys_no;
+  int curr_set_ix = 0, i;
+  subsys_idx_set *ret_subsys_idx;
 
-  // aliases into rhdl's and accts subsys_accountings.
-  struct subsys_accounting *acct_subsys;
-  struct subsys_accounting *rhdl_subsys;
+  if(acct == NULL) return NULL;
 
-  if (rhdl == NULL) return -1;
+  ret_subsys_idx = malloc(sizeof(subsys_idx_set));
+  if(!ret_subsys_idx) return NULL;
 
-  rscfl_shared_mem_layout_t *rscfl_data =
-      (rscfl_shared_mem_layout_t *)rhdl->buf;
 
-  struct accounting *rhdl_acct = rscfl_data->acct;
-  if (rhdl_acct != NULL) {
-    while (i < STRUCT_ACCT_NUM) {
-      if (rhdl_acct->in_use) {
-        if (rhdl_acct->syscall_id.id == (rhdl->lst_syscall.id - 1)) {
-          // Sum together accounting values in each subsystem that they're set.
-          for (subsys_no = 0; subsys_no < NUM_SUBSYSTEMS; subsys_no++) {
-            acct_subsys = &rscfl_data->subsyses[acct->acct_subsys[subsys_no]];
-            rhdl_subsys =
-                &rscfl_data->subsyses[rhdl_acct->acct_subsys[subsys_no]];
-            // We are iterating over an array of pointers. These pointers will
-            // be NULL if the subsystem has not been touched. We therefore just
-            // continue.
-
-            if (acct_subsys == NULL) {
-              continue;
-            }
-
-            acct_subsys->cpu.cycles += rhdl_subsys->cpu.cycles;
-            acct_subsys->cpu.branch_mispredictions +=
-                rhdl_subsys->cpu.branch_mispredictions;
-            acct_subsys->cpu.wall_clock_time.tv_nsec +=
-                rhdl_subsys->cpu.wall_clock_time.tv_nsec;
-            acct_subsys->cpu.wall_clock_time.tv_sec +=
-                rhdl_subsys->cpu.wall_clock_time.tv_sec;
-            acct_subsys->mem.alloc += rhdl_subsys->mem.alloc;
-            acct_subsys->mem.freed += rhdl_subsys->mem.freed;
-          }
-
-          // We have added the costs of rhdl_acct to acct, so can now reuse
-          // rhdl_acct.
-          rhdl_acct->in_use = 0;
-
-          // We have found a matching syscall_id, so we know it won't appear
-          // again in the rest of the array, as syscall_id's are unique.
-          return 0;
-        } else {
-          rhdl_acct++;
-          i++;
-        }
-      } else {
-        rhdl_acct++;
-        i++;
-      }
-    }
-  } else {
-    printf("rhdl_acct is null!");
-  }
-  return -1;
-}
-
-struct subsys_accounting *get_subsys_accounting(rscfl_handle rhdl,
-                                                struct accounting *acct,
-                                                rscfl_subsys subsys_no)
-{
-  if (acct->acct_subsys[subsys_no] == -1) {
+  ret_subsys_idx->set_size = acct->nr_subsystems;
+  ret_subsys_idx->max_set_size = acct->nr_subsystems;
+  ret_subsys_idx->set =
+    malloc(sizeof(struct subsys_accounting) * acct->nr_subsystems);
+  if(!ret_subsys_idx->set) {
+    free(ret_subsys_idx);
     return NULL;
   }
-  rscfl_shared_mem_layout_t *rscfl_data =
-      (rscfl_shared_mem_layout_t *)rhdl->buf;
+  ret_subsys_idx->ids = malloc(sizeof(short) * acct->nr_subsystems);
+  if(!ret_subsys_idx->ids) {
+    free(ret_subsys_idx->set);
+    free(ret_subsys_idx);
+    return NULL;
+  }
 
-  return &rscfl_data->subsyses[acct->acct_subsys[subsys_no]];
+  for(i = 0; i < NUM_SUBSYSTEMS; ++i) {
+    struct subsys_accounting *subsys = rscfl_get_subsys_by_id(rhdl, acct, i);
+    if(subsys != NULL) {
+      ret_subsys_idx->idx[i] = curr_set_ix;
+      memcpy(&ret_subsys_idx->set[curr_set_ix], subsys,
+             sizeof(struct subsys_accounting));
+      ret_subsys_idx->ids[curr_set_ix] = i;
+      subsys->in_use = 0;
+      curr_set_ix++;
+    } else {
+      ret_subsys_idx->idx[i] = -1;
+    }
+  }
+
+  return ret_subsys_idx;
 }
+
+subsys_idx_set* rscfl_get_new_aggregator(unsigned short no_subsystems)
+{
+  subsys_idx_set *ret_subsys_idx;
+  if(no_subsystems > NUM_SUBSYSTEMS) no_subsystems = NUM_SUBSYSTEMS;
+
+  ret_subsys_idx = malloc(sizeof(subsys_idx_set));
+  if(!ret_subsys_idx) return NULL;
+
+  ret_subsys_idx->set_size = 0;
+  ret_subsys_idx->max_set_size = no_subsystems;
+  ret_subsys_idx->set =
+    calloc(no_subsystems, sizeof(struct subsys_accounting));
+  if(!ret_subsys_idx->set) {
+    free(ret_subsys_idx);
+    return NULL;
+  }
+  memset(ret_subsys_idx->idx, -1, sizeof(short) * NUM_SUBSYSTEMS);
+
+  ret_subsys_idx->ids = malloc(sizeof(short) * no_subsystems);
+  if(!ret_subsys_idx->ids) {
+    free(ret_subsys_idx->set);
+    free(ret_subsys_idx);
+    return NULL;
+  }
+
+  return ret_subsys_idx;
+}
+
+int rscfl_merge_acct_into(rscfl_handle rhdl, struct accounting *acct_from,
+                          subsys_idx_set *aggregator_into)
+{
+  int curr_set_ix, i, rc = 0;
+  if(!acct_from || !aggregator_into) return -EINVAL;
+
+  curr_set_ix = aggregator_into->set_size;
+
+  for(i = 0; i < NUM_SUBSYSTEMS; ++i) {
+    struct subsys_accounting *new_subsys =
+      rscfl_get_subsys_by_id(rhdl, acct_from, i);
+    if(new_subsys != NULL) {
+      if(aggregator_into->idx[i] == -1) {
+        // new_subsys i not in aggregator_into, add if sufficient space
+        if(curr_set_ix < aggregator_into->max_set_size) {
+          aggregator_into->idx[i] = curr_set_ix;
+          memcpy(&aggregator_into->set[curr_set_ix], new_subsys,
+                 sizeof(struct subsys_accounting));
+          aggregator_into->ids[curr_set_ix] = i;
+          new_subsys->in_use = 0;
+          curr_set_ix++;
+          aggregator_into->set_size++;
+        } else {
+          // not enough space in aggregator_into, set error but continue
+          // (the values that could be aggregated remain correct)
+          rc++;
+        }
+      } else {
+        // subsys i exists, merge values
+        rscfl_subsys_merge(&aggregator_into->set[aggregator_into->idx[i]],
+                           new_subsys);
+        new_subsys->in_use = 0;
+      }
+    }
+  }
+  return rc;
+}
+
+void free_subsys_idx_set(subsys_idx_set *subsys_set) {
+  if(subsys_set != NULL){
+    free(subsys_set->set);
+    free(subsys_set->ids);
+  }
+  free(subsys_set);
+}
+
+
+
+inline void rscfl_subsys_merge(struct subsys_accounting *e,
+                               const struct subsys_accounting *c) {
+  e->cpu.cycles                  += c->cpu.cycles;
+  e->cpu.branch_mispredictions   += c->cpu.branch_mispredictions;
+  e->cpu.instructions            += c->cpu.instructions;
+
+  timespec_add(&(e->cpu.wall_clock_time), &(c->cpu.wall_clock_time));
+
+  e->mem.alloc                   += c->mem.alloc;
+  e->mem.freed                   += c->mem.freed;
+  e->mem.page_faults             += c->mem.page_faults;
+  e->mem.align_faults            += c->mem.align_faults;
+}
+
+inline void timespec_add(struct timespec *to, const struct timespec *from) {
+  to->tv_sec += from->tv_sec;
+  to->tv_nsec += from->tv_nsec;
+
+  // 1s = 1e9 ns; if tv_nsec is above 1s, then we have to add that to the
+  // seconds field (tv_sec) and reduce tv_nsec accordingly
+  if(to->tv_nsec > 1e9) {
+    to->tv_nsec -= 1e9;
+    to->tv_sec++;
+  }
+
+}
+
+struct subsys_accounting* rscfl_get_subsys_by_id(rscfl_handle rhdl,
+                                                 struct accounting *acct,
+                                                 rscfl_subsys subsys_id)
+{
+  if (!acct || acct->acct_subsys[subsys_id] == -1) {
+    return NULL;
+  }
+  rscfl_shared_mem_layout_t *rscfl_data = (rscfl_shared_mem_layout_t*)rhdl->buf;
+  return &rscfl_data->subsyses[acct->acct_subsys[subsys_id]];
+}
+
+void rscfl_subsys_free(rscfl_handle rhdl, struct accounting *acct)
+{
+  int i;
+  if(acct == NULL) return;
+
+  for(i = 0; i < NUM_SUBSYSTEMS; ++i) {
+    struct subsys_accounting *subsys = rscfl_get_subsys_by_id(rhdl, acct, i);
+    if(subsys != NULL) subsys->in_use = 0;
+  }
+}
+

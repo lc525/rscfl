@@ -20,6 +20,7 @@
 
 // macro function definitions
 DEFINE_REDUCE_FUNCTION(rint, ru64)
+DEFINE_REDUCE_FUNCTION(wc, struct timespec)
 
 // define subsystem name array for user-space includes of subsys_list.h
 const char *rscfl_subsys_name[NUM_SUBSYSTEMS] = {
@@ -259,7 +260,7 @@ inline void rscfl_subsys_merge(struct subsys_accounting *e,
   e->cpu.branch_mispredictions   += c->cpu.branch_mispredictions;
   e->cpu.instructions            += c->cpu.instructions;
 
-  timespec_add(&(e->cpu.wall_clock_time), &(c->cpu.wall_clock_time));
+  timespec_add(&e->cpu.wall_clock_time, &c->cpu.wall_clock_time);
 
   e->mem.alloc                   += c->mem.alloc;
   e->mem.freed                   += c->mem.freed;
@@ -278,6 +279,41 @@ inline void timespec_add(struct timespec *to, const struct timespec *from) {
     to->tv_sec++;
   }
 
+}
+
+// timespec end will be updated to contain the duration between start and
+// end; if end < start, end will be set to zero
+inline void timespec_diff(struct timespec *end, const struct timespec *start) {
+
+  if ((end->tv_sec < start->tv_sec) ||
+      ((end->tv_sec == start->tv_sec) &&
+       (end->tv_nsec <= start->tv_nsec))) { /* end <= start? */
+    end->tv_sec = end->tv_nsec = 0 ;
+  } else {                                  /* end > start */
+    end->tv_sec = end->tv_sec - start->tv_sec ;
+    if (end->tv_nsec < start->tv_nsec) {
+      end->tv_nsec = end->tv_nsec + 1e9 - start->tv_nsec ;
+      end->tv_sec--;                   /* borrow a second. */
+    } else {
+      end->tv_nsec = end->tv_nsec - start->tv_nsec ;
+    }
+  }
+}
+
+// returns -1 if time1 < time2
+//          0 if time1 = time2
+//          1 if time1 > time2
+inline int timespec_compare(struct timespec *time1, struct timespec *time2) {
+  if (time1->tv_sec < time2->tv_sec)
+    return (-1);                           /* less than. */
+  else if (time1->tv_sec > time2->tv_sec)
+    return (1);                            /* greater than. */
+  else if (time1->tv_nsec < time2->tv_nsec)
+    return (-1);                           /* less than. */
+  else if (time1->tv_nsec > time2->tv_nsec)
+    return (1);                            /* greater than. */
+  else
+    return (0);                            /* equal. */
 }
 
 struct subsys_accounting* rscfl_get_subsys_by_id(rscfl_handle rhdl,

@@ -127,15 +127,17 @@ TEST_F(APITest,
        ReduceAPIProducesCorrectResults)
 {
   ru64 kernel_cycles_;
-  ru64 kernel_cycles_r_;
+  ru64 kernel_cycles_r_ = 0;
+  int r_err = 0;
 
   // select cpu.cycles from all subsystems of a given acct and reduce
   // them to one value (their sum)
-  kernel_cycles_r_ = REDUCE_SUBSYS(rint, rhdl_, &acct_, 0, 0, -1,
-    [](struct subsys_accounting *s, rscfl_subsys id){ return s->cpu.cycles; },
-    [](ru64 *acct, ru64 elem){ *acct += elem; });
+  r_err = REDUCE_SUBSYS(rint, rhdl_, &acct_, 0, &kernel_cycles_r_,
+    [](subsys_accounting *s, rscfl_subsys id){ return &s->cpu.cycles; },
+    [](ru64 *acct, const ru64 *elem){ *acct += *elem; });
 
-  ASSERT_NE(-1, kernel_cycles_r_);
+  ASSERT_EQ(0, r_err);
+  ASSERT_NE(0, kernel_cycles_r_);
 
   struct subsys_accounting *subsys;
   rscfl_subsys curr_sub;

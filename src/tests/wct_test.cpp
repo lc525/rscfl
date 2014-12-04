@@ -24,7 +24,7 @@ class WCTTest : public testing::Test
 static struct timespec wct_test_get_time(void)
 {
   struct timespec ts;
-  clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts);
+  clock_gettime(CLOCK_REALTIME, &ts);
   return ts;
 }
 

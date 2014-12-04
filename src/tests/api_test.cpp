@@ -112,14 +112,22 @@ TEST_F(APITest,
   int err = rscfl_merge_acct_into(rhdl_, &acct_, subsys_agg_);
   EXPECT_EQ(0, err);
 
-  // cycles for first of the touched subsystems > 0
-  ru64 cycles0 = subsys_agg_->set[0].cpu.cycles;
-  EXPECT_LT(0, cycles0);
+  // sum cycles for all subsystems
+  ru64 sum_cycles = 0;
+  for(int i = 0; i < subsys_agg_->set_size; ++i) {
+    sum_cycles = subsys_agg_->set[i].cpu.cycles;
+  }
+  EXPECT_LT(0, sum_cycles);
 
   // after merge, cycles should be greater than before
   err = rscfl_merge_acct_into(rhdl_, &acct2_, subsys_agg_);
   EXPECT_EQ(0, err);
-  EXPECT_LT(cycles0, subsys_agg_->set[0].cpu.cycles);
+
+  ru64 sum_cycles2 = 0;
+  for(int i = 0; i < subsys_agg_->set_size; ++i) {
+    sum_cycles2 = subsys_agg_->set[i].cpu.cycles;
+  }
+  EXPECT_LT(sum_cycles, sum_cycles2);
 
 }
 

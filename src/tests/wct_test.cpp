@@ -25,9 +25,9 @@ static struct timespec wct_test_get_time(void)
 {
   struct timespec ts;
   // We were originally using CLOCK_PROCESS_CPUTIME_ID but were occasionally
-  // seeing strange (very small) values. By using CLOCK_REALTIME we're reading
+  // seeing strange (very small) values. By using CLOCK_MONOTONIC_RAW we're reading
   // a clock more similar to that of the kernel.
-  clock_gettime(CLOCK_MONOTONIC, &ts);
+  clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
   return ts;
 }
 

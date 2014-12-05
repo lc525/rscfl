@@ -162,19 +162,35 @@ def get_subsys(addr, addr2line, linux, build_dir):
         return subsys
 
 def twiddle_endianness(word):
+    # Transform words of the form abcdefgh into ghefcdab.
     return re.sub(r'([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})',
                   r'\4\3\2\1', word)
 
 
 def get_function_pointers(vmlinux_path):
+    # Find the targets of all function pointers in vmlinux.
+    #
+    # We scan the elf binary and look for entries in rodata that are also
+    # function addresses. We then assume that that these occur on the entry into
+    # a subsystem.
+    #
+    # The standard way of implementing modularity throughout the kernel is
+    # creating a struct of function pointers. e.g. struct file_operations.
+    # These structs are static (const) structs, so live in .rodata of
+    # the elf file.  We assume that every function we find of this form
+    # is on the entry into a subsystem.
     syms = []
     fn_ptrs = sets.Set()
     with open(vmlinux_path, 'rb') as f:
         elf_file = ELFFile(f)
+        # Find the addresses of all functions in the kernel by looking in the
+        # symbol table.
         symtab = elf_file.get_section_by_name(b'.symtab')
         for sym in symtab.iter_symbols():
             if sym.entry['st_info']['type'] == "STT_FUNC":
                 syms.append(hex(sym.entry['st_value']))
+        # Scan the rodata section, looking for anything that points to an
+        # address of a function.
         rodata = elf_file.get_section_by_name(b'.rodata')
         for i in xrange(0, len(rodata.data()), 4):
             word = binascii.hexlify(rodata.data()[i:i+4])

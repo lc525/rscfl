@@ -243,13 +243,13 @@ def get_addresses_of_boundary_calls(linux, build_dir, vmlinux_path):
             if callee_subsys != caller_subsys and callee_subsys is not None:
                 add_address_to_subsys(boundary_fns, callee_subsys, callee_addr,
                                       "")
-        fn_ptr_targets = get_function_pointers(vmlinux_path)
-        for target in fn_ptr_targets:
-            subsys = get_subsys(target, addr2line, linux, build_dir)
-            if not subsys:
-                sys.stderr.write("Error %s\n" % target)
-            else:
-                add_address_to_subsys(boundary_fns, subsys, target, "")
+    fn_ptr_targets = get_function_pointers(vmlinux_path)
+    for target in fn_ptr_targets:
+        subsys = get_subsys(target, addr2line, linux, build_dir)
+        if not subsys:
+            sys.stderr.write("Error %s\n" % target)
+        else:
+            add_address_to_subsys(boundary_fns, subsys, target, "")
 
 
     return boundary_fns

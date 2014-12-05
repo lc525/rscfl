@@ -252,7 +252,7 @@ def get_addresses_of_boundary_calls(linux, build_dir, vmlinux_path):
                 add_address_to_subsys(boundary_fns, subsys, target, "")
 
 
-        return boundary_fns
+    return boundary_fns
 
 
 def append_to_json_file(json_fname, subsys_names):

@@ -82,7 +82,7 @@ TEST_F(SendFileTest, TestSendFileTouchesExt4)
 		rhdl_, &acct_, EXT4FILESYSTEM) != nullptr);
 }
 
-TEST_F(SendFileTest, TestSendFileVFSCPUCyclesIsBelievable)
+TEST_F(SendFileTest, TestSendFileExt4CPUCyclesIsBelievable)
 {
   struct subsys_accounting *subsys =
     rscfl_get_subsys_by_id(rhdl_, &acct_, EXT4FILESYSTEM);

@@ -63,3 +63,30 @@ TEST_F(SendFileTest, TestSendFileVFSCPUCyclesIsBelievable)
   // Ensure the CPU cycles don't look like an overflow has occurred.
   ASSERT_LT(subsys->cpu.cycles, kSuspectedOverflow);
 }
+
+/*
+ * Ext4 tests.
+ *
+ * Testing ext4 exercsies a different code path to testing VFS in so far as
+ * that ext4 is called using function pointers through a struct file_operations
+ * rather than a callq instruction.
+ *
+ * These tests assume that /etc/hostname is mounted on an ext4 FS.
+ */
+
+TEST_F(SendFileTest, TestSendFileTouchesExt4)
+{
+  // We must be able to read our struct accounting back from rscfl.
+  // Ext4 takes a differe
+  ASSERT_TRUE(rscfl_get_subsys_by_id(
+		rhdl_, &acct_, EXT4FILESYSTEM) != nullptr);
+}
+
+TEST_F(SendFileTest, TestSendFileVFSCPUCyclesIsBelievable)
+{
+  struct subsys_accounting *subsys =
+    rscfl_get_subsys_by_id(rhdl_, &acct_, EXT4FILESYSTEM);
+
+  // Ensure the CPU cycles don't look like an overflow has occurred.
+  ASSERT_LT(subsys->cpu.cycles, kSuspectedOverflow);
+}

@@ -219,6 +219,8 @@ set (stap_DEPS # if any of those files change, the stap ko is rebuilt
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/sched.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/stap_shim.h
   ${PROJECT_SOURCE_DIR}/resourceful.stp
+  ${PROJECT_SOURCE_DIR}/tapsets/sched.stp
+  ${PROJECT_SOURCE_DIR}/tapsets/shim.stp
 )
 
 file(MAKE_DIRECTORY ${stap_OUT_DIR})

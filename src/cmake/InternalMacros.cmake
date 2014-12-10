@@ -44,7 +44,7 @@ function(lib_test test_NAME test_SOURCES)
     target_link_libraries(${test_NAME} ${test_LINK})
 
     add_test(ctest_build_${test_NAME} "${CMAKE_COMMAND}" --build ${CMAKE_BINARY_DIR} --target ${test_NAME})
-    add_test(run_${test_NAME} ${test_NAME} --gtest_color=yes --gtest_repeat=15 --gtest_output=xml ${ARGV3})
+    add_test(run_${test_NAME} ${test_NAME} --gtest_color=yes --gtest_repeat=15 --gtest_output=xml:${test_NAME}_result.xml ${ARGV3})
 
     # wait for http://public.kitware.com/Bug/view.php?id=8438 to be solved
     # in order to clean this up properly (i.e do not use duplicate tests

@@ -18,7 +18,7 @@ class SendFileTest : public testing::Test
 
     // Initialise resourceful.
     rhdl_ = rscfl_init();
-    EXPECT_NE(nullptr, rhdl_);
+    ASSERT_NE(nullptr, rhdl_);
 
     int from_fd = open("/etc/hostname", O_RDONLY);
     EXPECT_LT(-1, from_fd);
@@ -26,11 +26,11 @@ class SendFileTest : public testing::Test
     EXPECT_LT(-1, to_fd);
 
     // Account for the call to sendfile.
-    EXPECT_EQ(0, rscfl_acct_next(rhdl_));
+    ASSERT_EQ(0, rscfl_acct_next(rhdl_));
     EXPECT_LT(0, sendfile(to_fd, from_fd, NULL, kBufSize));
 
     // We must be able to read our struct accounting back from rscfl.
-    EXPECT_EQ(0, rscfl_read_acct(rhdl_, &acct_));
+    ASSERT_EQ(0, rscfl_read_acct(rhdl_, &acct_));
   }
 
   rscfl_handle rhdl_;

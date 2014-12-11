@@ -333,7 +333,7 @@ struct subsys_accounting* rscfl_get_subsys_by_id(rscfl_handle rhdl,
 void rscfl_subsys_free(rscfl_handle rhdl, struct accounting *acct)
 {
   int i;
-  if(acct == NULL) return;
+  if(rhdl == NULL || acct == NULL) return;
 
   for(i = 0; i < NUM_SUBSYSTEMS; ++i) {
     struct subsys_accounting *subsys = rscfl_get_subsys_by_id(rhdl, acct, i);

@@ -34,24 +34,27 @@ __thread rscfl_handle handle = NULL;
 rscfl_handle rscfl_init()
 {
   struct stat sb;
-  void *ctrl;
+  void *ctrl, *buf;
   int fd_data = open("/dev/" RSCFL_DATA_DRIVER, O_RDONLY);
   int fd_ctrl = open("/dev/" RSCFL_CTRL_DRIVER, O_RDWR);
   rscfl_handle rhdl = (rscfl_handle)malloc(sizeof(*rhdl));
   if (!rhdl) {
     return NULL;
   }
+  rhdl->buf = NULL;
+  rhdl->interests = NULL;
 
   if ((fd_data == -1) || (fd_ctrl == -1)) {
     goto error;
   }
 
   // mmap memory to store our struct accountings, and struct subsys_accountings.
-  rhdl->buf = mmap(NULL, MMAP_BUF_SIZE, PROT_READ | PROT_WRITE,
-                   MAP_PRIVATE | MAP_POPULATE, fd_data, 0);
-  if (rhdl->buf == MAP_FAILED) {
+  buf = mmap(NULL, MMAP_BUF_SIZE, PROT_READ | PROT_WRITE,
+             MAP_PRIVATE | MAP_POPULATE, fd_data, 0);
+  if (buf == MAP_FAILED) {
     goto error;
   }
+  rhdl->buf = buf;
 
   // mmap memory to store our interests.
   ctrl = mmap(NULL, MMAP_CTL_SIZE, PROT_READ | PROT_WRITE,

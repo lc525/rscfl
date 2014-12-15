@@ -1,12 +1,19 @@
 #!/usr/bin/env python2.7
 
+import array
 import argparse
-import jinja2
+import binascii
+from collections import OrderedDict
 import json
 import os
-from collections import OrderedDict
 import re
+import sets
+import struct
+import sys
 import subprocess
+
+import jinja2
+from elftools.elf.elffile import ELFFile
 
 file_subsys_cache = {}
 addr_line_cache = {}
@@ -154,6 +161,50 @@ def get_subsys(addr, addr2line, linux, build_dir):
         file_subsys_cache[file_name] = subsys
         return subsys
 
+def twiddle_endianness(word):
+    # Transform words of the form abcdefgh into ghefcdab.
+    return re.sub(r'([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})',
+                  r'\4\3\2\1', word)
+
+
+def get_function_pointers(vmlinux_path):
+    # Find the targets of all function pointers in vmlinux.
+    #
+    # We scan the elf binary and look for entries in rodata that are also
+    # function addresses. We then assume that that these occur on the entry into
+    # a subsystem.
+    #
+    # The standard way of implementing modularity throughout the kernel is
+    # creating a struct of function pointers. e.g. struct file_operations.
+    # These structs are static (const) structs, so live in .rodata of
+    # the elf file.  We assume that every function we find of this form
+    # is on the entry into a subsystem.
+    syms = []
+    fn_ptrs = sets.Set()
+    with open(vmlinux_path, 'rb') as f:
+        elf_file = ELFFile(f)
+        # Find the addresses of all functions in the kernel by looking in the
+        # symbol table.
+        symtab = elf_file.get_section_by_name(b'.symtab')
+        for sym in symtab.iter_symbols():
+            if sym.entry['st_info']['type'] == "STT_FUNC":
+                syms.append(hex(sym.entry['st_value']))
+        # Scan the rodata section, looking for anything that points to an
+        # address of a function.
+        rodata = elf_file.get_section_by_name(b'.rodata')
+        for i in xrange(0, len(rodata.data()), 4):
+            word = binascii.hexlify(rodata.data()[i:i+4])
+            # Fix endianness
+            word = twiddle_endianness(word)
+            if "0xffffffff%sL" % word in syms:
+                fn_ptrs.add("ffffffff%s" % word)
+    return fn_ptrs
+
+def add_address_to_subsys(boundary_fns, subsys, fn_addr, fn_name):
+    if subsys not in boundary_fns:
+        boundary_fns[subsys] = []
+    boundary_fns[subsys].append((fn_addr, fn_name))
+
 
 def get_addresses_of_boundary_calls(linux, build_dir, vmlinux_path):
     # Find the addresses of all call instructions that operate across a kernel
@@ -195,9 +246,7 @@ def get_addresses_of_boundary_calls(linux, build_dir, vmlinux_path):
             # prepended. e.g. compat_SyS_sendfile.
             if "SyS_" in fn_name:
                 fn_subsys = get_subsys(fn_addr, addr2line, linux, build_dir)
-                if fn_subsys not in boundary_fns:
-                    boundary_fns[fn_subsys] = []
-                boundary_fns[fn_subsys].append((fn_addr, fn_name))
+                add_address_to_subsys(boundary_fns, fn_subsys, fn_addr, fn_name)
 
         # If this is a function call look to see if we're crosssing a boundary.
         m = p_callq.match(line)
@@ -208,10 +257,17 @@ def get_addresses_of_boundary_calls(linux, build_dir, vmlinux_path):
             caller_subsys = get_subsys(caller_addr, addr2line, linux, build_dir)
             callee_subsys = get_subsys(callee_addr, addr2line, linux, build_dir)
             if callee_subsys != caller_subsys and callee_subsys is not None:
-                if callee_subsys not in boundary_fns:
-                    boundary_fns[callee_subsys] = []
-                if (callee_addr, "") not in boundary_fns[callee_subsys]:
-                    boundary_fns[callee_subsys].append((callee_addr, ""))
+                add_address_to_subsys(boundary_fns, callee_subsys, callee_addr,
+                                      "")
+    fn_ptr_targets = get_function_pointers(vmlinux_path)
+    for target in fn_ptr_targets:
+        subsys = get_subsys(target, addr2line, linux, build_dir)
+        if not subsys:
+            sys.stderr.write("Error %s\n" % target)
+        else:
+            add_address_to_subsys(boundary_fns, subsys, target, "")
+
+
     return boundary_fns
 
 

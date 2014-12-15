@@ -18,6 +18,8 @@ class APITest : public testing::Test
   virtual void SetUp()
   {
     int bind_err = 0;
+    one_acct_ = NULL;
+    subsys_agg_ = NULL;
 
     rhdl_ = rscfl_init();
     ASSERT_NE(nullptr, rhdl_);

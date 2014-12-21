@@ -236,7 +236,7 @@ def get_addresses_of_boundary_calls(linux, build_dir, vmlinux_path):
 
     # regex to match callq instructions, creating groups from the caller, and
     # callee addresses.
-    p_callq = re.compile("([0-9a-f]{16,16}).*callq.*([0-9a-f]{16,16}).*$")
+    p_callq = re.compile("([0-9a-f]{16,16}).*callq.*([0-9a-f]{16,16}) <(.*)>$")
     for line in proc.stdout:
 
         # If we are entering a system call handler, add a probe.
@@ -256,12 +256,13 @@ def get_addresses_of_boundary_calls(linux, build_dir, vmlinux_path):
         if m:
             caller_addr = m.group(1)
             callee_addr = m.group(2)
+            callee_name = m.group(3)
 
             caller_subsys = get_subsys(caller_addr, addr2line, linux, build_dir)
             callee_subsys = get_subsys(callee_addr, addr2line, linux, build_dir)
             if callee_subsys != caller_subsys and callee_subsys is not None:
                 add_address_to_subsys(boundary_fns, callee_subsys, callee_addr,
-                                      "")
+                                      callee_name)
     fn_ptr_targets = get_function_pointers(vmlinux_path)
     for target in fn_ptr_targets:
         subsys = get_subsys(target, addr2line, linux, build_dir)

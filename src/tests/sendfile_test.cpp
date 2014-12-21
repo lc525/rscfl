@@ -50,7 +50,7 @@ TEST_F(SendFileTest, TestSendFileHasCPUCyclesForVFS)
 {
   struct subsys_accounting *subsys =
       rscfl_get_subsys_by_id(rhdl_, &acct_, FILESYSTEMSVFSANDINFRASTRUCTURE);
-  EXPECT_NE(subsys, nullptr);
+  ASSERT_NE(subsys, nullptr);
   // Ensure we have a number of CPU cycles > 0 for VFS on using sendfile.
   ASSERT_GT(subsys->cpu.cycles, 0);
 }
@@ -59,7 +59,7 @@ TEST_F(SendFileTest, TestSendFileVFSCPUCyclesIsBelievable)
 {
   struct subsys_accounting *subsys =
       rscfl_get_subsys_by_id(rhdl_, &acct_, FILESYSTEMSVFSANDINFRASTRUCTURE);
-  EXPECT_NE(subsys, nullptr);
+  ASSERT_NE(subsys, nullptr);
   // Ensure the CPU cycles don't look like an overflow has occurred.
   ASSERT_LT(subsys->cpu.cycles, kSuspectedOverflow);
 }

@@ -203,7 +203,8 @@ def get_function_pointers(vmlinux_path):
 def add_address_to_subsys(boundary_fns, subsys, fn_addr, fn_name):
     if subsys not in boundary_fns:
         boundary_fns[subsys] = []
-    boundary_fns[subsys].append((fn_addr, fn_name))
+    if ((fn_addr, fn_name)) not in boundary_fns[subsys]:
+        boundary_fns[subsys].append((fn_addr, fn_name))
 
 
 def get_addresses_of_boundary_calls(linux, build_dir, vmlinux_path):

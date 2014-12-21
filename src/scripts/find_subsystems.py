@@ -222,6 +222,7 @@ def get_addresses_of_boundary_calls(linux, build_dir, vmlinux_path):
     #     of addresses that are callq instructions whose target is in the
     #     appropriate subsystem.
     boundary_fns = {}
+    fn_addr_name_map = {}
     addr2line = subprocess.Popen(['addr2line', '-e', vmlinux_path],
                                  stdout=subprocess.PIPE,
                                  stdin=subprocess.PIPE)
@@ -243,6 +244,7 @@ def get_addresses_of_boundary_calls(linux, build_dir, vmlinux_path):
         if m:
             fn_addr = m.group(1)
             fn_name = m.group(2)
+            fn_addr_name_map[fn_addr] = fn_name
             # Syscalls all have SyS_ in their name. Sometimes they may be
             # prepended. e.g. compat_SyS_sendfile.
             if "SyS_" in fn_name:
@@ -266,7 +268,8 @@ def get_addresses_of_boundary_calls(linux, build_dir, vmlinux_path):
         if not subsys:
             sys.stderr.write("Error %s\n" % target)
         else:
-            add_address_to_subsys(boundary_fns, subsys, target, "")
+            add_address_to_subsys(boundary_fns, subsys, target,
+                                  fn_addr_name_map[target])
 
 
     return boundary_fns

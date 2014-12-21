@@ -180,6 +180,7 @@ def get_function_pointers(vmlinux_path):
     # the elf file.  We assume that every function we find of this form
     # is on the entry into a subsystem.
     syms = []
+    seen_once = sets.Set()
     fn_ptrs = sets.Set()
     with open(vmlinux_path, 'rb') as f:
         elf_file = ELFFile(f)
@@ -197,7 +198,10 @@ def get_function_pointers(vmlinux_path):
             # Fix endianness
             word = twiddle_endianness(word)
             if "0xffffffff%sL" % word in syms:
-                fn_ptrs.add("ffffffff%s" % word)
+                if word in seen_once:
+                    fn_ptrs.add("ffffffff%s" % word)
+                else:
+                    seen_once.add(word)
     return fn_ptrs
 
 def add_address_to_subsys(boundary_fns, subsys, fn_addr, fn_name):

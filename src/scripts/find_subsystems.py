@@ -1,6 +1,5 @@
 #!/usr/bin/env python2.7
 
-import array
 import argparse
 import binascii
 from collections import OrderedDict
@@ -8,7 +7,6 @@ import json
 import os
 import re
 import sets
-import struct
 import sys
 import subprocess
 

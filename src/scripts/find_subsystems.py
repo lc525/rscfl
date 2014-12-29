@@ -17,7 +17,7 @@ file_subsys_cache = {}
 addr_line_cache = {}
 
 # Code to be included at the top of the subsystems header.
-rscfl_subsys_header_template = """
+RSCFL_SUBSYS_HEADER_TEMPLATE = """
 #ifndef _RSCFL_SUBSYS_H_
 #define _RSCFL_SUBSYS_H_
 
@@ -37,7 +37,7 @@ typedef enum {
 """
 
 
-rscfl_subsys_addr_template = """
+RSCFL_SUBSYS_ADDR_TEMPLATE = """
 #ifndef _RSCFL_SUBSYS_ADDR_H
 #define _RSCFL_SUBSYS_ADDR_H
 
@@ -348,7 +348,7 @@ def generate_rscfl_subsystems_header(json_fname, header_file):
     json_file = open(json_fname, 'r')
     subsys_json = json.load(json_file)
     subsystems = sorted(subsys_json.items(), key=lambda x: x[1]['id'])
-    template = jinja2.Template(rscfl_subsys_header_template)
+    template = jinja2.Template(RSCFL_SUBSYS_HEADER_TEMPLATE)
     args = {}
     args['subsystems'] = subsystems
     header_file.write(template.render(args))
@@ -406,7 +406,7 @@ def main():
 
     if args.find_subsystems:
         sharedh_fname = args.gen_shared_header.name
-        template = jinja2.Template(rscfl_subsys_addr_template)
+        template = jinja2.Template(RSCFL_SUBSYS_ADDR_TEMPLATE)
         args = {}
         args['subsys_list_header'] = os.path.basename(sharedh_fname)
         args['subsystems'] = dict((to_upper_alpha(key), value) for (key, value)

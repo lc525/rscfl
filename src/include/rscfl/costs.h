@@ -53,7 +53,6 @@ struct acct_CPU
   ru64 cycles;
   ru64 branch_mispredictions; //count
   ru64 instructions; //count
-  ru64 alignment_faults;
   struct timespec wall_clock_time;
 };
 

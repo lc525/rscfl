@@ -1,6 +1,5 @@
 #!/usr/bin/env python2.7
 
-import array
 import argparse
 import binascii
 from collections import OrderedDict
@@ -8,7 +7,6 @@ import json
 import os
 import re
 import sets
-import struct
 import sys
 import subprocess
 
@@ -19,7 +17,7 @@ file_subsys_cache = {}
 addr_line_cache = {}
 
 # Code to be included at the top of the subsystems header.
-rscfl_subsys_header_template = """
+RSCFL_SUBSYS_HEADER_TEMPLATE = """
 #ifndef _RSCFL_SUBSYS_H_
 #define _RSCFL_SUBSYS_H_
 
@@ -39,7 +37,7 @@ typedef enum {
 """
 
 
-rscfl_subsys_addr_template = """
+RSCFL_SUBSYS_ADDR_TEMPLATE = """
 #ifndef _RSCFL_SUBSYS_ADDR_H
 #define _RSCFL_SUBSYS_ADDR_H
 
@@ -94,28 +92,31 @@ kretprobe_handler_t rscfl_post_handlers[] = {{ '{' }}
 
 
 def to_upper_alpha(str):
-    # Args:
-    #    str: a string.
-    #
-    # Returns: str, with all non [A-Za-z] characters removed. Then in
-    #     uppercase.
+    """
+    Args:
+        str: a string.
+
+    Returns: str, with all non [A-Za-z] characters removed. Then in
+        uppercase.
+    """
     return re.sub(r'\W+', '', str).upper()
 
 def get_subsys(addr, addr2line, linux, build_dir):
-    # Use addr2line to convert addr to the filename that it is in.
-    #
-    # Args:
-    #     addr: an address into the linux kernel.
-    #     addr2line: an already-opened subprocess to addr2line, which we can
-    #         use to map addr to a source code file.
-    #     linux: string location of the Linux kernel.
-    #     build_dir: the directory that Linux was built in. This may not
-    #         actually exist on the current filesystem. To find this directory,
-    #         run addr2line on vmlinux, and find the first bit.
-    # Returns:
-    #     A string representing the name of the subsystem that addr is located
-    #     in.
+    """
+    Use addr2line to convert addr to the filename that it is in.
 
+    Args:
+        addr: an address into the linux kernel.
+        addr2line: an already-opened subprocess to addr2line, which we can
+            use to map addr to a source code file.
+        linux: string location of the Linux kernel.
+        build_dir: the directory that Linux was built in. This may not
+            actually exist on the current filesystem. To find this directory,
+            run addr2line on vmlinux, and find the first bit.
+    Returns:
+        A string representing the name of the subsystem that addr is located
+        in.
+    """
 
     # Have we already mapped addr to a file name? If so use the cached value,
     # to save expensive calls out to addr2line.
@@ -162,23 +163,24 @@ def get_subsys(addr, addr2line, linux, build_dir):
         return subsys
 
 def twiddle_endianness(word):
-    # Transform words of the form abcdefgh into ghefcdab.
+    """Transform words of the form abcdefgh into ghefcdab."""
     return re.sub(r'([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})',
                   r'\4\3\2\1', word)
 
 
 def get_function_pointers(vmlinux_path):
-    # Find the targets of all function pointers in vmlinux.
-    #
-    # We scan the elf binary and look for entries in rodata that are also
-    # function addresses. We then assume that that these occur on the entry into
-    # a subsystem.
-    #
-    # The standard way of implementing modularity throughout the kernel is
-    # creating a struct of function pointers. e.g. struct file_operations.
-    # These structs are static (const) structs, so live in .rodata of
-    # the elf file.  We assume that every function we find of this form
-    # is on the entry into a subsystem.
+    """Find the targets of all function pointers in vmlinux.
+
+    We scan the elf binary and look for entries in rodata that are also
+    function addresses. We then assume that that these occur on the entry into
+    a subsystem.
+
+    The standard way of implementing modularity throughout the kernel is
+    creating a struct of function pointers. e.g. struct file_operations.
+    These structs are static (const) structs, so live in .rodata of
+    the elf file.  We assume that every function we find of this form
+    is on the entry into a subsystem.
+    """
     syms = []
     fn_ptrs = sets.Set()
     with open(vmlinux_path, 'rb') as f:
@@ -201,25 +203,39 @@ def get_function_pointers(vmlinux_path):
     return fn_ptrs
 
 def add_address_to_subsys(boundary_fns, subsys, fn_addr, fn_name):
+    """Add an address to the list of addresses on a subsystem boundary.
+
+    Check to see if the address is already in the subsystem, and if not then
+    add it.
+
+    Args:
+        boundary_fns: a dict, with keys being names of subsystems and values
+            being lists of addresses on the boundary to that subsystem.
+        subsys: name of the subsystem to enter a boundary address for.
+        fn_addr: address of the function on the boundary.
+        fn_name: name of the function on the boundary.
+    """
     if subsys not in boundary_fns:
         boundary_fns[subsys] = []
     boundary_fns[subsys].append((fn_addr, fn_name))
 
 
 def get_addresses_of_boundary_calls(linux, build_dir, vmlinux_path):
-    # Find the addresses of all call instructions that operate across a kernel
-    # subsystem boundary.
-    #
-    # Args:
-    #     linux: string representing the location of the linux kernel.
-    #     build_dir: the directory that linux was built in. Found by looking
-    #         at the prefix of the results returned by addr2line.
-    #     vmlinux_path: string representing the path to vm_linux.
-    #
-    # Returns:
-    #     a dictionary (indexed by subsystem name) where each element is a list
-    #     of addresses that are callq instructions whose target is in the
-    #     appropriate subsystem.
+    """
+    Find the addresses of all call instructions that operate across a kernel
+    subsystem boundary.
+
+    Args:
+        linux: string representing the location of the linux kernel.
+        build_dir: the directory that linux was built in. Found by looking
+            at the prefix of the results returned by addr2line.
+        vmlinux_path: string representing the path to vm_linux.
+
+    Returns:
+        a dictionary (indexed by subsystem name) where each element is a list
+        of addresses that are callq instructions whose target is in the
+        appropriate subsystem.
+    """
     boundary_fns = {}
     addr2line = subprocess.Popen(['addr2line', '-e', vmlinux_path],
                                  stdout=subprocess.PIPE,
@@ -272,16 +288,18 @@ def get_addresses_of_boundary_calls(linux, build_dir, vmlinux_path):
 
 
 def append_to_json_file(json_fname, subsys_names):
-    # Add new subsystems to a JSON file.
-    #
-    # Parses json_fname, and adds any subsystems in subsys_entries to
-    # the file.
-    #
-    # Args:
-    #     json_fname: the JSON file name. If the file contains a valid JSON
-    #         structure, new subsystems will be appended. Otherwise, all
-    #         subsystems will be dumped to the file.
-    #     subsys_names: a list of string names of Linux subsystems.
+    """
+    Add new subsystems to a JSON file.
+
+    Parses json_fname, and adds any subsystems in subsys_entries to
+    the file.
+
+    Args:
+        json_fname: the JSON file name. If the file contains a valid JSON
+            structure, new subsystems will be appended. Otherwise, all
+            subsystems will be dumped to the file.
+        subsys_names: a list of string names of Linux subsystems.
+    """
     try:
         json_file = open(json_fname, 'r+')
         json_entries = json.load(json_file,
@@ -317,18 +335,20 @@ def append_to_json_file(json_fname, subsys_names):
 
 
 def generate_rscfl_subsystems_header(json_fname, header_file):
-    # Using the JSON list of subsystems, generate a header file that creates
-    # a enum of subsystems.
-    # Save this header file to $header_file
-    #
-    # Args:
-    #     json_file: File object with a JSON list of subsystems.
-    #     header_file: File to write a C header file containing an enum of
-    #         possible subsystems.
+    """Using the JSON list of subsystems, generate a header file that creates
+    a enum of subsystems.
+
+    Save this header file to $header_file
+
+    Args:
+        json_file: File object with a JSON list of subsystems.
+        header_file: File to write a C header file containing an enum of
+            possible subsystems.
+    """
     json_file = open(json_fname, 'r')
     subsys_json = json.load(json_file)
     subsystems = sorted(subsys_json.items(), key=lambda x: x[1]['id'])
-    template = jinja2.Template(rscfl_subsys_header_template)
+    template = jinja2.Template(RSCFL_SUBSYS_HEADER_TEMPLATE)
     args = {}
     args['subsystems'] = subsystems
     header_file.write(template.render(args))
@@ -337,6 +357,9 @@ def generate_rscfl_subsystems_header(json_fname, header_file):
 
 
 def main():
+    """
+    Main.
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument('-l', dest='linux_root', action='store',
                         help="""location of the root of the
@@ -383,7 +406,7 @@ def main():
 
     if args.find_subsystems:
         sharedh_fname = args.gen_shared_header.name
-        template = jinja2.Template(rscfl_subsys_addr_template)
+        template = jinja2.Template(RSCFL_SUBSYS_ADDR_TEMPLATE)
         args = {}
         args['subsys_list_header'] = os.path.basename(sharedh_fname)
         args['subsystems'] = dict((to_upper_alpha(key), value) for (key, value)

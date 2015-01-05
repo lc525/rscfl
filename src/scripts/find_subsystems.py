@@ -221,7 +221,8 @@ def add_address_to_subsys(boundary_fns, subsys, fn_addr, fn_name):
     """
     if subsys not in boundary_fns:
         boundary_fns[subsys] = []
-    boundary_fns[subsys].append((fn_addr, fn_name))
+    if ((fn_addr, fn_name)) not in boundary_fns[subsys]:
+        boundary_fns[subsys].append((fn_addr, fn_name))
 
 
 def get_addresses_of_boundary_calls(linux, build_dir, vmlinux_path):
@@ -241,6 +242,7 @@ def get_addresses_of_boundary_calls(linux, build_dir, vmlinux_path):
         appropriate subsystem.
     """
     boundary_fns = {}
+    fn_addr_name_map = {}
     addr2line = subprocess.Popen(['addr2line', '-e', vmlinux_path],
                                  stdout=subprocess.PIPE,
                                  stdin=subprocess.PIPE)
@@ -254,7 +256,7 @@ def get_addresses_of_boundary_calls(linux, build_dir, vmlinux_path):
 
     # regex to match callq instructions, creating groups from the caller, and
     # callee addresses.
-    p_callq = re.compile("([0-9a-f]{16,16}).*callq.*([0-9a-f]{16,16}).*$")
+    p_callq = re.compile("([0-9a-f]{16,16}).*callq.*([0-9a-f]{16,16}) <(.*)>$")
     for line in proc.stdout:
 
         # If we are entering a system call handler, add a probe.
@@ -262,6 +264,7 @@ def get_addresses_of_boundary_calls(linux, build_dir, vmlinux_path):
         if m:
             fn_addr = m.group(1)
             fn_name = m.group(2)
+            fn_addr_name_map[fn_addr] = fn_name
             # Syscalls all have SyS_ in their name. Sometimes they may be
             # prepended. e.g. compat_SyS_sendfile.
             if "SyS_" in fn_name:
@@ -273,19 +276,21 @@ def get_addresses_of_boundary_calls(linux, build_dir, vmlinux_path):
         if m:
             caller_addr = m.group(1)
             callee_addr = m.group(2)
+            callee_name = m.group(3)
 
             caller_subsys = get_subsys(caller_addr, addr2line, linux, build_dir)
             callee_subsys = get_subsys(callee_addr, addr2line, linux, build_dir)
             if callee_subsys != caller_subsys and callee_subsys is not None:
                 add_address_to_subsys(boundary_fns, callee_subsys, callee_addr,
-                                      "")
+                                      callee_name)
     fn_ptr_targets = get_function_pointers(vmlinux_path)
     for target in fn_ptr_targets:
         subsys = get_subsys(target, addr2line, linux, build_dir)
         if not subsys:
             sys.stderr.write("Error %s\n" % target)
         else:
-            add_address_to_subsys(boundary_fns, subsys, target, "")
+            add_address_to_subsys(boundary_fns, subsys, target,
+                                  fn_addr_name_map[target])
 
 
     return boundary_fns

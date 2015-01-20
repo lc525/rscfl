@@ -15,11 +15,15 @@
 #
 #  ====================================================================
 function(SUBSYS_HEADER_GEN L_ROOT L_VMLINUX L_BUILD OUT_LIST OUT_ADDR OUT_JSON)
+  if(${ARGC} GREATER 6)
+    set(OPT_SUB_ARG ${ARGN})
+  endif(${ARGC} GREATER 6)
+
   # Generate subsystems header files
   add_custom_command(
     OUTPUT ${OUT_JSON} ${OUT_LIST} ${OUT_ADDR}
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/find_subsystems.py
-    ARGS
+     ARGS
       -l ${L_ROOT}
       -v ${L_VMLINUX}
       --build_dir ${L_BUILD}
@@ -27,6 +31,7 @@ function(SUBSYS_HEADER_GEN L_ROOT L_VMLINUX L_BUILD OUT_LIST OUT_ADDR OUT_JSON)
       -J ${OUT_JSON}
       --update_json
       --gen_shared_header ${OUT_LIST}
+      ${OPT_SUB_ARG}
       > ${OUT_ADDR}
     COMMENT "Building kprobe address list from kernel binary, generating header files"
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/find_subsystems.py

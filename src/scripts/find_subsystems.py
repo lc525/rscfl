@@ -15,6 +15,7 @@ from elftools.elf.elffile import ELFFile
 
 file_subsys_cache = {}
 addr_line_cache = {}
+args = {}
 
 # Code to be included at the top of the subsystems header.
 RSCFL_SUBSYS_HEADER_TEMPLATE = """
@@ -241,6 +242,7 @@ def get_addresses_of_boundary_calls(linux, build_dir, vmlinux_path):
         of addresses that are callq instructions whose target is in the
         appropriate subsystem.
     """
+    global args
     boundary_fns = {}
     fn_addr_name_map = {}
     addr2line = subprocess.Popen(['addr2line', '-e', vmlinux_path],
@@ -283,16 +285,15 @@ def get_addresses_of_boundary_calls(linux, build_dir, vmlinux_path):
             if callee_subsys != caller_subsys and callee_subsys is not None:
                 add_address_to_subsys(boundary_fns, callee_subsys, callee_addr,
                                       callee_name)
-    fn_ptr_targets = get_function_pointers(vmlinux_path)
-    for target in fn_ptr_targets:
-        subsys = get_subsys(target, addr2line, linux, build_dir)
-        if not subsys:
-            sys.stderr.write("Error %s\n" % target)
-        else:
-            add_address_to_subsys(boundary_fns, subsys, target,
-                                  fn_addr_name_map[target])
-
-
+    if not args.no_fp:
+        fn_ptr_targets = get_function_pointers(vmlinux_path)
+        for target in fn_ptr_targets:
+            subsys = get_subsys(target, addr2line, linux, build_dir)
+            if not subsys:
+                sys.stderr.write("Error %s\n" % target)
+            else:
+                add_address_to_subsys(boundary_fns, subsys, target,
+                                      fn_addr_name_map[target])
     return boundary_fns
 
 
@@ -369,6 +370,7 @@ def main():
     """
     Main.
     """
+    global args
     parser = argparse.ArgumentParser()
     parser.add_argument('-l', dest='linux_root', action='store',
                         help="""location of the root of the
@@ -383,6 +385,10 @@ def main():
                         help="""Scan vmlinux, looking for all addresses that
                         cross the boundary of subsystems. These are exported
                         as a .h file of addresses.""")
+    parser.add_argument('--no-fp', dest='no_fp', action='store_true',
+                        default = False,
+                        help="""Don't scan kernel binary for function
+                        pointers""")
     parser.add_argument('-J', dest='subsys_json_fname', help="""JSON file to
                         write subsystems to.""")
     parser.add_argument('--update_json', action='store_true', help="""Append
@@ -416,11 +422,11 @@ def main():
     if args.find_subsystems:
         sharedh_fname = args.gen_shared_header.name
         template = jinja2.Template(RSCFL_SUBSYS_ADDR_TEMPLATE)
-        args = {}
-        args['subsys_list_header'] = os.path.basename(sharedh_fname)
-        args['subsystems'] = dict((to_upper_alpha(key), value) for (key, value)
+        targs = {}
+        targs['subsys_list_header'] = os.path.basename(sharedh_fname)
+        targs['subsystems'] = dict((to_upper_alpha(key), value) for (key, value)
                                   in subsys_entries.items())
-        print template.render(args)
+        print template.render(targs)
 
 if __name__ == '__main__':
     main()

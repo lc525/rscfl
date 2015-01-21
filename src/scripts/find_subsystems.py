@@ -209,7 +209,6 @@ def get_function_pointers(vmlinux_path):
     the elf file.  We assume that every function we find of this form
     is on the entry into a subsystem.
     """
-    global progress
     syms = []
     seen_once = sets.Set()
     fn_ptrs = sets.Set()
@@ -282,7 +281,6 @@ def get_addresses_of_boundary_calls(linux, build_dir, vmlinux_path):
         of addresses that are callq instructions whose target is in the
         appropriate subsystem.
     """
-    global args
     global stage
     boundary_fns = {}
     fn_addr_name_map = {}

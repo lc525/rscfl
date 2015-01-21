@@ -21,7 +21,7 @@ function(SUBSYS_HEADER_GEN L_ROOT L_VMLINUX L_BUILD OUT_LIST OUT_ADDR OUT_JSON)
     OUTPUT_STRIP_TRAILING_WHITESPACE
   )
   get_filename_component(OUT_JSON_DIR ${OUT_JSON} DIRECTORY)
-  set(K_DEP_FILE ${OUT_JSON_DIR}/for-${KERNEL_RELEASE})
+  set(K_DEP_FILE ${OUT_JSON_DIR}/subsys_for_${KERNEL_RELEASE}.json)
 
   # Generate subsystems header files
   add_custom_command(

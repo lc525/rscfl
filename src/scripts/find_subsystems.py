@@ -17,6 +17,16 @@ file_subsys_cache = {}
 addr_line_cache = {}
 args = {}
 
+#
+# Progress bar data
+progress = 0
+# estimated number of probes without function pointers
+est_probes_nofp = 5000
+# estimated number of probes including function pointers
+est_probes_fp = 141400
+p_addr_delta = 1.0 / est_probes_fp
+stage = ""
+
 # Code to be included at the top of the subsystems header.
 RSCFL_SUBSYS_HEADER_TEMPLATE = """
 #ifndef _RSCFL_SUBSYS_H_
@@ -91,6 +101,23 @@ kretprobe_handler_t rscfl_post_handlers[] = {{ '{' }}
 #endif
 """
 
+def update_progress(delta, inc=True):
+    """
+    Args:
+        delta: value between 0 (0%) and 1 (100% percent complete)
+        inc: boolean that controls whether delta is an incremental value
+            (will be added to the previous progress - e.g increment progress by
+            2%) or an absolute value (the overall progress is 2%)
+
+    """
+    global progress
+    if sys.__stdin__.isatty():
+        if inc:
+            progress = progress + delta
+        else:
+            progress = delta
+        sys.stderr.write("\r[{1: 3.0f}%] [{0:25s}] subsys_gen: {2:<32}"
+                .format('#' * int(progress * 25), progress * 100, stage))
 
 def to_upper_alpha(str):
     """
@@ -196,6 +223,10 @@ def get_function_pointers(vmlinux_path):
         # Scan the rodata section, looking for anything that points to an
         # address of a function.
         rodata = elf_file.get_section_by_name(b'.rodata')
+        length = len(rodata.data())
+        boundary = 2000
+        pleft = 1 - progress + 0.1
+        pbase = progress
         for i in xrange(0, len(rodata.data()), 4):
             word = binascii.hexlify(rodata.data()[i:i+4])
             # Fix endianness
@@ -205,9 +236,14 @@ def get_function_pointers(vmlinux_path):
                     fn_ptrs.add("ffffffff%s" % word)
                 else:
                     seen_once.add(word)
+            if i > boundary:
+                boundary += 2000
+                p_val = i*pleft/length
+                update_progress(pbase + p_val, False)
     return fn_ptrs
 
-def add_address_to_subsys(boundary_fns, subsys, fn_addr, fn_name):
+def add_address_to_subsys(boundary_fns, subsys, fn_addr, fn_name,
+        upd_progress=True):
     """Add an address to the list of addresses on a subsystem boundary.
 
     Check to see if the address is already in the subsystem, and if not then
@@ -219,11 +255,14 @@ def add_address_to_subsys(boundary_fns, subsys, fn_addr, fn_name):
         subsys: name of the subsystem to enter a boundary address for.
         fn_addr: address of the function on the boundary.
         fn_name: name of the function on the boundary.
+        upd_progress: whether to update progress bar or not
     """
     if subsys not in boundary_fns:
         boundary_fns[subsys] = []
     if ((fn_addr, fn_name)) not in boundary_fns[subsys]:
         boundary_fns[subsys].append((fn_addr, fn_name))
+        if upd_progress:
+            update_progress(p_addr_delta)
 
 
 def get_addresses_of_boundary_calls(linux, build_dir, vmlinux_path):
@@ -242,8 +281,10 @@ def get_addresses_of_boundary_calls(linux, build_dir, vmlinux_path):
         of addresses that are callq instructions whose target is in the
         appropriate subsystem.
     """
+    global stage
     boundary_fns = {}
     fn_addr_name_map = {}
+    stage = "kernel subsystem boundaries [callq]"
     addr2line = subprocess.Popen(['addr2line', '-e', vmlinux_path],
                                  stdout=subprocess.PIPE,
                                  stdin=subprocess.PIPE)
@@ -285,6 +326,8 @@ def get_addresses_of_boundary_calls(linux, build_dir, vmlinux_path):
                 add_address_to_subsys(boundary_fns, callee_subsys, callee_addr,
                                       callee_name)
     if not args.no_fp:
+        stage = "kernel subsystem boundaries [f_ptr]"
+        update_progress(0)
         fn_ptr_targets = get_function_pointers(vmlinux_path)
         for target in fn_ptr_targets:
             subsys = get_subsys(target, addr2line, linux, build_dir)
@@ -292,7 +335,7 @@ def get_addresses_of_boundary_calls(linux, build_dir, vmlinux_path):
                 sys.stderr.write("Error %s\n" % target)
             else:
                 add_address_to_subsys(boundary_fns, subsys, target,
-                                      fn_addr_name_map[target])
+                                      fn_addr_name_map[target], False)
     return boundary_fns
 
 
@@ -370,6 +413,8 @@ def main():
     Main.
     """
     global args
+    global p_addr_delta
+    global stage
     parser = argparse.ArgumentParser()
     parser.add_argument('-l', dest='linux_root', action='store',
                         help="""location of the root of the
@@ -399,6 +444,9 @@ def main():
 
     args = parser.parse_args()
 
+    if args.no_fp:
+        p_addr_delta = 1.0 / est_probes_nofp
+
     # If we havent' been given an explicit build directory, it is fair to
     # assume that the kernel was built in the source directory.
     if args.build_dir:
@@ -406,10 +454,14 @@ def main():
     else:
         build_dir = args.linux_root
     if args.update_json or args.find_subsystems:
+        stage = "getting subsystem boundaries"
+        update_progress(0)
         subsys_entries = get_addresses_of_boundary_calls(args.linux_root,
                                                          build_dir,
                                                          args.vmlinux_path)
 
+    stage = "writing files (subsys/addr data)    "
+    update_progress(0.99, False)
     if args.update_json:
         append_to_json_file(args.subsys_json_fname,
                             subsys_entries.keys())
@@ -426,6 +478,9 @@ def main():
         targs['subsystems'] = dict((to_upper_alpha(key), value) for (key, value)
                                   in subsys_entries.items())
         print template.render(targs)
+
+    stage = "Done                               \n"
+    update_progress(1.0, False)
 
 if __name__ == '__main__':
     main()

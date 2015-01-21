@@ -116,7 +116,7 @@ def update_progress(delta, inc=True):
             progress = progress + delta
         else:
             progress = delta
-        sys.stderr.write("\r[{1: 3.0f}%] [{0:25s}] subsys_gen: {2:<32}"
+        sys.stderr.write("\r[{1:3.0f}%] [{0:25s}] subsys_gen: {2:<32}"
                 .format('#' * int(progress * 25), progress * 100, stage))
 
 def to_upper_alpha(str):

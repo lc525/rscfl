@@ -242,7 +242,6 @@ def get_addresses_of_boundary_calls(linux, build_dir, vmlinux_path):
         of addresses that are callq instructions whose target is in the
         appropriate subsystem.
     """
-    global args
     boundary_fns = {}
     fn_addr_name_map = {}
     addr2line = subprocess.Popen(['addr2line', '-e', vmlinux_path],

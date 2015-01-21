@@ -23,6 +23,10 @@ function(SUBSYS_HEADER_GEN L_ROOT L_VMLINUX L_BUILD OUT_LIST OUT_ADDR OUT_JSON)
   get_filename_component(OUT_JSON_DIR ${OUT_JSON} DIRECTORY)
   set(K_DEP_FILE ${OUT_JSON_DIR}/subsys_for_${KERNEL_RELEASE}.json)
 
+  if(${ARGC} GREATER 6)
+    set(OPT_SUB_ARG ${ARGN})
+  endif(${ARGC} GREATER 6)
+  
   # Generate subsystems header files
   add_custom_command(
     OUTPUT ${OUT_JSON} ${OUT_LIST} ${OUT_ADDR} ${K_DEP_FILE}
@@ -35,6 +39,7 @@ function(SUBSYS_HEADER_GEN L_ROOT L_VMLINUX L_BUILD OUT_LIST OUT_ADDR OUT_JSON)
       -J ${OUT_JSON}
       --update_json
       --gen_shared_header ${OUT_LIST}
+      ${OPT_SUB_ARG}
       > ${OUT_ADDR}
     COMMAND touch ARGS ${K_DEP_FILE}
     COMMENT "Building kprobe address list from kernel binary, generating header files"

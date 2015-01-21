@@ -5,6 +5,7 @@ VBOSE=0
 JOPT=2
 INSTALL=""
 TARGETS=""
+SUBSYS_ARG=""
 
 
 # Set LINUX_ROOT here or set a RSCFL_LINUX_ROOT environment variable pointing
@@ -64,13 +65,14 @@ function print_usage {
   echo "  -d : build debug version"
   echo "  -c : clean before build"
   echo "  -v : verbose build"
+  echo "  -p : partial - don't generate function pointer subsys addreses"
   echo "  -i : run make install after build"
   echo "  -t <TARGETS> : only build the specified targets"
   echo "  -j <NUM> : pass -j<NUM> to make"
   echo "  -h : prints this help message"
 }
 
-while getopts ":hrdcvit:j:" opt; do
+while getopts ":hrdcvpit:j:" opt; do
   case $opt in
     h)
       print_usage
@@ -87,6 +89,9 @@ while getopts ":hrdcvit:j:" opt; do
       ;;
     v)
       VBOSE=1
+      ;;
+    p)
+      SUBSYS_ARG="--no-fp"
       ;;
     i)
       INSTALL="install"
@@ -118,6 +123,7 @@ fi
 cmake -DCMAKE_BUILD_TYPE=$TYPE        \
       -DLINUX_ROOT=$LINUX_ROOT        \
       -DLINUX_BUILD=$LINUX_BUILD      \
+      -DSUBSYS_OPT_ARG=$SUBSYS_ARG    \
       -DLINUX_VMLINUX=$LINUX_VMLINUX ..
 
 if [ $VBOSE -eq 1 ]

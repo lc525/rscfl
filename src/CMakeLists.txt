@@ -167,6 +167,9 @@ include_directories("${PROJECT_INCLUDE_DIR}")
 
 # build list of subsystems
 #
+if(DEFINED ${SUBSYS_OPT_ARG})
+  set(SUBSYS_OPT_ARG "")
+endif(DEFINED ${SUBSYS_OPT_ARG})
 # do not depend on any of those generated files directly, but on
 # the subsys_gen build target
 include(subsys)
@@ -176,6 +179,7 @@ subsys_header_gen(${LINUX_ROOT}
   ${PROJECT_INCLUDE_DIR}/rscfl/subsys_list.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/subsys_addr.h
   ${PROJECT_BINARY_DIR}/subsys_list.json
+  ${SUBSYS_OPT_ARG}
 )
 
 # build systemtap modules

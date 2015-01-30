@@ -94,6 +94,10 @@ typedef struct rscfl_handle_t *rscfl_handle;
  *
  * ids: ids[j] is the id of the subsystem data stored in set[j]
  *
+ * app_data:        a void pointer that applications can use to add their own
+ *                  data structures containing measurements. app_data is owned
+ *                  by the application, so it's the application's responsibility
+ *                  to free the memory for this member.
  * set_size:        the number of subsystems currently stored in the set array
  * max_set_size:    the maximum number of subsystems that can be stored in the
  *                  set array. this is the allocated size of set.
@@ -102,6 +106,7 @@ struct subsys_idx_set {
   short idx[NUM_SUBSYSTEMS];
   struct subsys_accounting *set;
   short *ids;
+  void *app_data;
   short set_size;
   short max_set_size;
 };

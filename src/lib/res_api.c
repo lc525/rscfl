@@ -16,7 +16,6 @@
 #include "rscfl/config.h"
 #include "rscfl/costs.h"
 #include "rscfl/res_common.h"
-#include "rscfl/kernel/stap_shim.h"
 
 // macro function definitions
 DEFINE_REDUCE_FUNCTION(rint, ru64)
@@ -31,24 +30,44 @@ const char *rscfl_subsys_name[NUM_SUBSYSTEMS] = {
 // TODO(lc525): remove
 __thread rscfl_handle handle = NULL;
 
-rscfl_handle rscfl_init()
+rscfl_handle rscfl_init_api(rscfl_version_t rscfl_ver)
 {
   struct stat sb;
   void *ctrl, *buf;
-  int fd_data = open("/dev/" RSCFL_DATA_DRIVER, O_RDONLY);
-  int fd_ctrl = open("/dev/" RSCFL_CTRL_DRIVER, O_RDWR);
+  int fd_data, fd_ctrl;
+
+  // library was compiled with RSCFL_VERSION, API called from rscfl_ver
+  // emit warning if the APIs have different major versions
+  if(RSCFL_VERSION.major != rscfl_ver.major) {
+    fprintf(stderr, "rscfl: API major version mismatch: "
+                    "%d (header) vs %d (library)\n",
+                    rscfl_ver.major, RSCFL_VERSION.major);
+    #ifdef RSCFL_ERR_VER_MISMATCH
+      fprintf(stderr, "rscfl: initialisation aborted\n");
+      return NULL;
+    #endif
+    // if ERROR_ON_VERSION_MISMATCH is not defined, we'll still try to
+    // initialize rscfl
+  }
+
+  fd_data = open("/dev/" RSCFL_DATA_DRIVER, O_RDONLY);
+  fd_ctrl = open("/dev/" RSCFL_CTRL_DRIVER, O_RDWR);
   rscfl_handle rhdl = (rscfl_handle)malloc(sizeof(*rhdl));
   if (!rhdl) {
     return NULL;
   }
   rhdl->buf = NULL;
-  rhdl->interests = NULL;
+  rhdl->ctrl = NULL;
 
   if ((fd_data == -1) || (fd_ctrl == -1)) {
     goto error;
   }
 
-  // mmap memory to store our struct accountings, and struct subsys_accountings.
+  // mmap memory to store our struct accountings, and struct subsys_accountings
+
+  // note: this (data) mmap needs to happen _before_ the ctrl mmap because the
+  // rscfl_data character device also does the initialisation of per-cpu
+  // variables later used by rscfl_ctrl.
   buf = mmap(NULL, MMAP_BUF_SIZE, PROT_READ | PROT_WRITE,
              MAP_PRIVATE | MAP_POPULATE, fd_data, 0);
   if (buf == MAP_FAILED) {
@@ -65,7 +84,14 @@ rscfl_handle rscfl_init()
 
   // Initialise pointer so that we write our interests into the mmap-ed region
   // of memory, so resourceful can read them.
-  rhdl->interests = ctrl;
+  rhdl->ctrl = ctrl;
+
+  // Check data layout version
+  if(rhdl->ctrl->version != rscfl_ver.data_layout) {
+    fprintf(stderr, "rscfl: Version mismatch between rscfl API and kernel data layouts: %d (API) vs %d (.ko)\n",
+            rscfl_ver.data_layout, rhdl->ctrl->version);
+    goto error;
+  }
 
   if ((close(fd_data) == -1) || (close(fd_ctrl) == -1)) {
     goto error;
@@ -79,8 +105,8 @@ error:
     if (rhdl->buf != NULL) {
       munmap(rhdl->buf, MMAP_BUF_SIZE);
     }
-    if (rhdl->interests != NULL) {
-      munmap(rhdl->interests, MMAP_BUF_SIZE);
+    if (rhdl->ctrl != NULL) {
+      munmap(rhdl->ctrl, MMAP_BUF_SIZE);
     }
     free(rhdl);
   }
@@ -103,7 +129,7 @@ int rscfl_acct_next(rscfl_handle rhdl)
     return -EINVAL;
   }
 
-  to_acct = rhdl->interests;
+  to_acct = rhdl->ctrl->interest;
   to_acct->syscall_id = ++rhdl->lst_syscall.id;
   to_acct->syscall_nr = -1;
 
@@ -326,7 +352,7 @@ struct subsys_accounting* rscfl_get_subsys_by_id(rscfl_handle rhdl,
   if (!acct || acct->acct_subsys[subsys_id] == -1) {
     return NULL;
   }
-  rscfl_shared_mem_layout_t *rscfl_data = (rscfl_shared_mem_layout_t*)rhdl->buf;
+  rscfl_acct_layout_t *rscfl_data = (rscfl_acct_layout_t*)rhdl->buf;
   return &rscfl_data->subsyses[acct->acct_subsys[subsys_id]];
 }
 

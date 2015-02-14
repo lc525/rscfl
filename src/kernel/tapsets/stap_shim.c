@@ -25,7 +25,7 @@ int should_acct(void)
   syscall_interest_t *interest;
   struct accounting *acct_buf;
   pid_acct *current_pid_acct;
-  rscfl_shared_mem_layout_t *rscfl_shared_mem;
+  rscfl_acct_layout_t *rscfl_shared_mem;
 
   preempt_disable();
   current_pid_acct = CPU_VAR(current_acct);

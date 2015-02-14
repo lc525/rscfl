@@ -113,7 +113,7 @@ static int get_subsys(rscfl_subsys subsys_id,
   struct accounting *acct;
   struct subsys_accounting *subsys_acct;
   pid_acct *current_pid_acct;
-  rscfl_shared_mem_layout_t *rscfl_mem;
+  rscfl_acct_layout_t *rscfl_mem;
   int subsys_offset;
 
   current_pid_acct = CPU_VAR(current_acct);

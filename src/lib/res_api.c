@@ -129,7 +129,7 @@ int rscfl_acct_next(rscfl_handle rhdl)
     return -EINVAL;
   }
 
-  to_acct = rhdl->ctrl->interest;
+  to_acct = &rhdl->ctrl->interest;
   to_acct->syscall_id = ++rhdl->lst_syscall.id;
   to_acct->syscall_nr = -1;
 

@@ -68,7 +68,7 @@ typedef struct syscall_interest_t syscall_interest_t;
 struct rscfl_ctrl_layout_t
 {
   unsigned int version;
-  syscall_interest_t *interest;
+  syscall_interest_t interest;
 };
 typedef struct rscfl_ctrl_layout_t rscfl_ctrl_layout_t;
 

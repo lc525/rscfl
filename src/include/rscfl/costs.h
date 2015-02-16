@@ -80,6 +80,10 @@ struct subsys_accounting
 {
   struct acct_CPU cpu;
   struct acct_Mem mem;
+  // The number of times another subsystem called into this subsystem.
+  ru64 subsys_entries;
+  // The number of times this subsystem called into another subsystem.
+  ru64 subsys_exits;
   volatile _Bool in_use;
 };
 

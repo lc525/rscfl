@@ -285,6 +285,9 @@ void free_subsys_idx_set(subsys_idx_set *subsys_set) {
 
 inline void rscfl_subsys_merge(struct subsys_accounting *e,
                                const struct subsys_accounting *c) {
+  e->subsys_entries              += c->subsys_entries;
+  e->subsys_exits                += c->subsys_exits;
+
   e->cpu.cycles                  += c->cpu.cycles;
   e->cpu.branch_mispredictions   += c->cpu.branch_mispredictions;
   e->cpu.instructions            += c->cpu.instructions;

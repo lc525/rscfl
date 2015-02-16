@@ -94,6 +94,59 @@ TEST_F(SocketTest, SocketHasCPUCyclesForSecuritySubsys)
   ASSERT_GT(subsys->cpu.cycles, 0);
 }
 
+TEST_F(SocketTest, EverySubsystemEnteredHasAPositiveSubsysEntries)
+{
+  struct subsys_accounting *subsys;
+  for (int i = 0; i < NUM_SUBSYSTEMS; i++) {
+    subsys = rscfl_get_subsys_by_id(rhdl_, &acct_, (rscfl_subsys)i);
+    if (subsys != nullptr) {
+      // If a subsystem is not NULL then it has been called into. Therefore
+      // it should not have 0 in its listed number of entries.
+      ASSERT_GT(subsys->subsys_entries, 0);
+    }
+  }
+}
+
+TEST_F(SocketTest, EverySubsystemEnteredHasAPositiveSubsysExits)
+{
+  struct subsys_accounting *subsys;
+  for (int i = 0; i < NUM_SUBSYSTEMS; i++) {
+    subsys = rscfl_get_subsys_by_id(rhdl_, &acct_, (rscfl_subsys)i);
+    if (subsys != nullptr) {
+      // If a subsystem is not NULL then it has been called into. Therefore
+      // it should not have 0 in its listed number of exits.
+      ASSERT_GT(subsys->subsys_exits, 0);
+    }
+  }
+}
+
+TEST_F(SocketTest, TotalSubsysEntriesEqualsTotalSubsysExits)
+{
+  struct subsys_accounting *subsys;
+  ru64 subsys_entries{0};
+  ru64 subsys_exits{0};
+
+  int reduce_err;
+
+  reduce_err = REDUCE_SUBSYS(
+      rint, rhdl_, &acct_, 0, &subsys_entries,
+      [](subsys_accounting *s, rscfl_subsys id) { return &s->subsys_entries; },
+      [](ru64 *x, const ru64 *y) { *x += *y; });
+  // Ensure reduce hasn't failed.
+  EXPECT_EQ(0, reduce_err);
+
+  reduce_err = REDUCE_SUBSYS(
+      rint, rhdl_, &acct_, 0, &subsys_exits,
+      [](subsys_accounting *s, rscfl_subsys id) { return &s->subsys_exits; },
+      [](ru64 *x, const ru64 *y) { *x += *y; });
+  // Ensure second reduce hasn't failed.
+  EXPECT_EQ(0, reduce_err);
+
+  // Whenever we enter a subsystem we also leave it. Therefore these two values
+  // should be identical. If they're not, we're misaccounting.
+  ASSERT_EQ(subsys_entries, subsys_exits);
+}
+
 // Misc. tests.
 
 // If we open 3 sockets, they shouldn't all take the same number of cycles

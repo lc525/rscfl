@@ -87,6 +87,7 @@ TEST_F(SendFileTest, TestSendFileExt4CPUCyclesIsBelievable)
   struct subsys_accounting *subsys =
     rscfl_get_subsys_by_id(rhdl_, &acct_, EXT4FILESYSTEM);
 
+  ASSERT_NE(subsys, nullptr);
   // Ensure the CPU cycles don't look like an overflow has occurred.
   ASSERT_LT(subsys->cpu.cycles, kSuspectedOverflow);
 }

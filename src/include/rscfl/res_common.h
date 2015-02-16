@@ -1,7 +1,10 @@
 #ifndef _RES_COMMON_H_
 #define _RES_COMMON_H_
 
+#include <linux/ioctl.h>
+
 #include "rscfl/config.h"
+#include "rscfl/costs.h"
 
 #define RSCFL_DATA_DRIVER "rscfl-data"
 #define RSCFL_CTRL_DRIVER "rscfl-ctrl"
@@ -48,11 +51,25 @@
 #define debugk(format, ...)
 #endif
 
+struct rscfl_acct_layout_t
+{
+  struct accounting acct[STRUCT_ACCT_NUM];
+  struct subsys_accounting subsyses[ACCT_SUBSYS_NUM];
+};
+typedef struct rscfl_acct_layout_t rscfl_acct_layout_t;
+
 struct syscall_interest_t
 {
   unsigned long syscall_id;
   int syscall_nr;
 };
 typedef struct syscall_interest_t syscall_interest_t;
+
+struct rscfl_ctrl_layout_t
+{
+  unsigned int version;
+  syscall_interest_t interest;
+};
+typedef struct rscfl_ctrl_layout_t rscfl_ctrl_layout_t;
 
 #endif

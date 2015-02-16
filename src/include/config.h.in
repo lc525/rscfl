@@ -11,10 +11,20 @@
 #endif
 
 #define RSCFL_PROJECT_NAME "@CMAKE_PROJECT_NAME@"
-static const unsigned int RSCFL_MAJOR_VERSION = @MAJOR_VERSION@;
-static const unsigned int RSCFL_MINOR_VERSION = @MINOR_VERSION@;
-static const unsigned int RSCFL_PATCH_VERSION = 0x@PATCH_VERSION@;
-static const char RSCFL_VERSION[] = "@VERSION@";
+
+typedef struct {
+  unsigned int major;
+  unsigned int minor;
+  unsigned int patch;
+  unsigned int data_layout;
+} rscfl_version_t;
+
+static const rscfl_version_t RSCFL_VERSION =
+  {@MAJOR_VERSION@, @MINOR_VERSION@, @PATCH_VERSION@, @DATA_LAYOUT_VERSION@};
+static const char RSCFL_VERSION_TAG[] = "@TAG_VERSION@";
+static const char RSCFL_VERSION_STR[] = "@VERSION@";
+
+@DEFINE_VERSION_MISMATCH_POLICY@
 
 // resourceful kernel module parameters:
 //

@@ -11,22 +11,47 @@
 #
 cmake_minimum_required(VERSION 2.8)
 
-# change the project name here by setting PNAME.
-#
 set(PNAME resourceful)
-
-# General cmake project definition follows. Customize as necessary
 project(${PNAME} C CXX)
 
 # variable definitions for generating configuration headers
+# please use semantic versioning (semver.org)
+# - all releases with the same major version need to be compatible API-wise
+# - set PROJECT_TAG_VERSION to "" if you want no tags (the variable is needed)
 set(PROJECT_MAJOR_VERSION 0)
 set(PROJECT_MINOR_VERSION 1)
+set(PROJECT_PATCH_VERSION 0)
+# data layout version. libraries and kernel modules with different data
+# layouts will not be able to communicate. this is not the same as MAJOR_VERSION
+# because you can modify the interface in non-backwards compatible ways but
+# still retain compatiblity with older rscfl kernel modules.
+set(PROJECT_DATA_LAYOUT_VERSION 2)
+# by default, set PROJECT_TAG_VERSION to the git revision
 execute_process(
   COMMAND git --git-dir ${${PNAME}_SOURCE_DIR}/../.git rev-parse --short HEAD
     OUTPUT_VARIABLE GIT_REV
 )
 string(REPLACE "\n" "" GIT_REV ${GIT_REV})
-set(PROJECT_PATCH_VERSION ${GIT_REV})
+# set tag version to something like "beta", "dev", "rel" (or leave it empty)
+# on publishing a given rscfl version
+#set(PROJECT_TAG_VERSION "dev")
+set(PROJECT_TAG_VERSION ${GIT_REV})
+
+if(${PROJECT_TAG_VERSION} STREQUAL "")
+  set(PVER ${PROJECT_MAJOR_VERSION}_${PROJECT_MINOR_VERSION}_${PROJECT_PATCH_VERSION})
+else()
+  set(PVER ${PROJECT_MAJOR_VERSION}_${PROJECT_MINOR_VERSION}_${PROJECT_PATCH_VERSION}_${PROJECT_TAG_VERSION})
+endif()
+
+# what to do on API version mismatch (the .so is a different version from
+# tha API)
+set(ERR_ON_VERSION_MISMATCH True)
+
+if(DEFINED ERR_ON_VERSION_MISMATCH)
+  set(DEFINE_VERSION_MISMATCH_POLICY "\#define RSCFL_ERR_VER_MISMATCH")
+else()
+  set(DEFINE_VERSION_MISMATCH_POLICY "//\#define RSCFL_ERR_VER_MISMATCH")
+endif()
 
 # set default project build options:
 set(DEFAULT_WITH_TESTS ON)
@@ -150,6 +175,8 @@ configure_project(
   ${PROJECT_MAJOR_VERSION}
   ${PROJECT_MINOR_VERSION}
   ${PROJECT_PATCH_VERSION}
+  ${PROJECT_TAG_VERSION}
+  ${PROJECT_DATA_LAYOUT_VERSION}
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${CMAKE_CURRENT_BINARY_DIR}/rscfl
 )
@@ -186,7 +213,7 @@ subsys_header_gen(${LINUX_ROOT}
 include(stap)
 
 set (stap_OUT_DIR ${PROJECT_BINARY_DIR}/Kstap_gen)
-set (stap_MOD_NAME rscfl_${PROJECT_PATCH_VERSION})
+set (stap_MOD_NAME rscfl_${PVER})
 
 set (stap_INCLUDES
   ${PROJECT_INCLUDE_DIR} # for cost.h and other headers

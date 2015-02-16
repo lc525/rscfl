@@ -61,12 +61,18 @@ function(lib_test test_NAME test_SOURCES)
   endif(WITH_TESTS)
 endfunction(lib_test)
 
-macro(configure_project major minor patch config_tpl_dir config_dir)
+macro(configure_project major minor patch tag_ver dlayout config_tpl_dir config_dir)
 
   set (MAJOR_VERSION ${major})
   set (MINOR_VERSION ${minor})
   set (PATCH_VERSION ${patch})
-  set (VERSION ${major}.${minor}-${patch})
+  set (DATA_LAYOUT_VERSION ${dlayout})
+  set (TAG_VERSION ${tag_ver})
+  if(${TAG_VERSION} STREQUAL "")
+    set (VERSION ${major}.${minor}.${patch})
+  else()
+    set (VERSION ${major}.${minor}.${patch}-${tag_ver})
+  endif()
 
   configure_file(
       "${config_tpl_dir}/config.h.in"

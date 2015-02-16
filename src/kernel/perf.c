@@ -59,11 +59,13 @@ int rscfl_perf_update_subsys_vals(struct subsys_accounting *add_subsys,
   int i;
 
   if (add_subsys != NULL) {
+    add_subsys->subsys_entries++;
     add_subsys->cpu.cycles += cycles;
     add_subsys->cpu.wall_clock_time.tv_sec += tmp_time.tv_sec;
     add_subsys->cpu.wall_clock_time.tv_nsec += tmp_time.tv_nsec;
   }
   if (minus_subsys != NULL) {
+    minus_subsys->subsys_exits++;
     minus_subsys->cpu.cycles -= cycles;
     minus_subsys->cpu.wall_clock_time.tv_sec -= tmp_time.tv_sec;
     minus_subsys->cpu.wall_clock_time.tv_nsec -= tmp_time.tv_nsec;

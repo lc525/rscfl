@@ -75,8 +75,7 @@ extern const char *rscfl_subsys_name[NUM_SUBSYSTEMS];
 struct rscfl_handle_t {
   char *buf;
   rscfl_syscall_id_t lst_syscall;
-
-  syscall_interest_t *interests;
+  rscfl_ctrl_layout_t *ctrl;
 };
 typedef struct rscfl_handle_t *rscfl_handle;
 
@@ -122,7 +121,13 @@ typedef struct subsys_idx_set subsys_idx_set;
 /*
  * -- common functionality --
  */
-rscfl_handle rscfl_init();
+
+/*
+ * rscfl_init is a macro so that we can do automatic API version checking.
+ * the actual function being called is rscfl_init_api(...)
+ */
+#define rscfl_init() rscfl_init_api(RSCFL_VERSION)
+rscfl_handle rscfl_init_api(rscfl_version_t api_ver);
 
 rscfl_handle rscfl_get_handle();
 

@@ -59,8 +59,8 @@ typedef struct kprobe_priv kprobe_priv;
 struct pid_acct {
   struct hlist_node link; // item in the per-bucket linked list
   pid_t pid;
-  struct rscfl_shared_mem_layout_t* shared_buf;        // shared with user-space
-  struct kprobe_priv* probe_data;     // private data used by each kprobe
+  struct rscfl_acct_layout_t *shared_buf;        // shared with user-space
+  struct kprobe_priv *probe_data;     // private data used by each kprobe
   syscall_interest_t *ctrl;  // pointer to the mapped data in the control driver.
   rscfl_subsys subsys_stack[SUBSYS_STACK_HEIGHT];
   rscfl_subsys *subsys_ptr;

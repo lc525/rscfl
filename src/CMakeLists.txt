@@ -34,8 +34,8 @@ execute_process(
 string(REPLACE "\n" "" GIT_REV ${GIT_REV})
 # set tag version to something like "beta", "dev", "rel" (or leave it empty)
 # on publishing a given rscfl version
-#set(PROJECT_TAG_VERSION "dev")
-set(PROJECT_TAG_VERSION ${GIT_REV})
+set(PROJECT_TAG_VERSION "rel")
+#set(PROJECT_TAG_VERSION ${GIT_REV})
 
 if(${PROJECT_TAG_VERSION} STREQUAL "")
   set(PVER ${PROJECT_MAJOR_VERSION}_${PROJECT_MINOR_VERSION}_${PROJECT_PATCH_VERSION})

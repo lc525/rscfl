@@ -21,7 +21,7 @@ args = {}
 # Progress bar data
 progress = 0
 # estimated number of probes without function pointers
-est_probes_nofp = 5000
+est_probes_nofp = 79000
 # estimated number of probes including function pointers
 est_probes_fp = 141400
 p_addr_delta = 1.0 / est_probes_fp
@@ -52,45 +52,46 @@ RSCFL_SUBSYS_ADDR_TEMPLATE = """
 #ifndef _RSCFL_SUBSYS_ADDR_H
 #define _RSCFL_SUBSYS_ADDR_H
 
-#include <linux/kprobes.h>
+#include <linux/types.h>
 
 #include "rscfl/{{ subsys_list_header }}"
 
+#define RSCFL_NUM_PROBES {{ NUM_PROBES }}
+
 {% for subsystem in subsystems %}
-static kprobe_opcode_t *{{ subsystem }}_ADDRS[] = {{ '{' }}
+static u8 *{{ subsystem }}_ADDRS[] = {{ '{' }}
 {% for (addr, name) in subsystems[subsystem] %}
-  (kprobe_opcode_t *)(0x{{ addr }}), {%- if name != "" %}   // {{ name }}{%- endif %}
+  (u8 *)(0x{{ addr }}), {%- if name != "" %}   // {{ name }}{%- endif %}
 {% endfor %}
   0
 {{ '};' }}
 
-int rscfl_pre_handler_{{ subsystem }}(struct kretprobe_instance *probe,
-       struct pt_regs *regs)
+void rscfl_pre_handler_{{ subsystem }}(void)
 {{ '{' }}
-  return rscfl_subsystem_entry({{ subsystem }}, probe);
+  rscfl_subsystem_entry({{ subsystem }});
 {{ '}' }}
 
-int rscfl_rtn_handler_{{ subsystem }}(struct kretprobe_instance *probe,
-struct pt_regs *regs)
+void rscfl_rtn_handler_{{ subsystem }}(void)
 {{ '{' }}
-  rscfl_subsystem_exit({{ subsystem }}, probe);
-  return 0;
+  asm("push %rax;");
+  rscfl_subsystem_exit({{ subsystem }});
+  asm("pop %rax;");
 {{ '}' }}
 {% endfor %}
 
-static kprobe_opcode_t **probe_addrs[] = {{ '{'  }}
+static u8 **probe_addrs[] = {{ '{'  }}
 {% for subsys in subsystems %}
   {{ subsys }}_ADDRS,
 {% endfor %}
 {{ '};' }}
 
-kretprobe_handler_t rscfl_pre_handlers[] = {{ '{' }}
+void (*rscfl_pre_handlers[]) (void) = {{ '{' }}
 {% for subsys in subsystems %}
   rscfl_pre_handler_{{ subsys }},
 {% endfor %}
 {{ '};' }}
 
-kretprobe_handler_t rscfl_post_handlers[] = {{ '{' }}
+void (*rscfl_post_handlers[]) (void) = {{ '{' }}
 {% for subsys in subsystems %}
   rscfl_rtn_handler_{{ subsys }},
 {% endfor %}
@@ -320,10 +321,13 @@ def get_addresses_of_boundary_calls(linux, build_dir, vmlinux_path):
             callee_addr = m.group(2)
             callee_name = m.group(3)
 
+            if callee_name == "__fentry__":
+                continue
+
             caller_subsys = get_subsys(caller_addr, addr2line, linux, build_dir)
             callee_subsys = get_subsys(callee_addr, addr2line, linux, build_dir)
             if callee_subsys != caller_subsys and callee_subsys is not None:
-                add_address_to_subsys(boundary_fns, callee_subsys, callee_addr,
+                add_address_to_subsys(boundary_fns, callee_subsys, caller_addr,
                                       callee_name)
     if not args.no_fp:
         stage = "kernel subsystem boundaries [f_ptr]"
@@ -474,6 +478,8 @@ def main():
         sharedh_fname = args.gen_shared_header.name
         template = jinja2.Template(RSCFL_SUBSYS_ADDR_TEMPLATE)
         targs = {}
+        targs['NUM_PROBES'] = sum(len(value) for (key, value) in
+                                  subsys_entries.items())
         targs['subsys_list_header'] = os.path.basename(sharedh_fname)
         targs['subsystems'] = dict((to_upper_alpha(key), value) for (key, value)
                                   in subsys_entries.items())

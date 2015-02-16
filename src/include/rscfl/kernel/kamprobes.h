@@ -1,0 +1,12 @@
+#ifndef _RSCFL_KAMPROBES_H_
+#define _RSCFL_KAMPROBES_H_
+
+#include <linux/types.h>
+#include <linux/kprobes.h>
+
+void kamprobes_unregister_all(void);
+
+int kamprobes_register(u8 **orig_addr, void (*pre_handler)(void),
+                       void (*post_handler)(void));
+#endif
+

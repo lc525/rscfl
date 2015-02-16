@@ -7,6 +7,8 @@
 #include "rscfl/res_common.h"
 #include "rscfl/subsys_list.h"
 
+#define SUBSYS_STACK_HEIGHT 20
+
 /* Per-CPU (pid -> accounting buf) hash table pid_to_acct_tbl
  *
  * We allocate one hash table per CPU in order to hold (pid, accounting*) pairs
@@ -60,7 +62,9 @@ struct pid_acct {
   struct rscfl_shared_mem_layout_t* shared_buf;        // shared with user-space
   struct kprobe_priv* probe_data;     // private data used by each kprobe
   syscall_interest_t *ctrl;  // pointer to the mapped data in the control driver.
-  rscfl_subsys curr_subsys;
+  rscfl_subsys subsys_stack[SUBSYS_STACK_HEIGHT];
+  rscfl_subsys *subsys_ptr;
+  _Bool executing_probe;
 };
 typedef struct pid_acct pid_acct;
 

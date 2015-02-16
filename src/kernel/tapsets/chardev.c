@@ -222,7 +222,7 @@ static int data_mmap(struct file *filp, struct vm_area_struct *vma)
   }
   pid_acct_node->curr_subsys = -1;
   pid_acct_node->pid = current->pid;
-  pid_acct_node->shared_buf = (rscfl_shared_mem_layout_t *)shared_data_buf;
+  pid_acct_node->shared_buf = (rscfl_acct_layout_t *)shared_data_buf;
   pid_acct_node->probe_data = probe_data;
   drv_data = (rscfl_vma_data*) vma->vm_private_data;
   drv_data->pid_acct_node = pid_acct_node;
@@ -243,6 +243,7 @@ static int ctrl_mmap(struct file *filp, struct vm_area_struct *vma)
   int rc;
   char *shared_ctrl_buf;
   struct rscfl_vma_data *drv_data;
+  rscfl_ctrl_layout_t *ctrl_layout;
   pid_acct *current_pid_acct;
 
   if ((rc = mmap_common(filp, vma, &shared_ctrl_buf, MMAP_CTL_SIZE))) {
@@ -251,10 +252,14 @@ static int ctrl_mmap(struct file *filp, struct vm_area_struct *vma)
 
   preempt_disable();
 
-  current_pid_acct = CPU_VAR(current_acct);
+  ctrl_layout = (rscfl_ctrl_layout_t *)shared_ctrl_buf;
+  ctrl_layout->version = RSCFL_VERSION.data_layout;
+
   // We need to store the address of the control page for the pid, so we
   // can see when an interest is raised.
-  current_pid_acct->ctrl = (syscall_interest_t *)shared_ctrl_buf;
+  current_pid_acct = CPU_VAR(current_acct);
+  current_pid_acct->ctrl = &ctrl_layout->interest;
+
   drv_data = (rscfl_vma_data*) vma->vm_private_data;
   drv_data->pid_acct_node = current_pid_acct;
   preempt_enable();

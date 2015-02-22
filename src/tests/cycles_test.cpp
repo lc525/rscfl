@@ -27,7 +27,7 @@ class CyclesTest : public testing::Test
     ASSERT_EQ(0, rscfl_acct_next(rhdl_));
 
     ru64 val_pre = test_get_cycles();
-    int sockfd_ = socket(AF_LOCAL, SOCK_RAW, 0);
+    sockfd_ = socket(AF_LOCAL, SOCK_RAW, 0);
     ru64 val_post = test_get_cycles();
     user_cycles_ = val_post - val_pre;
 

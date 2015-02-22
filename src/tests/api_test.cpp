@@ -96,7 +96,7 @@ TEST_F(APITest,
 {
   int no_subsys_in_idx = 0;
   one_acct_ = rscfl_get_subsys(rhdl_, &acct_);
-  EXPECT_TRUE(one_acct_ != NULL);
+  ASSERT_TRUE(one_acct_ != NULL);
 
   // check that the index and id's array data match
   // constraint: idx(id(i)) == i

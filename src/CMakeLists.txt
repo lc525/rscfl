@@ -226,6 +226,7 @@ set (stap_gen_SOURCES
 set (stap_SOURCES
   ${PROJECT_SOURCE_DIR}/PMurHash.c
   ${PROJECT_SOURCE_DIR}/perf.c
+  ${PROJECT_SOURCE_DIR}/priv_kallsyms.c
   ${PROJECT_SOURCE_DIR}/tapsets/chardev.c
   ${PROJECT_SOURCE_DIR}/tapsets/cpu.c
   ${PROJECT_SOURCE_DIR}/tapsets/hasht.c
@@ -246,6 +247,7 @@ set (stap_DEPS # if any of those files change, the stap ko is rebuilt
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/kamprobes.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/probe_manager.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/perf.h
+  ${PROJECT_INCLUDE_DIR}/rscfl/kernel/priv_kallsyms.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/probes.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/sched.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/stap_shim.h

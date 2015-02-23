@@ -10,7 +10,7 @@
 
 #include "rscfl/res_common.h"
 
-#define WRAPPER_SIZE 67
+#define WRAPPER_SIZE 71
 
 #define WORD_SIZE_IN_BYTES 8
 
@@ -91,16 +91,18 @@ static inline void emit_callq(char **wrapper_end, char *addr)
   emit_rel_address(wrapper_end, addr);
 }
 
-static inline void emit_return_address_to_r11(char **wrapper_end)
+static inline void emit_return_address_to_r11(char **wrapper_end,
+                                              char *wrapper_fp)
 {
-  // mov (%rsp) r11
-  const char machine_code[] = {0x4c, 0x8b, 0x1d, 0xc0, 0xff, 0xff, 0xff};
+  // mov r11, [rip-addr]
+  const char machine_code[] = {0x4c, 0x8b, 0x1d};
   emit_multiple_ins(wrapper_end, machine_code, sizeof(machine_code));
+  emit_rel_address(wrapper_end, wrapper_fp - 8);
 }
 
 static inline void emit_mov_rsp_r11(char **wrapper_end)
 {
-  // mov $wrapper_fp - 8, %r11
+  // mov (%rsp), %r11
   const char machine_code[] = {0x4c, 0x8b, 0x1c, 0x24};
   emit_multiple_ins(wrapper_end, machine_code, sizeof(machine_code));
 }
@@ -146,7 +148,11 @@ static inline void emit_save_registers(char **wrapper_end)
                         0x50,
 
                         0x41,  // r9
-                        0x51};
+                        0x51,
+
+                        0x41,  // r10
+                        0x52,
+  };
   int i;
   for (i = 0; i < sizeof(insns); i++) {
     emit_ins(wrapper_end, insns[i]);
@@ -156,6 +162,9 @@ static inline void emit_save_registers(char **wrapper_end)
 static inline void emit_restore_registers(char **wrapper_end)
 {
   const char insns[] = {
+      0x41,
+      0x5a,
+
       0x41,  // r9
       0x59,
 
@@ -245,6 +254,7 @@ int kamprobes_register(u8 **orig_addr, void (*pre_handler)(void),
   // put it in a register that we can trash (eg r11), and then move that
   // register to the top of the wrapper frame.
   if (!is_call_ins(orig_addr)) {
+    debugk("sys at %p\n", wrapper_fp);
     emit_mov_rsp_r11(&wrapper_end);
 
     // mov r11 wrapper_fp - 8
@@ -300,7 +310,7 @@ int kamprobes_register(u8 **orig_addr, void (*pre_handler)(void),
     // We now need to restore it.
 
     // First, move the return address into a register that we can trash (r11).
-    emit_return_address_to_r11(&wrapper_end);
+    emit_return_address_to_r11(&wrapper_end, wrapper_fp);
 
     // Now push r11, which contains the return address, onto the stack.
     emit_ins(&wrapper_end, 0x41);

@@ -55,6 +55,8 @@ TEST_F(WCTTest, WallClock_Kernel_LT_User)
     [](subsys_accounting *s, rscfl_subsys id){ return &s->cpu.wall_clock_time;},
     timespec_add);
 
+  EXPECT_EQ(0, reduce_err);
+
   EXPECT_EQ(-1, timespec_compare(&kernel_time, &val_post)) <<
     "expected (kernel_time) < (val_post) actual: (" <<
     kernel_time.tv_sec << " s, " << kernel_time.tv_nsec <<" ns) vs (" <<

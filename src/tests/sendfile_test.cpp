@@ -83,6 +83,5 @@ TEST_F(SendFileTest, TestSendFileTouchesExt4)
 {
   // We must be able to read our struct accounting back from rscfl.
   // Ext4 takes a differe
-  ASSERT_FALSE(rscfl_get_subsys_by_id(rhdl_, &acct_, EXT4FILESYSTEM) !=
-               nullptr);
+  ASSERT_EQ(nullptr, rscfl_get_subsys_by_id(rhdl_, &acct_, EXT4FILESYSTEM));
 }

@@ -14,7 +14,6 @@
 _(BLOCKLAYER)                       \
 _(NETWORKINGIPV4IPV6)               \
 _(NETWORKINGGENERAL)                \
-_(EXT4FILESYSTEM)                   \
 _(FILESYSTEMSVFSANDINFRASTRUCTURE)  \
 _(NETWORKINGDRIVERS)                \
 _(SECURITYSUBSYSTEM)

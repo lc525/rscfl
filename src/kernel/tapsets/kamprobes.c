@@ -45,9 +45,11 @@ void kamprobes_unregister_all(void)
 {
   int i;
 
+  mutex_lock(KPRIV(text_mutex));
   for (i = 0; i < no_probes; i++) {
     KPRIV(text_poke)(probe_list[i].loc, probe_list[i].vals, CALL_WIDTH);
   }
+  mutex_unlock(KPRIV(text_mutex));
 }
 
 static inline void emit_rel_address(char **wrapper_end, char *addr)
@@ -323,11 +325,13 @@ int kamprobes_register(u8 **orig_addr, void (*pre_handler)(void),
 
   // Poke the original instruction to point to our wrapper.
   addr_ptr = wrapper_fp - CALL_WIDTH - (char *)*orig_addr;
+
+  mutex_lock(KPRIV(text_mutex));
   if (!is_call_ins(orig_addr)) {
     KPRIV(text_poke)(*orig_addr, &jmpq_opcode, 1);
   }
   // Rewrte operand.
   KPRIV(text_poke)((*orig_addr) + 1, &addr_ptr, 4);
-
+  mutex_unlock(KPRIV(text_mutex));
   return 0;
 }

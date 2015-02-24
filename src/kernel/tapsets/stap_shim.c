@@ -1,25 +1,10 @@
 #include "rscfl/kernel/stap_shim.h"
 
-#include <asm/atomic.h>
-#include <linux/rwlock_types.h>
-#include <linux/slab.h>
-#include <linux/smp.h> // only here for smp_processor_id()
-#include <linux/spinlock.h>
-
 #include "rscfl/config.h"
 #include "rscfl/costs.h"
 #include "rscfl/res_common.h"
 #include "rscfl/kernel/cpu.h"
 
-
-long syscall_id_c;
-
-static rwlock_t lock = __RW_LOCK_UNLOCKED(lock);
-
-/**
- * if syscall_nr==-1 then we account for the next syscall, independent of which
- * syscall is executed.
- **/
 int should_acct(void)
 {
   syscall_interest_t *interest;

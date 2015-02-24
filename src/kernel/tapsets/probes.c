@@ -6,6 +6,7 @@
 #include "rscfl/kernel/cpu.h"
 #include "rscfl/kernel/probe_manager.h"
 #include "rscfl/kernel/perf.h"
+#include "rscfl/kernel/priv_kallsyms.h"
 #include "rscfl/kernel/stap_shim.h"
 #include "rscfl/kernel/subsys_addr.h"
 
@@ -27,7 +28,7 @@ static int executing_probe = 0;
 int probes_init(void)
 {
   u8 **probe_addr;
-  int rcd = 0, rcc = 0, rcp = 0, rckp = 0;
+  int rcsym = 0, rcd = 0, rcc = 0, rcp = 0, rckp = 0;
   kprobe_pre_handler_t pre_handler = pre_handler;
   int subsys_num;
   u8 **probe_addrs_temp[] = {PROBE_LIST(PROBES_AS_ADDRS)};
@@ -36,6 +37,12 @@ int probes_init(void)
 
   void (*probe_post_handlers_temp[])(void) = {PROBE_LIST(PROBES_AS_RTN_HANDLE)};
 
+  // get addresses for private kernel symbols
+  rcsym = init_priv_kallsyms();
+  if (rcsym) {
+    printk(KERN_ERR "rscfl: cannot find required kernel kallsyms\n");
+    return rcsym;
+  }
   // stap disables preemption even when running begin/end probes.
   // however, _rscfl_shim_init might sleep,
   // causing an BUG: scheduled in atomic section kernel error (for

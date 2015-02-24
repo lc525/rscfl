@@ -9,6 +9,7 @@
 #include <linux/vmalloc.h>
 
 #include "rscfl/res_common.h"
+#include "rscfl/kernel/priv_kallsyms.h"
 
 #define WRAPPER_SIZE 67
 
@@ -44,9 +45,11 @@ void kamprobes_unregister_all(void)
 {
   int i;
 
+  mutex_lock(KPRIV(text_mutex));
   for (i = 0; i < no_probes; i++) {
-    text_poke(probe_list[i].loc, probe_list[i].vals, CALL_WIDTH);
+    KPRIV(text_poke)(probe_list[i].loc, probe_list[i].vals, CALL_WIDTH);
   }
+  mutex_unlock(KPRIV(text_mutex));
 }
 
 static inline void emit_rel_address(char **wrapper_end, char *addr)
@@ -194,7 +197,7 @@ int kamprobes_init(int max_probes)
   }
 
   if (wrapper_start == NULL) {
-    wrapper_start = __vmalloc_node_range(
+    wrapper_start = KPRIV(__vmalloc_node_range)(
         WRAPPER_SIZE * max_probes, 1, MODULES_VADDR, MODULES_END,
         GFP_KERNEL | __GFP_HIGHMEM, PAGE_KERNEL_EXEC, NUMA_NO_NODE,
         __builtin_return_address(0));
@@ -322,11 +325,13 @@ int kamprobes_register(u8 **orig_addr, void (*pre_handler)(void),
 
   // Poke the original instruction to point to our wrapper.
   addr_ptr = wrapper_fp - CALL_WIDTH - (char *)*orig_addr;
+
+  mutex_lock(KPRIV(text_mutex));
   if (!is_call_ins(orig_addr)) {
-    text_poke(*orig_addr, &jmpq_opcode, 1);
+    KPRIV(text_poke)(*orig_addr, &jmpq_opcode, 1);
   }
   // Rewrte operand.
-  text_poke((*orig_addr) + 1, &addr_ptr, 4);
-
+  KPRIV(text_poke)((*orig_addr) + 1, &addr_ptr, 4);
+  mutex_unlock(KPRIV(text_mutex));
   return 0;
 }

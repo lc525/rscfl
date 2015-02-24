@@ -74,7 +74,9 @@ void rscfl_pre_handler_{{ subsystem }}(void)
 void rscfl_rtn_handler_{{ subsystem }}(void)
 {{ '{' }}
   asm("push %rax;");
+  asm("push %rdx;");
   rscfl_subsystem_exit({{ subsystem }});
+  asm("pop %rdx;");
   asm("pop %rax;");
 {{ '}' }}
 {% endfor %}

@@ -9,12 +9,12 @@ void rscfl_unregister_probes(void)
   kamprobes_unregister_all();
 }
 
-int rscfl_init_rtn_probes(u8 **subsys_addrs[], char *sys_type[], int num_subsys,
-                          int num_probes, void (*kp_pre_handler[])(void),
-                          void (*kp_rtn_handler[])(void))
+int rscfl_probes_init(u8 **subsys_addrs[], char *sys_type[], int num_subsys,
+                      int num_probes, void (*kp_pre_handler[])(void),
+                      void (*kp_rtn_handler[])(void))
 {
   int i;
-  int rc;
+  int rc, failures = 0;
   unsigned long flags;
 
   kamprobes_init(num_probes);
@@ -26,12 +26,12 @@ int rscfl_init_rtn_probes(u8 **subsys_addrs[], char *sys_type[], int num_subsys,
       rc = kamprobes_register(sub_addr, sys_type[i][j],
                               kp_pre_handler[i], kp_rtn_handler[i]);
       if (rc) {
-        return rc;
+        failures++;
       }
       sub_addr++;
       j++;
     }
   }
   local_irq_restore(flags);
-  return 0;
+  return failures;
 }

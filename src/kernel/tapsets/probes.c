@@ -59,7 +59,7 @@ int probes_init(void)
   preempt_enable();
   rcd = _rscfl_dev_init();
   rcp = rscfl_perf_init();
-  rckp = rscfl_init_rtn_probes(
+  rckp = rscfl_probes_init(
       probe_addrs_temp,
       syscall_type_temp,
       sizeof(probe_pre_handlers_temp) / sizeof(kretprobe_handler_t),
@@ -79,7 +79,9 @@ int probes_init(void)
     return rcp;
   }
   if (rckp) {
-    printk("rscfl: failed to create probes: %d\n", rckp);
+    // do not fail just because we couldn't set a couple of probes
+    // instead, print a warning
+    printk(KERN_WARNING "rscfl: failed to insert %d probes\n", rckp);
   }
   // Need to make kprobes work properly, and then return rckp.
   return 0;

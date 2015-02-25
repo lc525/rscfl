@@ -360,16 +360,16 @@ int kamprobes_register(u8 **orig_addr, char sys_type, void (*pre_handler)(void),
   // Poke the original instruction to point to our wrapper.
   addr_ptr = wrapper_fp - CALL_WIDTH - (char *)*orig_addr;
 
-  if(!is_call_ins(orig_addr)) {
-    text_poke_isns[0] = jmpq_opcode;
-  } else {
+  if(is_call_ins(orig_addr)) { // callq
     text_poke_isns[0] = callq_opcode;
+  } else {                     // SyS_ call
+    text_poke_isns[0] = jmpq_opcode;
   }
-  memcpy(text_poke_isns + 1, &addr_ptr, 4);
+  memcpy(text_poke_isns + 1, &addr_ptr, CALL_WIDTH - 1);
 
   get_online_cpus();
   mutex_lock(KPRIV(text_mutex));
-  KPRIV(text_poke)(*orig_addr, &text_poke_isns, 5);
+  KPRIV(text_poke)(*orig_addr, &text_poke_isns, CALL_WIDTH);
   mutex_unlock(KPRIV(text_mutex));
   put_online_cpus();
   return 0;

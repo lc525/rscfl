@@ -74,7 +74,9 @@ void rscfl_pre_handler_{{ subsystem }}(void)
 void rscfl_rtn_handler_{{ subsystem }}(void)
 {{ '{' }}
   asm("push %rax;");
+  asm("push %rdx;");
   rscfl_subsystem_exit({{ subsystem }});
+  asm("pop %rdx;");
   asm("pop %rax;");
 {{ '}' }}
 {% endfor %}
@@ -310,6 +312,8 @@ def get_addresses_of_boundary_calls(linux, build_dir, vmlinux_path):
             fn_addr_name_map[fn_addr] = fn_name
             # Syscalls all have SyS_ in their name. Sometimes they may be
             # prepended. e.g. compat_SyS_sendfile.
+            caller_subsys = get_subsys(fn_addr, addr2line, linux, build_dir)
+
             if "SyS_" in fn_name:
                 fn_subsys = get_subsys(fn_addr, addr2line, linux, build_dir)
                 add_address_to_subsys(boundary_fns, fn_subsys, fn_addr, fn_name)
@@ -324,7 +328,6 @@ def get_addresses_of_boundary_calls(linux, build_dir, vmlinux_path):
             if callee_name == "__fentry__":
                 continue
 
-            caller_subsys = get_subsys(caller_addr, addr2line, linux, build_dir)
             callee_subsys = get_subsys(callee_addr, addr2line, linux, build_dir)
             if callee_subsys != caller_subsys and callee_subsys is not None:
                 add_address_to_subsys(boundary_fns, callee_subsys, caller_addr,

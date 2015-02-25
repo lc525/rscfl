@@ -206,7 +206,7 @@ static inline int is_call_ins(u8 **addr)
   return **addr == 0xe8;
 }
 
-static inline int is_nop(u8 **addr)
+static inline int is_noop(u8 **addr)
 {
   return (**addr == 0x90 || **addr == 0x0f || **addr == 0x1f);
 }
@@ -250,7 +250,8 @@ int kamprobes_register(u8 **orig_addr, char sys_type, void (*pre_handler)(void),
   const char callq_opcode = 0xe8;
   const char jmpq_opcode = 0xe9;
 
-  if(!is_call_ins(orig_addr)) return 0;
+  // Refuse to register probes on any addr which is not a callq or a noop
+  if(!is_call_ins(orig_addr) && !is_noop(orig_addr)) return -EINVAL;
 
   // If *orig_addr is not a call instruction then we assume it is the start
   // of a sys_ function, so is called through magic pointers. We don't want to

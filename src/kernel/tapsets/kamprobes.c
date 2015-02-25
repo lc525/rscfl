@@ -1,6 +1,7 @@
 #include "rscfl/kernel/kamprobes.h"
 
 #include <asm/alternative.h>
+#include <linux/cpu.h>
 #include <linux/kernel.h>
 #include <linux/memory.h>
 #include <linux/mutex.h>
@@ -50,11 +51,13 @@ void kamprobes_unregister_all(void)
 {
   int i;
 
+  get_online_cpus();
   mutex_lock(KPRIV(text_mutex));
   for (i = 0; i < no_probes; i++) {
     KPRIV(text_poke)(probe_list[i].loc, probe_list[i].vals, CALL_WIDTH);
   }
   mutex_unlock(KPRIV(text_mutex));
+  put_online_cpus();
 }
 
 static inline void emit_rel_address(char **wrapper_end, char *addr)
@@ -363,9 +366,10 @@ int kamprobes_register(u8 **orig_addr, char sys_type, void (*pre_handler)(void),
   }
   memcpy(text_poke_isns + 1, &addr_ptr, 4);
 
+  get_online_cpus();
   mutex_lock(KPRIV(text_mutex));
   KPRIV(text_poke)(*orig_addr, &text_poke_isns, 5);
   mutex_unlock(KPRIV(text_mutex));
-
+  put_online_cpus();
   return 0;
 }

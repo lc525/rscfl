@@ -26,6 +26,8 @@ const char *rscfl_subsys_name[NUM_SUBSYSTEMS] = {
     SUBSYS_TABLE(SUBSYS_AS_STR_ARRAY)
 };
 
+__thread rscfl_handle handle = NULL;
+
 rscfl_handle rscfl_init_api(rscfl_version_t rscfl_ver)
 {
   struct stat sb;
@@ -107,6 +109,14 @@ error:
     free(rhdl);
   }
   return NULL;
+}
+
+rscfl_handle rscfl_get_handle()
+{
+  if (handle == NULL) {
+    handle = rscfl_init();
+  }
+  return handle;
 }
 
 int rscfl_acct_next(rscfl_handle rhdl)

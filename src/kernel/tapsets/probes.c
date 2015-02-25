@@ -53,12 +53,12 @@ int probes_init(void)
   // scheduling here.
   // TODO(lc525): see if we need to restore IRQs as well
   //
-  rcc = _rscfl_cpus_init();
+//  rcc = _rscfl_cpus_init();
   debugk("per-thread mmap alloc: Total: %lu, /acct: %d, /subsys: %lu\n",
          MMAP_BUF_SIZE, STRUCT_ACCT_NUM, ACCT_SUBSYS_NUM);
   preempt_enable();
-  rcd = _rscfl_dev_init();
-  rcp = rscfl_perf_init();
+//  rcd = _rscfl_dev_init();
+//  rcp = rscfl_perf_init();
   rckp = rscfl_init_rtn_probes(
       probe_addrs_temp,
       syscall_type_temp,
@@ -92,10 +92,10 @@ int probes_cleanup(void)
   // see comment in probes_init for why we need to explicitly enable
   // preemption here
   preempt_enable();
-  rcd = _rscfl_dev_cleanup();
+  //rcd = _rscfl_dev_cleanup();
   rscfl_unregister_probes();
   preempt_disable();
-  rcc = _rscfl_cpus_cleanup();
+  //rcc = _rscfl_cpus_cleanup();
 
   if (rcd) {
     printk(KERN_ERR "rscfl: cannot cleanup rscfl drivers\n");

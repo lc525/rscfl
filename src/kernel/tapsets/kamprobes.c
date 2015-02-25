@@ -203,6 +203,11 @@ static inline int is_call_ins(u8 **addr)
   return **addr == 0xe8;
 }
 
+static inline int is_nop(u8 **addr)
+{
+  return (**addr == 0x90 || **addr == 0x0f || **addr == 0x1f);
+}
+
 int kamprobes_init(int max_probes)
 {
   probe_list = kmalloc(sizeof(struct orig_insn) * max_probes, GFP_KERNEL);
@@ -235,11 +240,14 @@ int kamprobes_register(u8 **orig_addr, char sys_type, void (*pre_handler)(void),
   int offset;
   char *target;
   int32_t addr_ptr;
+  unsigned char text_poke_isns[5];
 
   int i;
 
   const char callq_opcode = 0xe8;
   const char jmpq_opcode = 0xe9;
+
+  if(!is_call_ins(orig_addr)) return 0;
 
   // If *orig_addr is not a call instruction then we assume it is the start
   // of a sys_ function, so is called through magic pointers. We don't want to
@@ -262,7 +270,7 @@ int kamprobes_register(u8 **orig_addr, char sys_type, void (*pre_handler)(void),
   // put it in a register that we can trash (eg r11), and then move that
   // register to the top of the wrapper frame.
   if (!is_call_ins(orig_addr)) {
-    debugk("sys at %p\n", wrapper_fp);
+    debugk("sys at %p, firstb: %#0x\n", *orig_addr, **orig_addr);
     emit_mov_rsp_r11(&wrapper_end);
 
     // mov r11 wrapper_fp - 8
@@ -348,12 +356,16 @@ int kamprobes_register(u8 **orig_addr, char sys_type, void (*pre_handler)(void),
   // Poke the original instruction to point to our wrapper.
   addr_ptr = wrapper_fp - CALL_WIDTH - (char *)*orig_addr;
 
-  mutex_lock(KPRIV(text_mutex));
-  if (!is_call_ins(orig_addr)) {
-    KPRIV(text_poke)(*orig_addr, &jmpq_opcode, 1);
+  if(!is_call_ins(orig_addr)) {
+    text_poke_isns[0] = jmpq_opcode;
+  } else {
+    text_poke_isns[0] = callq_opcode;
   }
-  // Rewrte operand.
-  KPRIV(text_poke)((*orig_addr) + 1, &addr_ptr, 4);
+  memcpy(text_poke_isns + 1, &addr_ptr, 4);
+
+  mutex_lock(KPRIV(text_mutex));
+  KPRIV(text_poke)(*orig_addr, &text_poke_isns, 5);
   mutex_unlock(KPRIV(text_mutex));
+
   return 0;
 }

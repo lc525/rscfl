@@ -19,6 +19,7 @@ _(NETWORKINGDRIVERS)                \
 _(SECURITYSUBSYSTEM)
 
 #define PROBES_AS_ADDRS(a) a##_ADDRS,
+#define PROBES_AS_SYSCALL_TYPE(a) a##_INTERNAL_SYSCALL,
 #define PROBES_AS_PRE_HANDLE(a) rscfl_pre_handler_##a,
 #define PROBES_AS_RTN_HANDLE(a) rscfl_rtn_handler_##a,
 
@@ -31,6 +32,7 @@ int probes_init(void)
   kprobe_pre_handler_t pre_handler = pre_handler;
   int subsys_num;
   u8 **probe_addrs_temp[] = {PROBE_LIST(PROBES_AS_ADDRS)};
+  char *syscall_type_temp[] = {PROBE_LIST(PROBES_AS_SYSCALL_TYPE)};
 
   void (*probe_pre_handlers_temp[])(void) = {PROBE_LIST(PROBES_AS_PRE_HANDLE)};
 
@@ -59,6 +61,7 @@ int probes_init(void)
   rcp = rscfl_perf_init();
   rckp = rscfl_init_rtn_probes(
       probe_addrs_temp,
+      syscall_type_temp,
       sizeof(probe_pre_handlers_temp) / sizeof(kretprobe_handler_t),
       RSCFL_NUM_PROBES, probe_pre_handlers_temp, probe_post_handlers_temp);
   preempt_disable();

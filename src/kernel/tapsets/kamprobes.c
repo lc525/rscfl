@@ -19,6 +19,11 @@
 #define JMP_WIDTH 5
 #define MOV_WIDTH 8
 
+enum SYS_TYPE {
+  NOT_A_SYSCALL=1,
+  INTERNAL_SYSCALL=2,
+};
+
 struct orig_insn
 {
   char *loc;
@@ -222,7 +227,7 @@ int kamprobes_init(int max_probes)
   return 0;
 }
 
-int kamprobes_register(u8 **orig_addr, void (*pre_handler)(void),
+int kamprobes_register(u8 **orig_addr, char sys_type, void (*pre_handler)(void),
                        void (*post_handler)(void))
 {
   void *callq_target;
@@ -291,7 +296,14 @@ int kamprobes_register(u8 **orig_addr, void (*pre_handler)(void),
     // If this is a normal function (not a SyS_) then the code we run is the
     // target of the call instruction that we're replacing. We jump into it as
     // we've already pushed a return address onto the stack.
-    emit_jump(&wrapper_end, target);
+    switch(sys_type){
+      case NOT_A_SYSCALL:
+        emit_jump(&wrapper_end, target);
+        break;
+      case INTERNAL_SYSCALL:
+        emit_jump(&wrapper_end, target+5);
+        break;
+    }
 
     // Rtn-handling code.
 

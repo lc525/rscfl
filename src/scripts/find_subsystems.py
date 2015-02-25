@@ -60,8 +60,15 @@ RSCFL_SUBSYS_ADDR_TEMPLATE = """
 
 {% for subsystem in subsystems %}
 static u8 *{{ subsystem }}_ADDRS[] = {{ '{' }}
-{% for (addr, name) in subsystems[subsystem] %}
+{% for (addr, name, type) in subsystems[subsystem] %}
   (u8 *)(0x{{ addr }}), {%- if name != "" %}   // {{ name }}{%- endif %}
+{% endfor %}
+  0
+{{ '};' }}
+
+static char {{ subsystem }}_INTERNAL_SYSCALL[] = {{ '{' }}
+{% for (addr, name, type) in subsystems[subsystem] %}
+    {{ type }},
 {% endfor %}
   0
 {{ '};' }}
@@ -99,6 +106,11 @@ void (*rscfl_post_handlers[]) (void) = {{ '{' }}
 {% endfor %}
 {{ '};' }}
 
+static char* is_internal_syscall[] = {{ '{'  }}
+{% for subsys in subsystems %}
+  {{ subsys }}_INTERNAL_SYSCALL,
+{% endfor %}
+{{ '};' }}
 
 
 #endif
@@ -246,7 +258,7 @@ def get_function_pointers(vmlinux_path):
     return fn_ptrs
 
 def add_address_to_subsys(boundary_fns, subsys, fn_addr, fn_name,
-        upd_progress=True):
+        is_internal_syscall, upd_progress=True):
     """Add an address to the list of addresses on a subsystem boundary.
 
     Check to see if the address is already in the subsystem, and if not then
@@ -262,8 +274,8 @@ def add_address_to_subsys(boundary_fns, subsys, fn_addr, fn_name,
     """
     if subsys not in boundary_fns:
         boundary_fns[subsys] = []
-    if ((fn_addr, fn_name)) not in boundary_fns[subsys]:
-        boundary_fns[subsys].append((fn_addr, fn_name))
+    if ((fn_addr, fn_name, is_internal_syscall + 1)) not in boundary_fns[subsys]:
+        boundary_fns[subsys].append((fn_addr, fn_name, is_internal_syscall + 1))
         if upd_progress:
             update_progress(p_addr_delta)
 
@@ -304,7 +316,7 @@ def get_addresses_of_boundary_calls(linux, build_dir, vmlinux_path):
     p_callq = re.compile("([0-9a-f]{16,16}).*callq.*([0-9a-f]{16,16}) <(.*)>$")
     for line in proc.stdout:
 
-        # If we are entering a system call handler, add a probe.
+        # We are entering a function.
         m = p_fn_entry.match(line)
         if m:
             fn_addr = m.group(1)
@@ -316,7 +328,7 @@ def get_addresses_of_boundary_calls(linux, build_dir, vmlinux_path):
 
             if "SyS_" in fn_name:
                 fn_subsys = get_subsys(fn_addr, addr2line, linux, build_dir)
-                add_address_to_subsys(boundary_fns, fn_subsys, fn_addr, fn_name)
+                add_address_to_subsys(boundary_fns, fn_subsys, fn_addr, fn_name, 0)
 
         # If this is a function call look to see if we're crosssing a boundary.
         m = p_callq.match(line)
@@ -330,8 +342,11 @@ def get_addresses_of_boundary_calls(linux, build_dir, vmlinux_path):
 
             callee_subsys = get_subsys(callee_addr, addr2line, linux, build_dir)
             if callee_subsys != caller_subsys and callee_subsys is not None:
+                is_internal_syscall = 0
+                if "SyS_" in callee_name:
+                    is_internal_syscall = 1
                 add_address_to_subsys(boundary_fns, callee_subsys, caller_addr,
-                                      callee_name)
+                                      callee_name, is_internal_syscall)
     if not args.no_fp:
         stage = "kernel subsystem boundaries [f_ptr]"
         update_progress(0)
@@ -342,7 +357,7 @@ def get_addresses_of_boundary_calls(linux, build_dir, vmlinux_path):
                 sys.stderr.write("Error %s\n" % target)
             else:
                 add_address_to_subsys(boundary_fns, subsys, target,
-                                      fn_addr_name_map[target], False)
+                                      fn_addr_name_map[target], 0, False)
     return boundary_fns
 
 

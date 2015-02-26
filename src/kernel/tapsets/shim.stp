@@ -1,13 +1,7 @@
 %{
 #include "rscfl/kernel/stap_shim.h"
 
-#include "rscfl/config.h"
-#include "rscfl/costs.h"
-#include "rscfl/kernel/perf.h"
 #include "rscfl/kernel/probes.h"
-#include "rscfl/res_common.h"
-
-struct accounting *acct = NULL;
 %}
 
 /**
@@ -23,17 +17,6 @@ function probes_end:long()
   STAP_RETVALUE = probes_cleanup();
 %}
 
-
-
-/**
- * ACCOUNTING HELPERS
- * The underlying C functions being called are defined in stap_shim.h
- *
- * NOTE(lc525): avoid deeply nested stp function calls, as the generated
- * code will include multiple context and IRQ save/restores. This means
- * some duplicate code is preffered rather than additional convenience
- * functions.
- */
 function kpid:long()
 %{
   STAP_RETVALUE = current->pid;

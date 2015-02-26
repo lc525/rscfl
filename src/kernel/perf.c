@@ -1,6 +1,5 @@
 #include "rscfl/kernel/perf.h"
 
-#include "linux/nmi.h"
 #include "linux/perf_event.h"
 #include "linux/time.h"
 

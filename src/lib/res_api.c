@@ -26,8 +26,6 @@ const char *rscfl_subsys_name[NUM_SUBSYSTEMS] = {
     SUBSYS_TABLE(SUBSYS_AS_STR_ARRAY)
 };
 
-// THIS IS HERE ONLY FOR THE HOTDEP PAPER
-// TODO(lc525): remove
 __thread rscfl_handle handle = NULL;
 
 rscfl_handle rscfl_init_api(rscfl_version_t rscfl_ver)

@@ -6,6 +6,7 @@
 #include <time.h>
 
 #include <rscfl/costs.h>
+#include <rscfl/res_common.h>
 #include <rscfl/subsys_list.h>
 #include <rscfl/user/res_api.h>
 
@@ -43,7 +44,7 @@ TEST_F(WCTTest, WallClock_Kernel_LT_User)
   int sockfd = socket(AF_LOCAL, SOCK_RAW, 0);
   EXPECT_GT(sockfd, 0);
   struct timespec val_post = wct_test_get_time();
-  timespec_diff(&val_post, &val_pre);
+  rscfl_timespec_diff(&val_post, &val_pre);
 
   struct accounting acct;
   ASSERT_EQ(0, rscfl_read_acct(rhdl_, &acct));
@@ -53,11 +54,11 @@ TEST_F(WCTTest, WallClock_Kernel_LT_User)
   int reduce_err = 0;
   reduce_err = REDUCE_SUBSYS(wc, rhdl_, &acct, 1, &kernel_time,
     [](subsys_accounting *s, rscfl_subsys id){ return &s->cpu.wall_clock_time;},
-    timespec_add);
+    rscfl_timespec_add);
 
   EXPECT_EQ(0, reduce_err);
 
-  EXPECT_EQ(-1, timespec_compare(&kernel_time, &val_post)) <<
+  EXPECT_EQ(-1, rscfl_timespec_compare(&kernel_time, &val_post)) <<
     "expected (kernel_time) < (val_post) actual: (" <<
     kernel_time.tv_sec << " s, " << kernel_time.tv_nsec <<" ns) vs (" <<
     val_post.tv_sec << " s, " << val_post.tv_nsec <<" ns)";

@@ -53,6 +53,7 @@ struct acct_CPU
   ru64 cycles;
   ru64 branch_mispredictions; //count
   ru64 instructions; //count
+  ru64 alignment_faults;
   struct timespec wall_clock_time;
 };
 
@@ -76,10 +77,17 @@ struct acct_Net
   struct tcp_info stats;
 };
 
+struct acct_Sched
+{
+  struct timespec wct_out_local;
+  struct timespec wct_out_hypervisor;
+};
+
 struct subsys_accounting
 {
   struct acct_CPU cpu;
   struct acct_Mem mem;
+  struct acct_Sched sched;
   // The number of times another subsystem called into this subsystem.
   ru64 subsys_entries;
   // The number of times this subsystem called into another subsystem.
@@ -100,6 +108,10 @@ struct accounting
   // rscfl_pid_page->buf.
   short acct_subsys[NUM_SUBSYSTEMS];
   short nr_subsystems;
+  // Used to temporarily store the amount of wct the syscall was scheduled out
+  // for. Required as the scheduler code isn't executed within a syscall
+  // context. This value is added to the subsystem when execution continues.
+  struct timespec wct_out_temp;
 };
 
 #endif /*_SYSCALL_COST_H_*/

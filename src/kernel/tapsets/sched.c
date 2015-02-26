@@ -1,18 +1,38 @@
 #include "rscfl/kernel/sched.h"
 
+#include "linux/time.h"
+
+#include "rscfl/costs.h"
 #include "rscfl/kernel/cpu.h"
 #include "rscfl/kernel/hasht.h"
 
+void record_ctx_switch(pid_acct *p_acct)
+{
+  struct accounting *acct;
+
+  acct = p_acct->probe_data->syscall_acct;
+  if (acct != NULL){
+    struct timespec ts;
+    getrawmonotonic(&ts);
+    rscfl_timespec_diff(&acct->wct_out_temp, &ts);
+  }
+}
+
 /* function that needs to be executed on every context switch
  * one extra hash table search on every context switch, for all processes
+ * and one timestamp read per switch to or from a rscfl accounted path.
  */
 void on_ctx_switch(pid_t next_tid)
 {
-  pid_acct *it;
+  pid_acct *curr_acct = CPU_VAR(current_acct);
+  if (curr_acct != NULL) {
+    record_ctx_switch(curr_acct);
+  }
 
-  hash_for_each_possible(CPU_TBL(pid_acct_tbl), it, link, next_tid) {
-    if(it->pid == next_tid){
-      CPU_VAR(current_acct) = it;
+  hash_for_each_possible(CPU_TBL(pid_acct_tbl), curr_acct, link, next_tid) {
+    if(curr_acct->pid == next_tid){
+      CPU_VAR(current_acct) = curr_acct;
+      record_ctx_switch(curr_acct);
       return;
     }
   }

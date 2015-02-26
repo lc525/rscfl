@@ -42,4 +42,9 @@ if(WITH_TESTS)
   )
   lib_test(wct_test "${wct_test_SOURCES}" "${TEST_LINK}")
 
+  set (sched_test_SOURCES
+    ${TESTS_DIR}/sched_test.cpp
+  )
+  lib_test(sched_test "${sched_test_SOURCES}" "${TEST_LINK}")
+
 endif(WITH_TESTS)

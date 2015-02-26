@@ -241,27 +241,6 @@ void rscfl_subsys_merge(struct subsys_accounting *existing_subsys,
                         const struct subsys_accounting *new_subsys);
 
 /*!
- * \brief utility function for adding two timespec structures
- */
-void timespec_add(struct timespec *to, const struct timespec *from);
-
-/*!
- * \brief utility function for substracting two timespec structures
- *
- * timespec end is updated to contain the end-start duration if end > start
- * and zero otherwise
- */
-void timespec_diff(struct timespec *end, const struct timespec *start);
-
-/*!
- * \brief utility function for comparing two timespec structures
- * returns -1 if time1 < time2
- *          0 if time1 = time2
- *          1 if time1 > time2
- */
-int timespec_compare(struct timespec *time1, struct timespec *time2);
-
-/*!
  * \brief gets the measurements done for acct in a particular kernel subsystem
  *
  * \param rhdl the resourceful handle for the thread where measurement is done

@@ -187,6 +187,7 @@ set(GEN_INCLUDE_DIR ${PROJECT_BINARY_DIR}
 
 set (PROJECT_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set (PROJECT_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/kernel)
+set (PROJECT_COMMON_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
 # common includes and project settings
 include_directories("${GEN_INCLUDE_DIR}") # for generated configs
@@ -224,8 +225,10 @@ set (stap_gen_SOURCES
   ${PROJECT_SOURCE_DIR}/resourceful.stp
 )
 set (stap_SOURCES
+  ${PROJECT_COMMON_DIR}/res_common.c
+  ${PROJECT_SOURCE_DIR}/counters/measurement.c
+  ${PROJECT_SOURCE_DIR}/counters/perf.c
   ${PROJECT_SOURCE_DIR}/PMurHash.c
-  ${PROJECT_SOURCE_DIR}/perf.c
   ${PROJECT_SOURCE_DIR}/priv_kallsyms.c
   ${PROJECT_SOURCE_DIR}/tapsets/chardev.c
   ${PROJECT_SOURCE_DIR}/tapsets/cpu.c
@@ -242,9 +245,11 @@ set (stap_DEPS # if any of those files change, the stap ko is rebuilt
   ${PROJECT_BINARY_DIR}/rscfl/config.h
   ${PROJECT_INCLUDE_DIR}/rscfl/costs.h
   ${PROJECT_INCLUDE_DIR}/rscfl/PMurHash.h
+  ${PROJECT_INCLUDE_DIR}/rscfl/res_common.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/chardev.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/hasht.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/kamprobes.h
+  ${PROJECT_INCLUDE_DIR}/rscfl/kernel/measurement.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/probe_manager.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/perf.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/priv_kallsyms.h

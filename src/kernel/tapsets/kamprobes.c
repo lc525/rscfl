@@ -1,5 +1,6 @@
 #include "rscfl/kernel/kamprobes.h"
 
+#include <linux/cpu.h>
 #include <linux/vmalloc.h>
 
 #include "rscfl/res_common.h"

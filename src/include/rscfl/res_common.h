@@ -3,6 +3,12 @@
 
 #include <linux/ioctl.h>
 
+#ifdef __KERNEL__
+  #include <linux/time.h>
+#else
+  #include <time.h>
+#endif
+
 #include "rscfl/config.h"
 #include "rscfl/costs.h"
 
@@ -72,4 +78,13 @@ struct rscfl_ctrl_layout_t
 };
 typedef struct rscfl_ctrl_layout_t rscfl_ctrl_layout_t;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+void rscfl_timespec_add(struct timespec *to, const struct timespec *from);
+void rscfl_timespec_diff(struct timespec *end, const struct timespec *start);
+int rscfl_timespec_compare(struct timespec *time1, struct timespec *time2);
+#ifdef __cplusplus
+}
+#endif
 #endif

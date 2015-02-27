@@ -15,8 +15,10 @@
 #define MOV_WIDTH 8
 
 enum SYS_TYPE {
-  NOT_A_SYSCALL=1,
-  INTERNAL_SYSCALL=2,
+  ADDR_INVALID        = 0,
+  ADDR_CALLQ          = 1,
+  ADDR_USER_SYSCALL   = 2,
+  ADDR_KERNEL_SYSCALL = 3
 };
 
 struct orig_insn
@@ -237,7 +239,7 @@ int kamprobes_register(u8 **orig_addr, char sys_type, void (*pre_handler)(void),
   int offset;
   char *target;
   int32_t addr_ptr;
-  unsigned char text_poke_isns[5];
+  unsigned char text_poke_isns[CALL_WIDTH];
 
   int i;
 
@@ -303,12 +305,17 @@ int kamprobes_register(u8 **orig_addr, char sys_type, void (*pre_handler)(void),
     // target of the call instruction that we're replacing. We jump into it as
     // we've already pushed a return address onto the stack.
     switch(sys_type){
-      case NOT_A_SYSCALL:
+      case ADDR_CALLQ:
         emit_jump(&wrapper_end, target);
         break;
-      case INTERNAL_SYSCALL:
+      case ADDR_KERNEL_SYSCALL:
         emit_jump(&wrapper_end, target+5);
         break;
+      case ADDR_INVALID:
+      case ADDR_USER_SYSCALL:
+        // we shouldn't get syscalls that come directly from userspace
+        // as callqs, nor should we probe invalid addresses.
+        BUG();
     }
 
     // Rtn-handling code.

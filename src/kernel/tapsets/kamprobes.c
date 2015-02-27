@@ -4,6 +4,7 @@
 #include <linux/vmalloc.h>
 
 #include "rscfl/res_common.h"
+#include "rscfl/subsys_list.h"
 #include "rscfl/kernel/priv_kallsyms.h"
 
 #define WRAPPER_SIZE 71
@@ -13,13 +14,6 @@
 #define CALL_WIDTH 5
 #define JMP_WIDTH 5
 #define MOV_WIDTH 8
-
-enum SYS_TYPE {
-  ADDR_INVALID        = 0,
-  ADDR_CALLQ          = 1,
-  ADDR_USER_SYSCALL   = 2,
-  ADDR_KERNEL_SYSCALL = 3
-};
 
 struct orig_insn
 {

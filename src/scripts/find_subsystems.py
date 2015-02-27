@@ -18,6 +18,12 @@ addr_line_cache = {}
 fn_blacklist = set()
 args = {}
 
+# syscall_types
+ADDR_INVALID        = 0
+ADDR_CALLQ          = 1
+ADDR_USER_SYSCALL   = 2
+ADDR_KERNEL_SYSCALL = 3
+
 #
 # Progress bar data
 progress = 0
@@ -44,6 +50,13 @@ typedef enum {
     SUBSYS_TABLE(SUBSYS_AS_ENUM)
     NUM_SUBSYSTEMS
 } rscfl_subsys;
+
+typedef enum {
+    ADDR_INVALID        = {{ ADDR_INVALID }},
+    ADDR_CALLQ          = {{ ADDR_CALLQ }},
+    ADDR_USER_SYSCALL   = {{ ADDR_USER_SYSCALL }},
+    ADDR_KERNEL_SYSCALL = {{ ADDR_KERNEL_SYSCALL }}
+} sys_type;
 
 #endif /* _RSCFL_SUBSYS_H_ */
 """
@@ -335,7 +348,8 @@ def get_addresses_of_boundary_calls(linux, build_dir, vmlinux_path):
 
             if "SyS_" in fn_name:
                 fn_subsys = get_subsys(fn_addr, addr2line, linux, build_dir)
-                add_address_to_subsys(boundary_fns, fn_subsys, fn_addr, fn_name, 2)
+                add_address_to_subsys(boundary_fns, fn_subsys, fn_addr,
+                                      fn_name, ADDR_USER_SYSCALL)
 
         if skip_callqs == 1:
             continue
@@ -355,9 +369,9 @@ def get_addresses_of_boundary_calls(linux, build_dir, vmlinux_path):
 
             callee_subsys = get_subsys(callee_addr, addr2line, linux, build_dir)
             if callee_subsys != caller_subsys and callee_subsys is not None:
-                syscall_type = 1
+                syscall_type = ADDR_CALLQ
                 if "SyS_" in callee_name:
-                    syscall_type = 3
+                    syscall_type = ADDR_KERNEL_SYSCALL
                 add_address_to_subsys(boundary_fns, callee_subsys, caller_addr,
                                       callee_name, syscall_type)
     if not args.no_fp:
@@ -438,6 +452,10 @@ def generate_rscfl_subsystems_header(json_fname, header_file):
     template = jinja2.Template(RSCFL_SUBSYS_HEADER_TEMPLATE)
     args = {}
     args['subsystems'] = subsystems
+    args['ADDR_INVALID'] = ADDR_INVALID
+    args['ADDR_CALLQ'] = ADDR_CALLQ
+    args['ADDR_USER_SYSCALL'] = ADDR_USER_SYSCALL
+    args['ADDR_KERNEL_SYSCALL'] = ADDR_KERNEL_SYSCALL
     header_file.write(template.render(args))
 
     json_file.close()

@@ -20,6 +20,18 @@ void rscfl_timespec_add(struct timespec *to, const struct timespec *from) {
   }
 }
 
+void rscfl_timespec_add_ns(struct timespec *ts, ru64 ns) {
+  int sec = ns/1000000000;
+  ns=ns - sec*1000000000;
+
+  // perform the addition
+  ts->tv_nsec+=ns;
+
+  // adjust the time
+  ts->tv_sec+=ts->tv_nsec/1000000000 + sec;
+  ts->tv_nsec=ts->tv_nsec%1000000000;
+}
+
 // timespec end will be updated to contain the duration between start and
 // end; if end < start, end will be set to zero
 void rscfl_timespec_diff(struct timespec *end, const struct timespec *start) {

@@ -3,9 +3,9 @@
 #include <linux/cpu.h>
 #include <linux/vmalloc.h>
 
+#include "rscfl/kernel/priv_kallsyms.h"
 #include "rscfl/res_common.h"
 #include "rscfl/subsys_list.h"
-#include "rscfl/kernel/priv_kallsyms.h"
 
 #define WRAPPER_SIZE 71
 

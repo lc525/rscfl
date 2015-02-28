@@ -32,18 +32,6 @@ void rscfl_timespec_add_ns(struct timespec *ts, ru64 ns) {
   ts->tv_nsec=ts->tv_nsec%1000000000;
 }
 
-void rscfl_timespec_minus(struct timespec *a, const struct timespec *b)
-{
-  a->tv_nsec = a->tv_nsec - b->tv_nsec;
-  if (a->tv_nsec < 0) {
-    // borrow.
-    a->tv_nsec += 1000000000;
-    a->tv_sec --;
-  }
-
-  a->tv_sec = a->tv_sec - b->tv_sec;
-}
-
 // timespec end will be updated to contain the duration between start and
 // end; if end < start, end will be set to zero
 void rscfl_timespec_diff(struct timespec *end, const struct timespec *start) {

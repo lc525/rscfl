@@ -8,6 +8,8 @@
 #include "rscfl/kernel/priv_kallsyms.h"
 #include "rscfl/res_common.h"
 
+#define SCHED_EVENT_BUF_SIZE 16
+
 struct sched_event
 {
   uint64_t timestamp;
@@ -21,7 +23,7 @@ struct shared_sched_info
 {
   uint8_t sched_tl;
   uint8_t sched_hd;
-  sched_event_t sched[16];
+  sched_event_t sched[SCHED_EVENT_BUF_SIZE];
 };
 
 /*
@@ -110,7 +112,7 @@ int rscfl_counters_update_subsys_vals(struct subsys_accounting *add_subsys,
     int tl = sched_info->sched_tl;
     sched_info->sched_tl = hd;
 
-    for (; hd > tl; tl = (tl + 1) % 16) {
+    for (; hd != tl; tl = (tl + 1) % SCHED_EVENT_BUF_SIZE) {
       if (add_subsys != NULL) {
         add_subsys->sched.hypervisor_schedules++;
         hypervisor_timestamp = sched_info->sched[tl].timestamp;
@@ -122,7 +124,7 @@ int rscfl_counters_update_subsys_vals(struct subsys_accounting *add_subsys,
         } else {
           // We're scheduling out, so we want to subtract the current cycle
           // count.
-          rscfl_timespec_minus(&add_subsys->sched.wct_out_hyp, &time);
+          rscfl_timespec_diff(&time, &add_subsys->sched.wct_out_hyp);
           add_subsys->sched.hypervisor_cycles -= sched_info->sched[tl].cycles;
         }
       }

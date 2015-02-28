@@ -83,6 +83,7 @@ extern "C" {
 #endif
 void rscfl_timespec_add(struct timespec *to, const struct timespec *from);
 void rscfl_timespec_add_ns(struct timespec *to, const ru64 from);
+void rscfl_timespec_minus(struct timespec *from, const struct timespec *ex);
 void rscfl_timespec_diff(struct timespec *end, const struct timespec *start);
 int rscfl_timespec_compare(struct timespec *time1, struct timespec *time2);
 #ifdef __cplusplus

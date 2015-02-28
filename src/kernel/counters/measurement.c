@@ -87,7 +87,7 @@ int rscfl_counters_update_subsys_vals(struct subsys_accounting *add_subsys,
   if (minus_subsys != NULL) {
     minus_subsys->subsys_exits++;
     minus_subsys->cpu.cycles -= cycles;
-    rscfl_timespec_diff(&minus_subsys->cpu.wall_clock_time, &time);
+    rscfl_timespec_minus(&minus_subsys->cpu.wall_clock_time, &time);
   }
 
   // Check and see if any scheduling happened underneath us. If there was,
@@ -124,7 +124,8 @@ int rscfl_counters_update_subsys_vals(struct subsys_accounting *add_subsys,
         } else {
           // We're scheduling out, so we want to subtract the current cycle
           // count.
-          rscfl_timespec_diff(&time, &add_subsys->sched.wct_out_hyp);
+          rscfl_timespec_minus(&time, &add_subsys->sched.wct_out_hyp);
+          add_subsys->sched.wct_out_hyp = time;
           add_subsys->sched.hypervisor_cycles -= sched_info->sched[tl].cycles;
         }
       }

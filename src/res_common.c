@@ -32,6 +32,13 @@ void rscfl_timespec_add_ns(struct timespec *ts, ru64 ns) {
   ts->tv_nsec=ts->tv_nsec%1000000000;
 }
 
+// this is needed for the situations where the difference between the timespecs
+// might be negative (as rscfl_timespec_diff does not deal with that case)
+void rscfl_timespec_minus(struct timespec *from, const struct timespec *ex) {
+    from->tv_sec = from->tv_sec - ex->tv_sec;
+    from->tv_nsec = from->tv_nsec - ex->tv_nsec;
+}
+
 // timespec end will be updated to contain the duration between start and
 // end; if end < start, end will be set to zero
 void rscfl_timespec_diff(struct timespec *end, const struct timespec *start) {

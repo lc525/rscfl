@@ -67,10 +67,8 @@ TEST_F(SchedTest, SchedTimeAlwaysPositive)
 TEST_F(SchedTest, SchedTimeLessThanSubsysTime)
 {
   for (int i = 0; i < sub_set_->set_size; i++) {
-    ASSERT_LT(sub_set_->set[i].sched.wct_out_local.tv_sec,
-              sub_set_->set[i].cpu.wall_clock_time.tv_sec);
-    ASSERT_LT(sub_set_->set[i].sched.wct_out_local.tv_nsec,
-              sub_set_->set[i].cpu.wall_clock_time.tv_nsec);
+    ASSERT_EQ(-1, rscfl_timespec_compare(&sub_set_->set[i].sched.wct_out_local,
+                                         &sub_set_->set[i].cpu.wall_clock_time));
   }
 }
 

@@ -6,6 +6,10 @@
 #include <rscfl/res_common.h>
 #include <rscfl/user/res_api.h>
 
+const int kMaxExpectedCyclesSpentInHypervisorPerSubsystem = 100000;
+const int kMaxExpectedSchedulesPerSubsystem = 16;
+
+
 class SchedTest : public testing::Test
 {
  protected:
@@ -84,4 +88,42 @@ TEST_F(SchedTest, SchedTotalTimeGreater)
   }
 
   EXPECT_EQ(-1, rscfl_timespec_compare(&k_sched_time, &run_time_));
+}
+
+TEST_F(SchedTest, HypervisorSchedulesDoesntOverflow)
+{
+  for (int i = 0; i < sub_set_->set_size; i++) {
+    // Must not overflow or underflow the number of subsystem changes for
+    // each subsystem we touch.
+    ASSERT_LT(sub_set_->set[i].sched.hypervisor_schedules,
+              kMaxExpectedSchedulesPerSubsystem);
+  }
+}
+
+TEST_F(SchedTest, HypervisorSubsystemWCTLessThanSubsystemWCT)
+{
+  for (int i = 0; i < sub_set_->set_size; i++) {
+    // Cannot spend longer in another VM than spent executing a subsystem.
+    ASSERT_EQ(-1, rscfl_timespec_compare(&sub_set_->set[i].sched.wct_out_hyp,
+                                         &sub_set_->set[i].cpu.wall_clock_time));
+  }
+}
+
+TEST_F(SchedTest, EvenNumberOfHypervisorSchedulingEvents)
+{
+  for (int i = 0; i < sub_set_->set_size; i++) {
+    // Whenever we take a vmexit in a subsystem we need to also get a vmentry
+    // before finishing the subsystem. Therefore the number of scheduling events
+    // must be divisible by two.
+      ASSERT_EQ(0, sub_set_->set[i].sched.hypervisor_schedules % 2);
+  }
+}
+
+TEST_F(SchedTest, CyclesSpentInHypervisorDoesntOverflow)
+{
+  for (int i = 0; i < sub_set_->set_size; i++) {
+    // The number of cycles spent in other domains shouldn't overflow.
+    ASSERT_LT(sub_set_->set[i].sched.hypervisor_cycles,
+              kMaxExpectedCyclesSpentInHypervisorPerSubsystem);
+  }
 }

@@ -80,7 +80,9 @@ struct acct_Net
 struct acct_Sched
 {
   struct timespec wct_out_local;
-  struct timespec wct_out_hypervisor;
+  struct timespec wct_out_hyp;
+  ru64 hypervisor_schedules;
+  ru64 hypervisor_cycles;
 };
 
 struct subsys_accounting

@@ -4,7 +4,9 @@ import argparse
 import fabric
 import fabric.api
 import jinja2
+import requests
 import subprocess
+import time
 
 TEMPLATE="""
 name = "ubuntu-clone-{{ clone_no }}"
@@ -15,13 +17,17 @@ bootloader = "pygrub"
 vif=[ 'mac=00:16:3f:00:00:{{ padded_clone_no }},bridge=xenbr0' ]
 """
 
+target_vm = "so-22-50"
+
+current_no_vms = 0
+
 def prepare_config(clone_no, memory, vcpus):
     f = open('/tmp/ubuntu-%d' % clone_no, 'w')
     template = jinja2.Template(TEMPLATE)
 
     clone_properties = {}
     clone_properties['clone_no'] = clone_no
-    clone_properties['padded_clone_no'] = "%02d" % (clone_no + 1)
+    clone_properties['padded_clone_no'] = "%02d" % (clone_no)
     clone_properties['memory'] = memory
     clone_properties['vcpus'] = vcpus
 
@@ -42,13 +48,13 @@ def boot_clone(clone_no):
     subprocess.call(['sudo', 'xl', 'create', '/tmp/ubuntu-%d' % clone_no])
 
 
-def start_vms(no_vms, gold_img, memory, vcpus):
-    for i in xrange(no_vms):
-        prepare_config(i, memory, vcpus)
-        prepare_disk(i, gold_img)
-    for i in xrange(no_vms):
-        boot_clone(i)
-
+def start_vm(gold_img, memory, vcpus):
+    global current_no_vms
+    current_no_vms += 1
+    prepare_config(current_no_vms, memory, vcpus)
+    prepare_disk(current_no_vms, gold_img)
+    boot_clone(current_no_vms)
+    return "128.232.22.%d" % (current_no_vms + 50)
 
 def destroy_existing_doms():
     subprocess.Popen("sudo xl list | grep ubuntu-clone- | sed 's/\s\+/ /g' "
@@ -57,25 +63,43 @@ def destroy_existing_doms():
                      shell=True)
 
 
-@fabric.api.parallel
+@fabric.api.task
 def run_workload(workload_cmd):
     while True:
         try:
-            fabric.api.run(workload_cmd)
+            fabric.api.run("nohup bashc -c '%s' &" % workload_cmd)
             return
         except fabric.exceptions.NetworkError as e:
             pass
 
 
-def run_experiment(no_vms, gold_img, memory, vcpus, workload_cmd):
-    destroy_existing_doms()
-    start_vms(no_vms, gold_img, memory, vcpus)
-    ips = []
-    for x in range(no_vms):
-        ips.append("so-22-%d" % (x + 51))
-    fabric.api.output["stdout"] = False
+@fabric.api.parallel
+def run_test_prog(test_prog):
+    fabric.api.run("nohup bashc -c '%s'  &" % test_prog)
 
-    fabric.api.execute(run_workload, workload_cmd, hosts=ips)
+
+def run_experiment(no_vms, gold_img, memory, vcpus, workload_cmd, test_prog,
+                   sleep_time):
+    destroy_existing_doms()
+    fabric.api.output["stdout"] = False
+    fabric.api.output["running"] = False
+    # Initialise program under test (eg lighttpd)
+    fabric.api.execute(run_test_prog, test_prog, hosts=[target_vm])
+
+    for x in range(no_vms):
+        # Create x VMs
+        workload_ip = start_vm(gold_img, memory, vcpus)
+        # Make VMs run a workload
+        fabric.api.execute(run_workload, workload_cmd, hosts=workload_ip)
+        # Start measuring
+        payload = {'mark': 'Bvms=%d' % x}
+        requests.post('http://so-22-50/mark', payload)
+
+        # Wait
+        time.sleep(float(sleep_time))
+        # Stop measuring
+        payload = {'mark': 'STOP'}
+        requests.post('http://so-22-50/mark', payload)
 
 
 def main():
@@ -90,9 +114,13 @@ def main():
                         help="VCPUs per generator")
     parser.add_argument('-c', dest="workload_cmd", help="Command to run on "
                         "each of the VMs.")
+    parser.add_argument('-p', dest="test_prog", help="Program to run as a test"
+                        "eg lighttpd.")
+    parser.add_argument('-s', dest="sleep_time", help="Time to let each trial "
+                        "run for before increasing laod.")
     args = parser.parse_args()
     run_experiment(args.no_vms, args.gold_img, args.memory, args.vcpus,
-                   args.workload_cmd)
+                   args.workload_cmd, args.test_prog, args.sleep_time)
 
 if __name__ == "__main__":
     main()

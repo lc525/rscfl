@@ -296,6 +296,12 @@ inline void rscfl_subsys_merge(struct subsys_accounting *e,
   e->mem.freed                   += c->mem.freed;
   e->mem.page_faults             += c->mem.page_faults;
   e->mem.align_faults            += c->mem.align_faults;
+
+  rscfl_timespec_add(&e->sched.wct_out_local, &c->sched.wct_out_local);
+  rscfl_timespec_add(&e->sched.wct_out_hyp, &c->sched.wct_out_hyp);
+
+  e->sched.hypervisor_schedules  += c->sched.hypervisor_schedules;
+  e->sched.hypervisor_cycles     += c->sched.hypervisor_cycles;
 }
 
 struct subsys_accounting* rscfl_get_subsys_by_id(rscfl_handle rhdl,

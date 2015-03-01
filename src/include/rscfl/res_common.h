@@ -83,8 +83,23 @@ extern "C" {
 #endif
 void rscfl_timespec_add(struct timespec *to, const struct timespec *from);
 void rscfl_timespec_add_ns(struct timespec *to, const ru64 from);
-void rscfl_timespec_minus(struct timespec *from, const struct timespec *ex);
+
+// per-component timespec diff
+// this substracts each of the timespec components of ex from the corresponding
+// timespec components of from "from - ex"
+//
+// Use this instead of rscfl_timespec_diff when you want to accept negative
+// results (seconds and/or nanoseconds)
+//
+void rscfl_timespec_diff_comp(struct timespec *from, const struct timespec *ex);
+
+// timespec end will be updated to contain the duration between start and
+// end; if end < start, end will be set to zero
 void rscfl_timespec_diff(struct timespec *end, const struct timespec *start);
+
+// returns -1 if time1 < time2
+//          0 if time1 = time2
+//          1 if time1 > time2
 int rscfl_timespec_compare(struct timespec *time1, struct timespec *time2);
 #ifdef __cplusplus
 }

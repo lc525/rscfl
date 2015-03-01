@@ -32,9 +32,14 @@ void rscfl_timespec_add_ns(struct timespec *ts, ru64 ns) {
   ts->tv_nsec=ts->tv_nsec%1000000000;
 }
 
-// this is needed for the situations where the difference between the timespecs
-// might be negative (as rscfl_timespec_diff does not deal with that case)
-void rscfl_timespec_minus(struct timespec *from, const struct timespec *ex) {
+// per-component timespec diff
+// this substracts each of the timespec components of ex from the corresponding
+// timespec components of from "from - ex"
+//
+// Use this instead of rscfl_timespec_diff when you want to accept negative
+// results (seconds and/or nanoseconds)
+//
+void rscfl_timespec_diff_comp(struct timespec *from, const struct timespec *ex) {
     from->tv_sec = from->tv_sec - ex->tv_sec;
     from->tv_nsec = from->tv_nsec - ex->tv_nsec;
 }

@@ -85,8 +85,10 @@ rscfl_handle rscfl_init_api(rscfl_version_t rscfl_ver)
   rhdl->ctrl = ctrl;
 
   // Check data layout version
-  if(rhdl->ctrl->version != rscfl_ver.data_layout) {
-    fprintf(stderr, "rscfl: Version mismatch between rscfl API and kernel data layouts: %d (API) vs %d (.ko)\n",
+  if (rhdl->ctrl->version != rscfl_ver.data_layout) {
+    fprintf(stderr,
+            "rscfl: Version mismatch between rscfl API and kernel data "
+            "layouts: %d (API) vs %d (.ko)\n",
             rscfl_ver.data_layout, rhdl->ctrl->version);
     goto error;
   }
@@ -167,30 +169,29 @@ subsys_idx_set* rscfl_get_subsys(rscfl_handle rhdl, struct accounting *acct)
   int curr_set_ix = 0, i;
   subsys_idx_set *ret_subsys_idx;
 
-  if(acct == NULL) return NULL;
+  if (acct == NULL) return NULL;
 
   ret_subsys_idx = malloc(sizeof(subsys_idx_set));
-  if(!ret_subsys_idx) return NULL;
-
+  if (!ret_subsys_idx) return NULL;
 
   ret_subsys_idx->set_size = acct->nr_subsystems;
   ret_subsys_idx->max_set_size = acct->nr_subsystems;
   ret_subsys_idx->set =
-    malloc(sizeof(struct subsys_accounting) * acct->nr_subsystems);
-  if(!ret_subsys_idx->set) {
+      malloc(sizeof(struct subsys_accounting) * acct->nr_subsystems);
+  if (!ret_subsys_idx->set) {
     free(ret_subsys_idx);
     return NULL;
   }
   ret_subsys_idx->ids = malloc(sizeof(short) * acct->nr_subsystems);
-  if(!ret_subsys_idx->ids) {
+  if (!ret_subsys_idx->ids) {
     free(ret_subsys_idx->set);
     free(ret_subsys_idx);
     return NULL;
   }
 
-  for(i = 0; i < NUM_SUBSYSTEMS; ++i) {
+  for (i = 0; i < NUM_SUBSYSTEMS; ++i) {
     struct subsys_accounting *subsys = rscfl_get_subsys_by_id(rhdl, acct, i);
-    if(subsys != NULL) {
+    if (subsys != NULL) {
       ret_subsys_idx->idx[i] = curr_set_ix;
       memcpy(&ret_subsys_idx->set[curr_set_ix], subsys,
              sizeof(struct subsys_accounting));
@@ -208,23 +209,22 @@ subsys_idx_set* rscfl_get_subsys(rscfl_handle rhdl, struct accounting *acct)
 subsys_idx_set* rscfl_get_new_aggregator(unsigned short no_subsystems)
 {
   subsys_idx_set *ret_subsys_idx;
-  if(no_subsystems > NUM_SUBSYSTEMS) no_subsystems = NUM_SUBSYSTEMS;
+  if (no_subsystems > NUM_SUBSYSTEMS) no_subsystems = NUM_SUBSYSTEMS;
 
   ret_subsys_idx = malloc(sizeof(subsys_idx_set));
-  if(!ret_subsys_idx) return NULL;
+  if (!ret_subsys_idx) return NULL;
 
   ret_subsys_idx->set_size = 0;
   ret_subsys_idx->max_set_size = no_subsystems;
-  ret_subsys_idx->set =
-    calloc(no_subsystems, sizeof(struct subsys_accounting));
-  if(!ret_subsys_idx->set) {
+  ret_subsys_idx->set = calloc(no_subsystems, sizeof(struct subsys_accounting));
+  if (!ret_subsys_idx->set) {
     free(ret_subsys_idx);
     return NULL;
   }
   memset(ret_subsys_idx->idx, -1, sizeof(short) * NUM_SUBSYSTEMS);
 
   ret_subsys_idx->ids = malloc(sizeof(short) * no_subsystems);
-  if(!ret_subsys_idx->ids) {
+  if (!ret_subsys_idx->ids) {
     free(ret_subsys_idx->set);
     free(ret_subsys_idx);
     return NULL;
@@ -237,17 +237,17 @@ int rscfl_merge_acct_into(rscfl_handle rhdl, struct accounting *acct_from,
                           subsys_idx_set *aggregator_into)
 {
   int curr_set_ix, i, rc = 0;
-  if(!acct_from || !aggregator_into) return -EINVAL;
+  if (!acct_from || !aggregator_into) return -EINVAL;
 
   curr_set_ix = aggregator_into->set_size;
 
-  for(i = 0; i < NUM_SUBSYSTEMS; ++i) {
+  for (i = 0; i < NUM_SUBSYSTEMS; ++i) {
     struct subsys_accounting *new_subsys =
-      rscfl_get_subsys_by_id(rhdl, acct_from, i);
-    if(new_subsys != NULL) {
-      if(aggregator_into->idx[i] == -1) {
+        rscfl_get_subsys_by_id(rhdl, acct_from, i);
+    if (new_subsys != NULL) {
+      if (aggregator_into->idx[i] == -1) {
         // new_subsys i not in aggregator_into, add if sufficient space
-        if(curr_set_ix < aggregator_into->max_set_size) {
+        if (curr_set_ix < aggregator_into->max_set_size) {
           aggregator_into->idx[i] = curr_set_ix;
           memcpy(&aggregator_into->set[curr_set_ix], new_subsys,
                  sizeof(struct subsys_accounting));
@@ -271,15 +271,14 @@ int rscfl_merge_acct_into(rscfl_handle rhdl, struct accounting *acct_from,
   return rc;
 }
 
-void free_subsys_idx_set(subsys_idx_set *subsys_set) {
-  if(subsys_set != NULL){
+void free_subsys_idx_set(subsys_idx_set *subsys_set)
+{
+  if (subsys_set != NULL) {
     free(subsys_set->set);
     free(subsys_set->ids);
   }
   free(subsys_set);
 }
-
-
 
 inline void rscfl_subsys_merge(struct subsys_accounting *e,
                                const struct subsys_accounting *c) {
@@ -313,18 +312,18 @@ struct subsys_accounting* rscfl_get_subsys_by_id(rscfl_handle rhdl,
   if (!acct || acct->acct_subsys[subsys_id] == -1) {
     return NULL;
   }
-  rscfl_acct_layout_t *rscfl_data = (rscfl_acct_layout_t*)rhdl->buf;
+  rscfl_acct_layout_t *rscfl_data = (rscfl_acct_layout_t *)rhdl->buf;
   return &rscfl_data->subsyses[acct->acct_subsys[subsys_id]];
 }
 
 void rscfl_subsys_free(rscfl_handle rhdl, struct accounting *acct)
 {
   int i;
-  if(rhdl == NULL || acct == NULL) return;
+  if (rhdl == NULL || acct == NULL) return;
 
-  for(i = 0; i < NUM_SUBSYSTEMS; ++i) {
+  for (i = 0; i < NUM_SUBSYSTEMS; ++i) {
     struct subsys_accounting *subsys = rscfl_get_subsys_by_id(rhdl, acct, i);
-    if(subsys != NULL) subsys->in_use = 0;
+    if (subsys != NULL) subsys->in_use = 0;
   }
 }
 

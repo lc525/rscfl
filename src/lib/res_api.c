@@ -87,8 +87,7 @@ rscfl_handle rscfl_init_api(rscfl_version_t rscfl_ver)
   // Check data layout version
   if (rhdl->ctrl->version != rscfl_ver.data_layout) {
     fprintf(stderr,
-            "rscfl: Version mismatch between rscfl API and kernel data "
-            "layouts: %d (API) vs %d (.ko)\n",
+            "rscfl: Version mismatch between rscfl API and kernel data layouts: %d (API) vs %d (.ko)\n",
             rscfl_ver.data_layout, rhdl->ctrl->version);
     goto error;
   }

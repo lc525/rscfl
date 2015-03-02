@@ -300,8 +300,10 @@ inline void rscfl_subsys_merge(struct subsys_accounting *e,
   rscfl_timespec_add(&e->sched.wct_out_local, &c->sched.wct_out_local);
   rscfl_timespec_add(&e->sched.wct_out_hyp, &c->sched.wct_out_hyp);
 
-  e->sched.hypervisor_schedules  += c->sched.hypervisor_schedules;
-  e->sched.hypervisor_cycles     += c->sched.hypervisor_cycles;
+  e->sched.hypervisor_schedules += c->sched.hypervisor_schedules;
+  e->sched.hypervisor_cycles += c->sched.hypervisor_cycles;
+  e->sched.hypervisor_evtchn_pending_size +=
+      c->sched.hypervisor_evtchn_pending_size;
 }
 
 struct subsys_accounting* rscfl_get_subsys_by_id(rscfl_handle rhdl,

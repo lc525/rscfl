@@ -83,6 +83,7 @@ struct acct_Sched
   struct timespec wct_out_hyp;
   ru64 hypervisor_schedules;
   ru64 hypervisor_cycles;
+  ru64 hypervisor_evtchn_pending_size;
 };
 
 struct subsys_accounting

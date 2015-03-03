@@ -5,18 +5,36 @@
 #include "rscfl/costs.h"
 #include "rscfl/kernel/cpu.h"
 #include "rscfl/kernel/hasht.h"
+#include "rscfl/kernel/probes.h"
+#include "rscfl/res_common.h"
 
-void record_ctx_switch(pid_acct *p_acct,
-                       void (*timespec_func)(struct timespec *,
-                                             const struct timespec *))
+static void record_ctx_switch(pid_acct *p_acct,
+                              int values_add)
 {
   struct accounting *acct;
-
   acct = p_acct->probe_data->syscall_acct;
   if (acct != NULL){
+    struct subsys_accounting *subsys_acct;
     struct timespec ts;
+    ru64 cycles;
+    int err;
+
+    err = get_subsys(*p_acct->subsys_ptr, &subsys_acct);
+    if (err < 0) {
+      return;
+    }
+
+    // Snapshot counters
+    cycles = rscfl_get_cycles();
     getrawmonotonic(&ts);
-    (*timespec_func)(&acct->wct_out_temp, &ts);
+
+    if (values_add) {
+      rscfl_timespec_add(&subsys_acct->sched.wct_out_local, &ts);
+      subsys_acct->sched.cycles_out_local += cycles;
+    } else {
+      rscfl_timespec_diff_comp(&subsys_acct->sched.wct_out_local, &ts);
+      subsys_acct->sched.cycles_out_local -= cycles;
+    }
   }
 }
 
@@ -28,13 +46,13 @@ void on_ctx_switch(pid_t next_tid)
 {
   pid_acct *curr_acct = CPU_VAR(current_acct);
   if (curr_acct != NULL) {
-    record_ctx_switch(curr_acct, rscfl_timespec_diff_comp);
+    record_ctx_switch(curr_acct, 0);
   }
 
   hash_for_each_possible(CPU_TBL(pid_acct_tbl), curr_acct, link, next_tid) {
     if(curr_acct->pid == next_tid){
       CPU_VAR(current_acct) = curr_acct;
-      record_ctx_switch(curr_acct, rscfl_timespec_add);
+      record_ctx_switch(curr_acct, 1);
       return;
     }
   }

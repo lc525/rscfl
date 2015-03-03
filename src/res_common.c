@@ -1,5 +1,12 @@
 #include "rscfl/res_common.h"
 
+ru64 rscfl_get_cycles(void)
+{
+  unsigned int hi, lo;
+  __asm__ volatile("rdtsc" : "=a"(lo), "=d"(hi));
+  return ((ru64)hi << 32) | lo;
+}
+
 /*
  * Shared timespec code
  */

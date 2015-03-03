@@ -80,6 +80,7 @@ struct acct_Net
 struct acct_Sched
 {
   struct timespec wct_out_local;
+  ru64 cycles_out_local;
   struct timespec wct_out_hyp;
   ru64 hypervisor_schedules;
   ru64 hypervisor_cycles;
@@ -111,10 +112,6 @@ struct accounting
   // rscfl_pid_page->buf.
   short acct_subsys[NUM_SUBSYSTEMS];
   short nr_subsystems;
-  // Used to temporarily store the amount of wct the syscall was scheduled out
-  // for. Required as the scheduler code isn't executed within a syscall
-  // context. This value is added to the subsystem when execution continues.
-  struct timespec wct_out_temp;
 };
 
 #endif /*_SYSCALL_COST_H_*/

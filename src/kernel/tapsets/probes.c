@@ -115,8 +115,8 @@ int probes_cleanup(void)
  *
  * Must be called with preemption disabled as we cache the current process.
  */
-static int get_subsys(rscfl_subsys subsys_id,
-                      struct subsys_accounting **subsys_acct_ret)
+int get_subsys(rscfl_subsys subsys_id,
+               struct subsys_accounting **subsys_acct_ret)
 {
   struct accounting *acct;
   struct subsys_accounting *subsys_acct;

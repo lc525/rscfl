@@ -29,13 +29,6 @@ struct shared_sched_info
 /*
  * Some extra, useful counters
  */
-static __inline__ ru64 rscfl_get_cycles(void)
-{
-  unsigned int hi, lo;
-  __asm__ volatile("rdtsc" : "=a"(lo), "=d"(hi));
-  return ((ru64)hi << 32) | lo;
-}
-
 static struct timespec rscfl_get_timestamp(void)
 {
   struct timespec ts;
@@ -100,22 +93,6 @@ int rscfl_counters_update_subsys_vals(struct subsys_accounting *add_subsys,
     minus_subsys->subsys_exits++;
     minus_subsys->cpu.cycles -= cycles;
     rscfl_timespec_diff_comp(&minus_subsys->cpu.wall_clock_time, &time);
-  }
-
-  // Check and see if any scheduling happened underneath us. If there was,
-  // update.
-  // LOCAL
-  if (add_subsys != NULL) {
-    curr_pid = CPU_VAR(current_acct);
-    acct = curr_pid->probe_data->syscall_acct;
-    if (acct != NULL) {
-      if (acct->wct_out_temp.tv_sec != 0 || acct->wct_out_temp.tv_nsec != 0) {
-        rscfl_timespec_add(&add_subsys->sched.wct_out_local,
-                           &acct->wct_out_temp);
-        acct->wct_out_temp.tv_sec = 0;
-        acct->wct_out_temp.tv_nsec = 0;
-      }
-    }
   }
 
   // HYPERVISOR

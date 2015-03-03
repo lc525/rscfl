@@ -192,7 +192,7 @@ static int mmap_common(struct file *filp, struct vm_area_struct *vma,
 static int data_mmap(struct file *filp, struct vm_area_struct *vma)
 {
   pid_acct *pid_acct_node;
-  kprobe_priv *probe_data;
+  probe_priv *probe_data;
   char *shared_data_buf;
   struct rscfl_vma_data *drv_data;
   int rc;
@@ -209,7 +209,7 @@ static int data_mmap(struct file *filp, struct vm_area_struct *vma)
   if (!pid_acct_node) {
     return -ENOMEM;
   }
-  probe_data = (kprobe_priv *)kzalloc(sizeof(kprobe_priv), GFP_KERNEL);
+  probe_data = (probe_priv *)kzalloc(sizeof(probe_priv), GFP_KERNEL);
   if (!probe_data) {
     kfree(pid_acct_node);
     return -ENOMEM;

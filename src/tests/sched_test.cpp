@@ -22,12 +22,15 @@ class SchedTest : public testing::Test
     // We must be able to account next.
     struct timespec start_time;
     clock_gettime(CLOCK_MONOTONIC_RAW, &start_time);
+    run_cycles_ -= rscfl_get_cycles();
 
     ASSERT_EQ(0, rscfl_acct_next(rhdl_));
     sockfd_ = socket(AF_LOCAL, SOCK_RAW, 0);
 
     // If we can't initialise a socket, something has gone wrong.
     EXPECT_GT(sockfd_, 0);
+
+    run_cycles_ += rscfl_get_cycles();
     clock_gettime(CLOCK_MONOTONIC_RAW, &run_time_);
 
     // We must be able to read our struct accounting back from rscfl.
@@ -51,6 +54,7 @@ class SchedTest : public testing::Test
   int sockfd_;
   subsys_idx_set *sub_set_;
   struct timespec run_time_;
+  ru64 run_cycles_;
 };
 
 /*
@@ -88,6 +92,15 @@ TEST_F(SchedTest, SchedTotalTimeGreater)
   }
 
   EXPECT_EQ(-1, rscfl_timespec_compare(&k_sched_time, &run_time_));
+}
+
+TEST_F(SchedTest, SchedCyclesLessThanTotal)
+{
+  ru64 total_sched = 0;
+  for (int i = 0; i < sub_set_->set_size; i++) {
+    total_sched += sub_set_->set[i].sched.cycles_out_local;
+  }
+  ASSERT_LT(total_sched, run_cycles_);
 }
 
 TEST_F(SchedTest, HypervisorSchedulesDoesntOverflow)

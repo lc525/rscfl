@@ -49,18 +49,18 @@
 // nest_level is incremented on probing nested functions. It is initially 0 and
 // the application request for measuring the resources consumed by a system call
 // is considered completed when nest_level returns to 0.
-struct kprobe_priv {
+struct probe_priv {
   struct accounting *syscall_acct;
   long cycles;
   long wall_clock_time;
 };
-typedef struct kprobe_priv kprobe_priv;
+typedef struct probe_priv probe_priv;
 
 struct pid_acct {
   struct hlist_node link; // item in the per-bucket linked list
   pid_t pid;
   struct rscfl_acct_layout_t *shared_buf;        // shared with user-space
-  struct kprobe_priv *probe_data;     // private data used by each kprobe
+  probe_priv *probe_data;     // private data used by each probe
   syscall_interest_t *ctrl;  // pointer to the mapped data in the control driver.
   rscfl_subsys subsys_stack[SUBSYS_STACK_HEIGHT];
   rscfl_subsys *subsys_ptr;

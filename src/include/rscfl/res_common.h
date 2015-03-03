@@ -81,6 +81,7 @@ typedef struct rscfl_ctrl_layout_t rscfl_ctrl_layout_t;
 #ifdef __cplusplus
 extern "C" {
 #endif
+ru64 rscfl_get_cycles(void);
 void rscfl_timespec_add(struct timespec *to, const struct timespec *from);
 void rscfl_timespec_add_ns(struct timespec *to, const ru64 from);
 

@@ -6,7 +6,9 @@
 #include "rscfl/kernel/cpu.h"
 #include "rscfl/kernel/hasht.h"
 
-void record_ctx_switch(pid_acct *p_acct)
+void record_ctx_switch(pid_acct *p_acct,
+                       void (*timespec_func)(struct timespec *,
+                                             const struct timespec *))
 {
   struct accounting *acct;
 
@@ -14,7 +16,7 @@ void record_ctx_switch(pid_acct *p_acct)
   if (acct != NULL){
     struct timespec ts;
     getrawmonotonic(&ts);
-    rscfl_timespec_diff(&acct->wct_out_temp, &ts);
+    (*timespec_func)(&acct->wct_out_temp, &ts);
   }
 }
 
@@ -26,13 +28,13 @@ void on_ctx_switch(pid_t next_tid)
 {
   pid_acct *curr_acct = CPU_VAR(current_acct);
   if (curr_acct != NULL) {
-    record_ctx_switch(curr_acct);
+    record_ctx_switch(curr_acct, rscfl_timespec_diff_comp);
   }
 
   hash_for_each_possible(CPU_TBL(pid_acct_tbl), curr_acct, link, next_tid) {
     if(curr_acct->pid == next_tid){
       CPU_VAR(current_acct) = curr_acct;
-      record_ctx_switch(curr_acct);
+      record_ctx_switch(curr_acct, rscfl_timespec_add);
       return;
     }
   }

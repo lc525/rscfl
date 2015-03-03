@@ -112,6 +112,8 @@ int rscfl_counters_update_subsys_vals(struct subsys_accounting *add_subsys,
       if (acct->wct_out_temp.tv_sec != 0 || acct->wct_out_temp.tv_nsec != 0) {
         rscfl_timespec_add(&add_subsys->sched.wct_out_local,
                            &acct->wct_out_temp);
+        acct->wct_out_temp.tv_sec = 0;
+        acct->wct_out_temp.tv_nsec = 0;
       }
     }
   }

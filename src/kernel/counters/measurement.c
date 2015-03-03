@@ -10,6 +10,8 @@
 
 #define SCHED_EVENT_BUF_SIZE 16
 
+ru64 no_evtchn_events = 0;
+
 struct sched_event
 {
   uint64_t timestamp;
@@ -46,18 +48,6 @@ int rscfl_counters_init(void)
 
 void rscfl_counters_stop(void)
 {
-}
-
-static int get_evtchn_pending_size(void)
-{
-  struct shared_info *info = *KPRIV(HYPERVISOR_shared_info);
-  int i;
-  int count = 0;
-
-  for (i = 0; i < sizeof(xen_ulong_t) * 8; i++) {
-    count += __arch_hweight64(info->evtchn_pending[i]);
-  }
-  return count;
 }
 
 int rscfl_counters_update_subsys_vals(struct subsys_accounting *add_subsys,
@@ -113,8 +103,7 @@ int rscfl_counters_update_subsys_vals(struct subsys_accounting *add_subsys,
         if (sched_info->sched[tl].sched_in) {
           rscfl_timespec_add(&add_subsys->sched.wct_out_hyp, &time);
           add_subsys->sched.hypervisor_cycles += sched_info->sched[tl].cycles;
-          add_subsys->sched.hypervisor_evtchn_pending_size +=
-              get_evtchn_pending_size();
+          add_subsys->sched.hypervisor_evtchn_pending_size += no_evtchn_events;
 
         } else {
           // We're scheduling out, so we want to subtract the current cycle
@@ -122,8 +111,7 @@ int rscfl_counters_update_subsys_vals(struct subsys_accounting *add_subsys,
           rscfl_timespec_diff_comp(&time, &add_subsys->sched.wct_out_hyp);
           add_subsys->sched.wct_out_hyp = time;
           add_subsys->sched.hypervisor_cycles -= sched_info->sched[tl].cycles;
-          add_subsys->sched.hypervisor_evtchn_pending_size -=
-              get_evtchn_pending_size();
+          add_subsys->sched.hypervisor_evtchn_pending_size -= no_evtchn_events;
         }
       }
     }

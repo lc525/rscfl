@@ -13,7 +13,7 @@
   KPRIV(ksym_name) = (void *)kallsyms_lookup_name(XSTR(ksym_name)); \
   if(KPRIV(ksym_name) == NULL)                                      \
     return 1;                                                       \
-  debugk(XSTR(ksym_name) ": %p\n", KPRIV(ksym_name));               \
+  printk(KERN_ERR XSTR(ksym_name) ": %p\n", KPRIV(ksym_name));               \
 }                                                                   \
 
 int init_priv_kallsyms(void)

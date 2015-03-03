@@ -364,6 +364,11 @@ def get_addresses_of_boundary_calls(linux, build_dir, vmlinux_path):
             if callee_name == "__fentry__":
                 continue
 
+            if (callee_name == "get_evtchn_to_irq") and (
+                    fn_name == "irq_from_evtchn"):
+                add_address_to_subsys(boundary_fns, "XENINTERRUPTS",
+                                      caller_addr, callee_name, ADDR_CALLQ)
+
             if callee_name.strip() in fn_blacklist:
                 continue
 

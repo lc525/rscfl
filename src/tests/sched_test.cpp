@@ -108,7 +108,7 @@ TEST_F(SchedTest, HypervisorSchedulesDoesntOverflow)
   for (int i = 0; i < sub_set_->set_size; i++) {
     // Must not overflow or underflow the number of subsystem changes for
     // each subsystem we touch.
-    ASSERT_LT(sub_set_->set[i].sched.hypervisor_schedules,
+    ASSERT_LT(sub_set_->set[i].sched.xen_schedules,
               kMaxExpectedSchedulesPerSubsystem);
   }
 }
@@ -128,7 +128,7 @@ TEST_F(SchedTest, EvenNumberOfHypervisorSchedulingEvents)
     // Whenever we take a vmexit in a subsystem we need to also get a vmentry
     // before finishing the subsystem. Therefore the number of scheduling events
     // must be divisible by two.
-      ASSERT_EQ(0, sub_set_->set[i].sched.hypervisor_schedules % 2);
+    ASSERT_EQ(0, sub_set_->set[i].sched.xen_schedules % 2);
   }
 }
 
@@ -136,7 +136,7 @@ TEST_F(SchedTest, CyclesSpentInHypervisorDoesntOverflow)
 {
   for (int i = 0; i < sub_set_->set_size; i++) {
     // The number of cycles spent in other domains shouldn't overflow.
-    ASSERT_LT(sub_set_->set[i].sched.hypervisor_cycles,
+    ASSERT_LT(sub_set_->set[i].sched.xen_sched_cycles,
               kMaxExpectedCyclesSpentInHypervisorPerSubsystem);
   }
 }
@@ -146,12 +146,12 @@ TEST_F(SchedTest, HypervisorCreditMaxBiggerThanMin)
   int min_credit;
   int max_credit;
   for (int i = 0; i < sub_set_->set_size; i++) {
-    min_credit = sub_set_->set[i].sched.hypervisor_credits_min;
-    max_credit = sub_set_->set[i].sched.hypervisor_credits_max;
+    min_credit = sub_set_->set[i].sched.xen_credits_min;
+    max_credit = sub_set_->set[i].sched.xen_credits_max;
     // Uninitialised value for min_credit is INT_MAX
     if (min_credit != INT_MAX) {
       // Ensure min < max if they're intialised.
-      ASSERT_LT(min_credit, max_credit);
+      ASSERT_LE(min_credit, max_credit);
     }
   }
 }
@@ -161,8 +161,8 @@ TEST_F(SchedTest, HypervisorCreditBothSetOrBothUnset)
   int min_credit;
   int max_credit;
   for (int i = 0; i < sub_set_->set_size; i++) {
-    min_credit = sub_set_->set[i].sched.hypervisor_credits_min;
-    max_credit = sub_set_->set[i].sched.hypervisor_credits_max;
+    min_credit = sub_set_->set[i].sched.xen_credits_min;
+    max_credit = sub_set_->set[i].sched.xen_credits_max;
     // Uninitialised value for min_credit is INT_MAX
     if (min_credit == INT_MAX) {
       // min_credit is not initialised, so max credit shouldn't be.
@@ -177,12 +177,47 @@ TEST_F(SchedTest, HypervisorCreditBothSetOrBothUnset)
 TEST_F(SchedTest, HypervisorCreditSetIfSubsysScheduledOut)
 {
   for (int i = 0; i < sub_set_->set_size; i++) {
-    if (sub_set_->set[i].sched.hypervisor_schedules) {
+    if (sub_set_->set[i].sched.xen_schedules) {
       // We have taken a vm-exit in this subsystem, so should have a new min/max
       // credit.
-      ASSERT_LT(sub_set_->set[i].sched.hypervisor_credits_min, INT_MAX);
-      ASSERT_GT(sub_set_->set[i].sched.hypervisor_credits_max, INT_MIN);
+      ASSERT_LT(sub_set_->set[i].sched.xen_credits_min, INT_MAX);
+      ASSERT_GT(sub_set_->set[i].sched.xen_credits_max, INT_MIN);
     }
   }
+}
 
+/*
+ * All blocks cause a schedule a block, so we should have fewer blocks than
+ * schedules.
+ */
+TEST_F(SchedTest, HypervisorBlocksLessThanSchedules)
+{
+  for (int i = 0; i < sub_set_->set_size; i++) {
+    ASSERT_LE(sub_set_->set[i].sched.xen_blocks,
+              sub_set_->set[i].sched.xen_schedules / 2);
+  }
+}
+
+/*
+ * All yields cause a schedule a block, so we should have fewer or eq yields
+ * than schedules.
+ */
+TEST_F(SchedTest, HypervisorYieldsLessThanSchedules)
+{
+  for (int i = 0; i < sub_set_->set_size; i++) {
+    // Every yield causes a schedule out + a schedule in. Therefore we should
+    ASSERT_LE(sub_set_->set[i].sched.xen_yields,
+              sub_set_->set[i].sched.xen_schedules / 2);
+  }
+}
+
+TEST_F(SchedTest, HypervisorBlocksPlusYieldsLessThanSchedules)
+{
+  for (int i = 0; i < sub_set_->set_size; i++) {
+    // Every yield and every block causes a schedule out + in, therefore we
+    // should have fewer yields + blocks than 1/2 of the schedules.
+    ASSERT_LE(
+        sub_set_->set[i].sched.xen_yields + sub_set_->set[i].sched.xen_blocks,
+        sub_set_->set[i].sched.xen_schedules / 2);
+  }
 }

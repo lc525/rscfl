@@ -164,12 +164,12 @@ TEST_F(APITest,
 
 TEST_F(APITest, MergeHypervisorMinCreditsGivesSmallestValue)
 {
-  subsys_accounting smaller = {0};
-  subsys_accounting larger = {0};
+  struct subsys_accounting smaller = {0};
+  struct subsys_accounting larger = {0};
 
-  smaller.sched.hypervisor_credits_min = 10;
-  smaller.sched.hypervisor_credits_min = 20;
+  smaller.sched.xen_credits_min = 10;
+  larger.sched.xen_credits_min = 20;
   rscfl_subsys_merge(&larger, &smaller);
   // We should now have credit 10 as the min number of credits.
-  ASSERT_EQ(larger.sched.hypervisor_credits_min, 10);
+  ASSERT_EQ(10, larger.sched.xen_credits_min);
 }

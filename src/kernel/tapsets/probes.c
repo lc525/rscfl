@@ -16,7 +16,9 @@ _(NETWORKINGIPV4IPV6)               \
 _(NETWORKINGGENERAL)                \
 _(FILESYSTEMSVFSANDINFRASTRUCTURE)  \
 _(NETWORKINGDRIVERS)                \
-_(SECURITYSUBSYSTEM)
+_(SECURITYSUBSYSTEM)                \
+_(XENHYPERVISORINTERFACE)           \
+_(XENINTERRUPTS)
 
 #define PROBES_AS_ADDRS(a) a##_ADDRS,
 #define PROBES_AS_SYSCALL_TYPE(a) a##_INTERNAL_SYSCALL,
@@ -180,6 +182,14 @@ void rscfl_subsystem_entry(rscfl_subsys subsys_id)
   struct subsys_accounting *curr_subsys_acct = NULL;
   int err;
 
+  if (subsys_id == XENINTERRUPTS) {
+    // Keep a count of how many event channel events we have fired.
+    no_evtchn_events++;
+    // No need to keep running - this is a common operation that isn't crossing
+    // a subsystem boundary, so we don't want the overheads of all of the other
+    // stuff.
+    return;
+  }
 
   preempt_disable();
   current_pid_acct = CPU_VAR(current_acct);
@@ -241,8 +251,16 @@ void rscfl_subsystem_exit(rscfl_subsys subsys_id)
 
   int err;
 
+  if (subsys_id == XENINTERRUPTS) {
+    // No need to keep running - this is a common operation that isn't crossing
+    // a subsystem boundary, so we don't want the overheads of all of the other
+    // stuff.
+    return;
+  }
+
   preempt_disable();
   current_pid_acct = CPU_VAR(current_acct);
+
   if ((current_pid_acct == NULL) || (current_pid_acct->executing_probe)) {
     return;
   }

@@ -18,8 +18,10 @@ _(text_mutex)              \
 _(__vmalloc_node_range)    \
 _(HYPERVISOR_shared_info)  \
 _(xen_dummy_shared_info)   \
+_(xen_evtchn_do_upcall)    \
 
 _once void* (*KPRIV(text_poke))(void *addr, const void *opcode, size_t len);
+_once void (*KPRIV(xen_evtchn_do_upcall))(struct pt_regs *regs);
 _once struct mutex *KPRIV(text_mutex);
 _once void* (*KPRIV(__vmalloc_node_range))(
     unsigned long size, unsigned long align, unsigned long start,

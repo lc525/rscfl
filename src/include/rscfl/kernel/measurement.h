@@ -3,6 +3,8 @@
 
 #include "rscfl/costs.h"
 
+extern ru64 no_evtchn_events;
+
 int rscfl_counters_init(void);
 
 void rscfl_counters_stop(void);

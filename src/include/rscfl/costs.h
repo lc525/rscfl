@@ -4,10 +4,13 @@
 #define _SYSCALL_COST_H_
 
 #ifdef __KERNEL__
+  #include <linux/limits.h>
   #include <linux/tcp.h>
   #include <linux/time.h>
   #include <linux/types.h>
 #else
+  #include <limits.h>
+  #include <stdlib.h>
   #include <time.h>
   #include <sys/types.h>
   #include <netinet/tcp.h>
@@ -85,6 +88,8 @@ struct acct_Sched
   ru64 hypervisor_schedules;
   ru64 hypervisor_cycles;
   ru64 hypervisor_evtchn_pending_size;
+  int hypervisor_credits_min;
+  int hypervisor_credits_max;
 };
 
 struct subsys_accounting

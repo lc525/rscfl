@@ -17,6 +17,16 @@
 #include "rscfl/costs.h"
 #include "rscfl/res_common.h"
 
+#define max(a,b)                                \
+  ({ typeof (a) _a = (a);                       \
+    typeof (b) _b = (b);                        \
+    _a > _b ? _a : _b; })
+
+#define min(a,b)                                \
+  ({ typeof (a) _a = (a);                       \
+    typeof (b) _b = (b);                        \
+    _a > _b ? _b : _a; })
+
 // macro function definitions
 DEFINE_REDUCE_FUNCTION(rint, ru64)
 DEFINE_REDUCE_FUNCTION(wc, struct timespec)
@@ -302,6 +312,10 @@ inline void rscfl_subsys_merge(struct subsys_accounting *e,
   e->sched.hypervisor_cycles += c->sched.hypervisor_cycles;
   e->sched.hypervisor_evtchn_pending_size +=
       c->sched.hypervisor_evtchn_pending_size;
+  e->sched.hypervisor_credits_min = min(e->sched.hypervisor_credits_min,
+                                        c->sched.hypervisor_credits_min);
+  e->sched.hypervisor_credits_max = max(e->sched.hypervisor_credits_max,
+                                        c->sched.hypervisor_credits_max);
 }
 
 struct subsys_accounting* rscfl_get_subsys_by_id(rscfl_handle rhdl,

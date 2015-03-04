@@ -140,3 +140,49 @@ TEST_F(SchedTest, CyclesSpentInHypervisorDoesntOverflow)
               kMaxExpectedCyclesSpentInHypervisorPerSubsystem);
   }
 }
+
+TEST_F(SchedTest, HypervisorCreditMaxBiggerThanMin)
+{
+  int min_credit;
+  int max_credit;
+  for (int i = 0; i < sub_set_->set_size; i++) {
+    min_credit = sub_set_->set[i].sched.hypervisor_credits_min;
+    max_credit = sub_set_->set[i].sched.hypervisor_credits_max;
+    // Uninitialised value for min_credit is INT_MAX
+    if (min_credit != INT_MAX) {
+      // Ensure min < max if they're intialised.
+      ASSERT_LT(min_credit, max_credit);
+    }
+  }
+}
+
+TEST_F(SchedTest, HypervisorCreditBothSetOrBothUnset)
+{
+  int min_credit;
+  int max_credit;
+  for (int i = 0; i < sub_set_->set_size; i++) {
+    min_credit = sub_set_->set[i].sched.hypervisor_credits_min;
+    max_credit = sub_set_->set[i].sched.hypervisor_credits_max;
+    // Uninitialised value for min_credit is INT_MAX
+    if (min_credit == INT_MAX) {
+      // min_credit is not initialised, so max credit shouldn't be.
+      ASSERT_EQ(INT_MIN, max_credit);
+    } else {
+      // min_credit is initialised, so max credit should be.
+      ASSERT_NE(INT_MIN, max_credit);
+    }
+  }
+}
+
+TEST_F(SchedTest, HypervisorCreditSetIfSubsysScheduledOut)
+{
+  for (int i = 0; i < sub_set_->set_size; i++) {
+    if (sub_set_->set[i].sched.hypervisor_schedules) {
+      // We have taken a vm-exit in this subsystem, so should have a new min/max
+      // credit.
+      ASSERT_LT(sub_set_->set[i].sched.hypervisor_credits_min, INT_MAX);
+      ASSERT_GT(sub_set_->set[i].sched.hypervisor_credits_max, INT_MIN);
+    }
+  }
+
+}

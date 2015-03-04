@@ -1,5 +1,6 @@
 #include "rscfl/kernel/measurement.h"
 
+#include "linux/kernel.h"
 #include "linux/nmi.h"
 #include "linux/time.h"
 
@@ -16,6 +17,7 @@ struct sched_event
 {
   uint64_t timestamp;
   uint64_t cycles;
+  int credit;
   _Bool is_yield;
   _Bool sched_in;
 };
@@ -100,6 +102,19 @@ int rscfl_counters_update_subsys_vals(struct subsys_accounting *add_subsys,
         hypervisor_timestamp = sched_info->sched[tl].timestamp;
         memset(&time, 0, sizeof(struct timespec));
         rscfl_timespec_add_ns(&time, hypervisor_timestamp);
+
+        // If the current number of credits is < the minimum number seen so far
+        // then set the current val as the new min.
+
+        add_subsys->sched.hypervisor_credits_min =
+            min(add_subsys->sched.hypervisor_credits_min,
+                sched_info->sched[tl].credit);
+
+        // Similarly for max credits.
+
+        add_subsys->sched.hypervisor_credits_max =
+            max(add_subsys->sched.hypervisor_credits_max,
+                sched_info->sched[tl].credit);
         if (sched_info->sched[tl].sched_in) {
           rscfl_timespec_add(&add_subsys->sched.wct_out_hyp, &time);
           add_subsys->sched.hypervisor_cycles += sched_info->sched[tl].cycles;

@@ -162,6 +162,9 @@ int get_subsys(rscfl_subsys subsys_id,
     subsys_acct = &rscfl_mem->subsyses[subsys_offset];
     memset(subsys_acct, 0, sizeof(struct subsys_accounting));
     subsys_acct->in_use = 1;
+    subsys_acct->sched.hypervisor_credits_min = INT_MAX;
+    subsys_acct->sched.hypervisor_credits_max = INT_MIN;
+
   } else {
     subsys_acct = &rscfl_mem->subsyses[subsys_offset];
   }

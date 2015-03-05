@@ -106,7 +106,6 @@ static void rscfl_vma_open(struct vm_area_struct *vma)
 {
   rscfl_vma_data *drv_data = (rscfl_vma_data*) vma->vm_private_data;
   drv_data->ref_count++;
-  debugk("new vma reference!\n");
 }
 
 static void rscfl_vma_close(struct vm_area_struct *vma)

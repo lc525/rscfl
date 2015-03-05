@@ -17,7 +17,7 @@ bootloader = "pygrub"
 vif=[ 'mac=00:16:3f:00:00:{{ padded_clone_no }},bridge=xenbr0' ]
 """
 
-target_vm = "so-22-50"
+target_vm = "so-22-50.dtg.cl.cam.ac.uk"
 
 current_no_vms = 0
 
@@ -57,9 +57,9 @@ def start_vm(gold_img, memory, vcpus):
     return "128.232.22.%d" % (current_no_vms + 50)
 
 def destroy_existing_doms():
-    subprocess.Popen("sudo xl list | grep ubuntu-clone- | sed 's/\s\+/ /g' "
-                     "| cut -d ' ' -f2 |"
-                     " xargs -d '\n' --no-run-if-empty sudo xl destroy",
+    subprocess.Popen("for x in $(sudo xl list | grep ubuntu-clone- |"
+                     " sed 's/\s\+/ /g'| "
+                     " cut -d ' ' -f2 ); do sudo xl destroy $x; done",
                      shell=True)
 
 
@@ -67,24 +67,27 @@ def destroy_existing_doms():
 def run_workload(workload_cmd):
     while True:
         try:
-            fabric.api.run("nohup bashc -c '%s' &" % workload_cmd)
+            fabric.api.run("set -m; %s &" % workload_cmd, pty=True)
             return
         except fabric.exceptions.NetworkError as e:
             pass
 
 
-@fabric.api.parallel
+@fabric.api.task
 def run_test_prog(test_prog):
-    fabric.api.run("nohup bashc -c '%s'  &" % test_prog)
+    return fabric.api.run("set -m; %s &" % test_prog, pty=True)
 
 
 def run_experiment(no_vms, gold_img, memory, vcpus, workload_cmd, test_prog,
-                   sleep_time):
+                   sleep_time, mark):
     destroy_existing_doms()
     fabric.api.output["stdout"] = False
     fabric.api.output["running"] = False
     # Initialise program under test (eg lighttpd)
-    fabric.api.execute(run_test_prog, test_prog, hosts=[target_vm])
+    res = fabric.api.execute(run_test_prog, test_prog, hosts=[target_vm])
+    if res[target_vm] == None:
+        print("Error executing test_prog")
+        return
 
     for x in range(no_vms):
         # Create x VMs
@@ -92,7 +95,7 @@ def run_experiment(no_vms, gold_img, memory, vcpus, workload_cmd, test_prog,
         # Make VMs run a workload
         fabric.api.execute(run_workload, workload_cmd, hosts=workload_ip)
         # Start measuring
-        payload = {'mark': 'Bvms=%d' % x}
+        payload = {'mark': 'vms_%d_%s' % (x, mark)}
         requests.post('http://so-22-50/mark', payload)
 
         # Wait
@@ -103,6 +106,7 @@ def run_experiment(no_vms, gold_img, memory, vcpus, workload_cmd, test_prog,
 
 
 def main():
+    fabric.api.env.use_ssh_config = True
     parser = argparse.ArgumentParser()
     parser.add_argument('-g', type=int, dest="no_vms",
                         help="Number of concurrent VMs.")
@@ -117,10 +121,12 @@ def main():
     parser.add_argument('-p', dest="test_prog", help="Program to run as a test"
                         "eg lighttpd.")
     parser.add_argument('-s', dest="sleep_time", help="Time to let each trial "
-                        "run for before increasing laod.")
+                        "run for before increasing load.")
+    parser.add_argument('-e', dest="mark", help="Extra metadata for experiment")
     args = parser.parse_args()
     run_experiment(args.no_vms, args.gold_img, args.memory, args.vcpus,
-                   args.workload_cmd, args.test_prog, args.sleep_time)
+                   args.workload_cmd, args.test_prog, args.sleep_time,
+                   args.mark)
 
 if __name__ == "__main__":
     main()

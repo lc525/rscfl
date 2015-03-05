@@ -117,7 +117,7 @@ TEST_F(SchedTest, HypervisorSubsystemWCTLessThanSubsystemWCT)
 {
   for (int i = 0; i < sub_set_->set_size; i++) {
     // Cannot spend longer in another VM than spent executing a subsystem.
-    ASSERT_EQ(-1, rscfl_timespec_compare(&sub_set_->set[i].sched.wct_out_hyp,
+    ASSERT_EQ(-1, rscfl_timespec_compare(&sub_set_->set[i].sched.xen_sched_wct,
                                          &sub_set_->set[i].cpu.wall_clock_time));
   }
 }

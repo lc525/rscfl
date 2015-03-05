@@ -50,7 +50,7 @@ int should_acct(void)
     if ((void *)acct_buf + sizeof(struct accounting) >
         (void *)current_pid_acct->shared_buf->subsyses) {
       acct_buf = current_pid_acct->shared_buf->acct;
-      printk(KERN_WARN "_should_acct: wraparound!<<<<<<<\n");
+      printk(KERN_WARNING "_should_acct: wraparound!<<<<<<<\n");
       break;
     }
   }

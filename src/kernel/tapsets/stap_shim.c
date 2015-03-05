@@ -46,13 +46,11 @@ int should_acct(void)
   acct_buf = rscfl_shared_mem->acct;
   BUG_ON(!acct_buf);
   while (acct_buf->in_use) {
-    debugk("in use: %p for (pid, id):(%d, %lu)\n", (void *)acct_buf,
-           current_pid_acct->pid, acct_buf->syscall_id.id);
     acct_buf++;
     if ((void *)acct_buf + sizeof(struct accounting) >
         (void *)current_pid_acct->shared_buf->subsyses) {
       acct_buf = current_pid_acct->shared_buf->acct;
-      debugk("_should_acct: wraparound!<<<<<<<\n");
+      printk(KERN_WARN "_should_acct: wraparound!<<<<<<<\n");
       break;
     }
   }
@@ -61,12 +59,9 @@ int should_acct(void)
   acct_buf->in_use = 1;
   acct_buf->nr_subsystems = 0;
   acct_buf->syscall_id.id = interest->syscall_id;
-  debugk("syscall_id=%lu\n", interest->syscall_id);
   // Initialise the subsys_accounting indices to -1, as they are used
   // to index an array, so 0 is valid.
   memset(acct_buf->acct_subsys, -1, sizeof(short) * NUM_SUBSYSTEMS);
-  debugk("_should_acct: (yes, nr %lu) %d, into %p\n", interest->syscall_id,
-         current_pid_acct->pid, (void *)acct_buf);
   preempt_enable();
   return 1;
 }

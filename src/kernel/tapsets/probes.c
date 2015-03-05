@@ -133,7 +133,6 @@ int get_subsys(rscfl_subsys subsys_id,
   rscfl_mem = current_pid_acct->shared_buf;
   subsys_offset = acct->acct_subsys[subsys_id];
   if (subsys_offset == -1) {
-    debugk("looking for a subsys for %d\n", subsys_id);
     // Need to find space in the page where we can store the subsystem.
     subsys_acct = rscfl_mem->subsyses;
     // Walk through the subsyses, being careful not to wonder of the end of
@@ -155,7 +154,8 @@ int get_subsys(rscfl_subsys subsys_id,
     if (subsys_offset == -1) {
       // We haven't found anywhere in the shared page where we can store
       // this subsystem.
-      debugk("rscfl: Unable to allocate memory for syscall accounting\n");
+      printk(KERN_ERR
+             "rscfl: Unable to allocate memory for syscall accounting\n");
       return -ENOMEM;
     }
     // Now need to initialise the subsystem's resources to be 0.
@@ -294,7 +294,6 @@ void rscfl_subsystem_exit(rscfl_subsys subsys_id)
         goto error;
       }
     } else {
-      debugk("clear_acct_next\n");
       clear_acct_next();
     }
     rscfl_counters_update_subsys_vals(subsys_acct, prev_subsys_acct);

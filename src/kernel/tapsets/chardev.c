@@ -124,7 +124,6 @@ static void rscfl_vma_close(struct vm_area_struct *vma)
         drv_data->pid_acct_node->shared_buf = NULL;
       }
 
-      debugk("freeing mmap-ed buffer...\n");
       kfree(drv_data->mmap_shared_buf);
       vma->vm_private_data = NULL;
       kfree(drv_data);

@@ -19,7 +19,7 @@ project(${PNAME} C CXX)
 # - all releases with the same major version need to be compatible API-wise
 # - set PROJECT_TAG_VERSION to "" if you want no tags (the variable is needed)
 set(PROJECT_MAJOR_VERSION 0)
-set(PROJECT_MINOR_VERSION 5)
+set(PROJECT_MINOR_VERSION 6)
 set(PROJECT_PATCH_VERSION 0)
 # data layout version. libraries and kernel modules with different data
 # layouts will not be able to communicate. this is not the same as MAJOR_VERSION

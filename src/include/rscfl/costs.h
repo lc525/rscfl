@@ -84,12 +84,21 @@ struct acct_Sched
 {
   struct timespec wct_out_local;
   ru64 cycles_out_local;
-  struct timespec wct_out_hyp;
-  ru64 hypervisor_schedules;
-  ru64 hypervisor_cycles;
-  ru64 hypervisor_evtchn_pending_size;
-  int hypervisor_credits_min;
-  int hypervisor_credits_max;
+
+  // Hypervisor
+
+  // Scheduling out, due to end of quantum etc.
+  ru64 xen_schedules;
+  struct timespec xen_sched_wct;
+  ru64 xen_sched_cycles;
+
+  ru64 xen_blocks;
+  ru64 xen_yields;
+
+  ru64 xen_evtchn_pending_size;
+
+  int xen_credits_min;
+  int xen_credits_max;
 };
 
 struct subsys_accounting

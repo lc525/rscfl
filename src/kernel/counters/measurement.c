@@ -18,8 +18,14 @@ struct sched_event
   uint64_t timestamp;
   uint64_t cycles;
   int credit;
+
   _Bool is_yield;
+
+  _Bool is_block;
+  _Bool is_unblock;
+
   _Bool sched_in;
+  _Bool sched_out;
 };
 typedef struct sched_event sched_event_t;
 
@@ -98,35 +104,41 @@ int rscfl_counters_update_subsys_vals(struct subsys_accounting *add_subsys,
 
     for (; hd != tl; tl = (tl + 1) % SCHED_EVENT_BUF_SIZE) {
       if (add_subsys != NULL) {
-        add_subsys->sched.hypervisor_schedules++;
+        // Get timespec from the scheduling event.
         hypervisor_timestamp = sched_info->sched[tl].timestamp;
         memset(&time, 0, sizeof(struct timespec));
         rscfl_timespec_add_ns(&time, hypervisor_timestamp);
 
-        // If the current number of credits is < the minimum number seen so far
-        // then set the current val as the new min.
+        // Check the number of credits for the VCPU, and update min/max as
+        // required.
+        add_subsys->sched.xen_credits_min = min(
+            add_subsys->sched.xen_credits_min, sched_info->sched[tl].credit);
+        add_subsys->sched.xen_credits_max = max(
+            add_subsys->sched.xen_credits_max, sched_info->sched[tl].credit);
 
-        add_subsys->sched.hypervisor_credits_min =
-            min(add_subsys->sched.hypervisor_credits_min,
-                sched_info->sched[tl].credit);
-
-        // Similarly for max credits.
-
-        add_subsys->sched.hypervisor_credits_max =
-            max(add_subsys->sched.hypervisor_credits_max,
-                sched_info->sched[tl].credit);
         if (sched_info->sched[tl].sched_in) {
-          rscfl_timespec_add(&add_subsys->sched.wct_out_hyp, &time);
-          add_subsys->sched.hypervisor_cycles += sched_info->sched[tl].cycles;
-          add_subsys->sched.hypervisor_evtchn_pending_size += no_evtchn_events;
+          // Update count of scheduling events.
+          add_subsys->sched.xen_schedules++;
 
-        } else {
-          // We're scheduling out, so we want to subtract the current cycle
-          // count.
-          rscfl_timespec_diff_comp(&time, &add_subsys->sched.wct_out_hyp);
-          add_subsys->sched.wct_out_hyp = time;
-          add_subsys->sched.hypervisor_cycles -= sched_info->sched[tl].cycles;
-          add_subsys->sched.hypervisor_evtchn_pending_size -= no_evtchn_events;
+          rscfl_timespec_add(&add_subsys->sched.xen_sched_wct, &time);
+          add_subsys->sched.xen_sched_cycles += sched_info->sched[tl].cycles;
+          add_subsys->sched.xen_evtchn_pending_size += no_evtchn_events;
+
+        } else if (sched_info->sched[tl].sched_out) {
+          // Update count of scheduling events.
+          add_subsys->sched.xen_schedules++;
+
+          rscfl_timespec_diff_comp(&time, &add_subsys->sched.xen_sched_wct);
+          add_subsys->sched.xen_sched_wct = time;
+          add_subsys->sched.xen_sched_cycles -= sched_info->sched[tl].cycles;
+          add_subsys->sched.xen_evtchn_pending_size -= no_evtchn_events;
+        }
+
+        if (sched_info->sched[tl].is_block) {
+          add_subsys->sched.xen_blocks++;
+        }
+        if (sched_info->sched[tl].is_yield) {
+          add_subsys->sched.xen_yields++;
         }
       }
     }

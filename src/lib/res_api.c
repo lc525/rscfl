@@ -306,16 +306,17 @@ inline void rscfl_subsys_merge(struct subsys_accounting *e,
   e->mem.align_faults            += c->mem.align_faults;
 
   rscfl_timespec_add(&e->sched.wct_out_local, &c->sched.wct_out_local);
-  rscfl_timespec_add(&e->sched.wct_out_hyp, &c->sched.wct_out_hyp);
+  rscfl_timespec_add(&e->sched.xen_sched_wct, &c->sched.xen_sched_wct);
 
-  e->sched.hypervisor_schedules += c->sched.hypervisor_schedules;
-  e->sched.hypervisor_cycles += c->sched.hypervisor_cycles;
-  e->sched.hypervisor_evtchn_pending_size +=
-      c->sched.hypervisor_evtchn_pending_size;
-  e->sched.hypervisor_credits_min = min(e->sched.hypervisor_credits_min,
-                                        c->sched.hypervisor_credits_min);
-  e->sched.hypervisor_credits_max = max(e->sched.hypervisor_credits_max,
-                                        c->sched.hypervisor_credits_max);
+  e->sched.xen_schedules           += c->sched.xen_schedules;
+  e->sched.xen_sched_cycles        += c->sched.xen_sched_cycles;
+  e->sched.xen_blocks              += c->sched.xen_blocks;
+  e->sched.xen_yields              += c->sched.xen_yields;
+  e->sched.xen_evtchn_pending_size += c->sched.xen_evtchn_pending_size;
+  e->sched.xen_credits_min = min(e->sched.xen_credits_min,
+                                 c->sched.xen_credits_min);
+  e->sched.xen_credits_max = max(e->sched.xen_credits_max,
+                                 c->sched.xen_credits_max);
 }
 
 struct subsys_accounting* rscfl_get_subsys_by_id(rscfl_handle rhdl,

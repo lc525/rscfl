@@ -7,6 +7,7 @@ import jinja2
 import requests
 import subprocess
 import time
+import sys
 
 TEMPLATE="""
 name = "ubuntu-clone-{{ clone_no }}"
@@ -78,8 +79,8 @@ def run_test_prog(test_prog):
     return fabric.api.run("set -m; %s &" % test_prog, pty=True)
 
 
-def run_experiment(no_vms, gold_img, memory, vcpus, workload_cmd, test_prog,
-                   sleep_time, mark):
+def run_experiment(no_vms, gold_img, memory, vcpus, workload_cmd, workload_cmd_freq,
+                   test_prog, sleep_time, mark, from_vms):
     destroy_existing_doms()
     fabric.api.output["stdout"] = False
     fabric.api.output["running"] = False
@@ -89,20 +90,36 @@ def run_experiment(no_vms, gold_img, memory, vcpus, workload_cmd, test_prog,
         print("Error executing test_prog")
         return
 
-    for x in range(no_vms):
+    cmd_ix = 0
+    for x in range(1, no_vms + 1):
         # Create x VMs
         workload_ip = start_vm(gold_img, memory, vcpus)
         # Make VMs run a workload
-        fabric.api.execute(run_workload, workload_cmd, hosts=workload_ip)
-        # Start measuring
-        payload = {'mark': 'vms_%d_%s' % (x, mark)}
-        requests.post('http://so-22-50/mark', payload)
+        fabric.api.execute(run_workload, workload_cmd[cmd_ix], hosts=workload_ip)
+        workload_cmd_freq[cmd_ix] = workload_cmd_freq[cmd_ix] - 1
 
-        # Wait
-        time.sleep(float(sleep_time))
-        # Stop measuring
-        payload = {'mark': 'STOP'}
+        if x < from_vms:
+            continue
+        if x == from_vms:
+            sys.stdout.write("Experiment starts in 5 sec....")
+            sys.stdout.flush()
+            time.sleep(5.0)
+
+        # Start measuring
+        payload = {'mark': 'vms_%d_%s' % (x, mark[cmd_ix])}
         requests.post('http://so-22-50/mark', payload)
+        if x == from_vms:
+            print("started!\n")
+
+        if x < no_vms:
+          # Wait
+          time.sleep(float(sleep_time))
+          # Stop measuring
+          payload = {'mark': 'STOP'}
+          requests.post('http://so-22-50/mark', payload)
+
+        if workload_cmd_freq[cmd_ix] == 0:
+         cmd_ix = cmd_ix + 1
 
 
 def main():
@@ -110,23 +127,35 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-g', type=int, dest="no_vms",
                         help="Number of concurrent VMs.")
+    parser.add_argument('-w', type=int, dest="from_vms", default="1",
+                        help="Start with this many vms")
     parser.add_argument('-i', dest="gold_img",
                         help="Location of gold image file.")
     parser.add_argument('-m', dest="memory", default="256",
                         help="Memory for each generator in MB.")
     parser.add_argument('-v', dest="vcpus", default="8",
                         help="VCPUs per generator")
-    parser.add_argument('-c', dest="workload_cmd", help="Command to run on "
-                        "each of the VMs.")
+    parser.add_argument('-c', nargs='+', dest="workload_cmd",
+                        help="Commands to run on each of the VMs. Use multiple"
+                        "commands in \"\" in combination with -f and -e")
+    parser.add_argument('-f', type=int, nargs='+', dest="workload_cmd_freq",
+                        help="For each of the commands in -c, the number of vms"
+                        " on which that command should run")
     parser.add_argument('-p', dest="test_prog", help="Program to run as a test"
                         "eg lighttpd.")
     parser.add_argument('-s', dest="sleep_time", help="Time to let each trial "
                         "run for before increasing load.")
-    parser.add_argument('-e', dest="mark", help="Extra metadata for experiment")
+    parser.add_argument('-e', nargs='+', dest="mark",
+                        help="Extra metadata for experiment, one value per"
+                        " command in -c")
     args = parser.parse_args()
+
+    if args.workload_cmd_freq == None:
+	args.workload_cmd_freq = [args.no_vms]
+
     run_experiment(args.no_vms, args.gold_img, args.memory, args.vcpus,
-                   args.workload_cmd, args.test_prog, args.sleep_time,
-                   args.mark)
+                   args.workload_cmd, args.workload_cmd_freq, args.test_prog,
+                   args.sleep_time, args.mark, args.from_vms)
 
 if __name__ == "__main__":
     main()

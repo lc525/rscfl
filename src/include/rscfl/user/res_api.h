@@ -66,6 +66,27 @@ extern "C" {
 /* array containing the user-friendly names of each subsystem */
 extern const char *rscfl_subsys_name[NUM_SUBSYSTEMS];
 
+
+/*
+ * Resourceful tokens allow us to track the resources consumed by a request
+ * when it is not in the kernel. This can be in userspace or in the hypervisor.
+ *
+ * Each request should get a token at the start, and use that token
+ * throughout the entire request.
+ */
+struct rscfl_token {
+  int id;
+  _Bool reset_count;
+};
+typedef struct rscfl_token rscfl_token_t;
+
+
+struct rscfl_token_list {
+  rscfl_token_t *token;
+  struct rscfl_token_list *next;
+};
+typedef struct rscfl_token_list rscfl_token_list_t;
+
 /*
  * rscfl_handle_t* (typedef-ed to rscfl_handle) represents the user-space
  * descriptor for interacting with the kernel module. This is obtained
@@ -76,9 +97,17 @@ struct rscfl_handle_t {
   char *buf;
   rscfl_syscall_id_t lst_syscall;
   rscfl_ctrl_layout_t *ctrl;
+  /*
+   * Rscfl generates a pool of tokens that can be used by userspace without
+   * performing a mode switch into the kernel.
+   * This pool is replenished whenever there is a system call that finds a
+   * reduction in the number of free tokens.
+   */
+  rscfl_token_t *fresh_tokens[NUM_READY_TOKENS];
+  rscfl_token_list_t *reuseable_tokens;
+  int ready_token_sp;
 };
 typedef struct rscfl_handle_t *rscfl_handle;
-
 
 /*
  * subsys_idx_set holds subsystem accounting data in user space, indexed by
@@ -129,9 +158,26 @@ typedef struct subsys_idx_set subsys_idx_set;
 #define rscfl_init() rscfl_init_api(RSCFL_VERSION)
 rscfl_handle rscfl_init_api(rscfl_version_t api_ver);
 
-rscfl_handle rscfl_get_handle();
+rscfl_handle rscfl_get_handle(void);
 
-int rscfl_acct_next(rscfl_handle);
+/*
+ * If successful returns 0, and sets the value of *token to be a new token.
+ *
+ * Tokens are used to aggregate the resources used by an entire request,
+ * in particular to allow a request to find out how resource has been consumed
+ * by the system whilst it has been scheduled out by the scheduler or
+ * hypervisor.
+ */
+int rscfl_get_token(rscfl_handle rhdl, rscfl_token_t **token);
+
+/*
+ * Returns an int as we put the token on a reuse list. Allocation of
+ * memory to put the element on the list may fail.
+ */
+int rscfl_free_token(rscfl_handle, rscfl_token_t *);
+
+#define rscfl_acct_next(rscfl_handle) rscfl_acct_next_token(rscfl_handle, NULL)
+int rscfl_acct_next_token(rscfl_handle, rscfl_token_t *token);
 
 int rscfl_read_acct(rscfl_handle handle, struct accounting *acct);
 

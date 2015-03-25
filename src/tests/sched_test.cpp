@@ -9,7 +9,6 @@
 const int kMaxExpectedCyclesSpentInHypervisorPerSubsystem = 100000;
 const int kMaxExpectedSchedulesPerSubsystem = 16;
 
-
 class SchedTest : public testing::Test
 {
  protected:
@@ -75,8 +74,11 @@ TEST_F(SchedTest, SchedTimeAlwaysPositive)
 TEST_F(SchedTest, SchedTimeLessThanSubsysTime)
 {
   for (int i = 0; i < sub_set_->set_size; i++) {
-    ASSERT_EQ(-1, rscfl_timespec_compare(&sub_set_->set[i].sched.wct_out_local,
-                                         &sub_set_->set[i].cpu.wall_clock_time));
+    if (sub_set_->ids[i] != USERSPACE_XEN) {
+      ASSERT_EQ(-1,
+                rscfl_timespec_compare(&sub_set_->set[i].sched.wct_out_local,
+                                       &sub_set_->set[i].cpu.wall_clock_time));
+    }
   }
 }
 
@@ -116,9 +118,14 @@ TEST_F(SchedTest, HypervisorSchedulesDoesntOverflow)
 TEST_F(SchedTest, HypervisorSubsystemWCTLessThanSubsystemWCT)
 {
   for (int i = 0; i < sub_set_->set_size; i++) {
-    // Cannot spend longer in another VM than spent executing a subsystem.
-    ASSERT_EQ(-1, rscfl_timespec_compare(&sub_set_->set[i].sched.xen_sched_wct,
-                                         &sub_set_->set[i].cpu.wall_clock_time));
+    // Don't include userspace Xen in our summations.
+    if (sub_set_->ids[i] != USERSPACE_XEN) {
+      // Cannot spend longer in another VM than spent executing a subsystem.
+      ASSERT_EQ(-1,
+                rscfl_timespec_compare(&sub_set_->set[i].sched.xen_sched_wct,
+                                       &sub_set_->set[i].cpu.wall_clock_time))
+          << i;
+    }
   }
 }
 

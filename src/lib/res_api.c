@@ -17,15 +17,19 @@
 #include "rscfl/costs.h"
 #include "rscfl/res_common.h"
 
-#define max(a,b)                                \
-  ({ typeof (a) _a = (a);                       \
-    typeof (b) _b = (b);                        \
-    _a > _b ? _a : _b; })
+#define max(a, b)       \
+  ({                    \
+    typeof(a) _a = (a); \
+    typeof(b) _b = (b); \
+    _a > _b ? _a : _b;  \
+  })
 
-#define min(a,b)                                \
-  ({ typeof (a) _a = (a);                       \
-    typeof (b) _b = (b);                        \
-    _a > _b ? _b : _a; })
+#define min(a, b)       \
+  ({                    \
+    typeof(a) _a = (a); \
+    typeof(b) _b = (b); \
+    _a > _b ? _b : _a;  \
+  })
 
 // macro function definitions
 DEFINE_REDUCE_FUNCTION(rint, ru64)
@@ -33,8 +37,7 @@ DEFINE_REDUCE_FUNCTION(wc, struct timespec)
 
 // define subsystem name array for user-space includes of subsys_list.h
 const char *rscfl_subsys_name[NUM_SUBSYSTEMS] = {
-    SUBSYS_TABLE(SUBSYS_AS_STR_ARRAY)
-};
+    SUBSYS_TABLE(SUBSYS_AS_STR_ARRAY)};
 
 __thread rscfl_handle handle = NULL;
 
@@ -43,29 +46,29 @@ rscfl_handle rscfl_init_api(rscfl_version_t rscfl_ver)
   struct stat sb;
   void *ctrl, *buf;
   int fd_data, fd_ctrl;
+  struct accounting acct;
 
   // library was compiled with RSCFL_VERSION, API called from rscfl_ver
   // emit warning if the APIs have different major versions
-  if(RSCFL_VERSION.major != rscfl_ver.major) {
-    fprintf(stderr, "rscfl: API major version mismatch: "
-                    "%d (header) vs %d (library)\n",
-                    rscfl_ver.major, RSCFL_VERSION.major);
-    #ifdef RSCFL_ERR_VER_MISMATCH
-      fprintf(stderr, "rscfl: initialisation aborted\n");
-      return NULL;
-    #endif
+  if (RSCFL_VERSION.major != rscfl_ver.major) {
+    fprintf(stderr,
+            "rscfl: API major version mismatch: "
+            "%d (header) vs %d (library)\n",
+            rscfl_ver.major, RSCFL_VERSION.major);
+#ifdef RSCFL_ERR_VER_MISMATCH
+    fprintf(stderr, "rscfl: initialisation aborted\n");
+    return NULL;
+#endif
     // if ERROR_ON_VERSION_MISMATCH is not defined, we'll still try to
     // initialize rscfl
   }
 
   fd_data = open("/dev/" RSCFL_DATA_DRIVER, O_RDONLY);
   fd_ctrl = open("/dev/" RSCFL_CTRL_DRIVER, O_RDWR);
-  rscfl_handle rhdl = (rscfl_handle)malloc(sizeof(*rhdl));
+  rscfl_handle rhdl = (rscfl_handle)calloc(1, sizeof(*rhdl));
   if (!rhdl) {
     return NULL;
   }
-  rhdl->buf = NULL;
-  rhdl->ctrl = NULL;
 
   if ((fd_data == -1) || (fd_ctrl == -1)) {
     goto error;
@@ -97,16 +100,23 @@ rscfl_handle rscfl_init_api(rscfl_version_t rscfl_ver)
   // Check data layout version
   if (rhdl->ctrl->version != rscfl_ver.data_layout) {
     fprintf(stderr,
-            "rscfl: Version mismatch between rscfl API and kernel data layouts: %d (API) vs %d (.ko)\n",
+            "rscfl: Version mismatch between rscfl API and kernel data "
+            "layouts: %d (API) vs %d (.ko)\n",
             rscfl_ver.data_layout, rhdl->ctrl->version);
     goto error;
   }
+  // Make an (accounted-for) system call to initialise the tokens.
+  if (rscfl_acct_next(rhdl)) {
+    goto error;
+  };
 
   if ((close(fd_data) == -1) || (close(fd_ctrl) == -1)) {
     goto error;
   }
+  if (rscfl_read_acct(rhdl, &acct)) {
+    goto error;
+  }
 
-  rhdl->lst_syscall.id = 0;
   return rhdl;
 
 error:
@@ -122,7 +132,7 @@ error:
   return NULL;
 }
 
-rscfl_handle rscfl_get_handle()
+rscfl_handle rscfl_get_handle(void)
 {
   if (handle == NULL) {
     handle = rscfl_init();
@@ -130,9 +140,53 @@ rscfl_handle rscfl_get_handle()
   return handle;
 }
 
-int rscfl_acct_next(rscfl_handle rhdl)
+int rscfl_get_token(rscfl_handle rhdl, rscfl_token_t **token)
 {
-  int rc;
+  rscfl_token_list_t *token_list_hd;
+  if ((rhdl == NULL) || (token == NULL)) {
+    return -EINVAL;
+  }
+  // First see if we already have a token that we can reuse.
+  if (rhdl->reuseable_tokens != NULL) {
+    token_list_hd = rhdl->reuseable_tokens;
+    *token = token_list_hd->token;
+    rhdl->reuseable_tokens = token_list_hd->next;
+    free(token_list_hd);
+  }
+  // There are no reusable tokens. Get one of the freshly-baked tokens that
+  // the rscfl kernel module has prepared for us.
+  else if (rhdl->ready_token_sp) {
+    rhdl->ready_token_sp--;
+    *token = rhdl->fresh_tokens[rhdl->ready_token_sp];
+    rhdl->fresh_tokens[rhdl->ready_token_sp]->reset_count = 1;
+  } else {
+  // There are no reusable tokens, and no freshly-baked tokens. The userspace
+  // program needs to wait until the module creates more tokens.
+    return -EAGAIN;
+  }
+  (*token)->reset_count = 1;
+
+  return 0;
+}
+
+int rscfl_free_token(rscfl_handle rhdl, rscfl_token_t *token)
+{
+  rscfl_token_list_t *new_hd;
+  if ((rhdl == NULL) || (token == NULL)) {
+    return -EINVAL;
+  }
+  new_hd = (rscfl_token_list_t *)malloc(sizeof(rscfl_token_list_t));
+  if (new_hd == NULL) {
+    return -ENOMEM;
+  }
+  new_hd->next = rhdl->reuseable_tokens;
+  new_hd->token = token;
+  rhdl->reuseable_tokens = new_hd;
+  return 0;
+}
+
+int rscfl_acct_next_token(rscfl_handle rhdl, rscfl_token_t *token)
+{
   syscall_interest_t *to_acct;
   if (rhdl == NULL) {
     return -EINVAL;
@@ -141,14 +195,47 @@ int rscfl_acct_next(rscfl_handle rhdl)
   to_acct = &rhdl->ctrl->interest;
   to_acct->syscall_id = ++rhdl->lst_syscall.id;
   to_acct->syscall_nr = -1;
-
+  rhdl->ctrl->num_new_tokens = NUM_READY_TOKENS - rhdl->ready_token_sp - 1;
+  if (token != NULL) {
+    to_acct->start_measurement = token->reset_count;
+    token->reset_count = 0;
+    to_acct->token = token->id;
+  } else {
+    to_acct->start_measurement = 1;
+    to_acct->token = 0;
+  }
   return 0;
 }
 
 int rscfl_read_acct(rscfl_handle rhdl, struct accounting *acct)
 {
   int i = 0;
-  if (rhdl == NULL) return -1;
+  if (rhdl == NULL) {
+    return -EINVAL;
+  }
+
+  // See if we have any more fresh tokens to register in rhdl.
+
+  struct rscfl_acct_layout_t *shared_mem =
+      (struct rscfl_acct_layout_t *)rhdl->buf;
+  struct rscfl_token *new_token;
+  for (i = 0; i < NUM_READY_TOKENS; i++) {
+    if (rhdl->ctrl->new_tokens[i]) {
+      if (rhdl->ready_token_sp  < NUM_READY_TOKENS) {
+        // Move the token onto the stack of fresh tokens.
+        new_token = malloc(sizeof(struct rscfl_token));
+        if (new_token == NULL) {
+          return -ENOMEM;
+        }
+
+        new_token->id = rhdl->ctrl->new_tokens[i];
+        rhdl->fresh_tokens[rhdl->ready_token_sp] = new_token;
+        rhdl->ctrl->new_tokens[i] = 0;
+        rhdl->ready_token_sp++;
+      }
+
+    }
+  }
 
   struct accounting *shared_acct = (struct accounting *)rhdl->buf;
   if (shared_acct != NULL) {
@@ -173,7 +260,7 @@ int rscfl_read_acct(rscfl_handle rhdl, struct accounting *acct)
   return -EINVAL;
 }
 
-subsys_idx_set* rscfl_get_subsys(rscfl_handle rhdl, struct accounting *acct)
+subsys_idx_set *rscfl_get_subsys(rscfl_handle rhdl, struct accounting *acct)
 {
   int curr_set_ix = 0, i;
   subsys_idx_set *ret_subsys_idx;
@@ -215,7 +302,7 @@ subsys_idx_set* rscfl_get_subsys(rscfl_handle rhdl, struct accounting *acct)
   return ret_subsys_idx;
 }
 
-subsys_idx_set* rscfl_get_new_aggregator(unsigned short no_subsystems)
+subsys_idx_set *rscfl_get_new_aggregator(unsigned short no_subsystems)
 {
   subsys_idx_set *ret_subsys_idx;
   if (no_subsystems > NUM_SUBSYSTEMS) no_subsystems = NUM_SUBSYSTEMS;
@@ -290,36 +377,37 @@ void free_subsys_idx_set(subsys_idx_set *subsys_set)
 }
 
 inline void rscfl_subsys_merge(struct subsys_accounting *e,
-                               const struct subsys_accounting *c) {
-  e->subsys_entries              += c->subsys_entries;
-  e->subsys_exits                += c->subsys_exits;
+                               const struct subsys_accounting *c)
+{
+  e->subsys_entries += c->subsys_entries;
+  e->subsys_exits += c->subsys_exits;
 
-  e->cpu.cycles                  += c->cpu.cycles;
-  e->cpu.branch_mispredictions   += c->cpu.branch_mispredictions;
-  e->cpu.instructions            += c->cpu.instructions;
+  e->cpu.cycles += c->cpu.cycles;
+  e->cpu.branch_mispredictions += c->cpu.branch_mispredictions;
+  e->cpu.instructions += c->cpu.instructions;
 
   rscfl_timespec_add(&e->cpu.wall_clock_time, &c->cpu.wall_clock_time);
 
-  e->mem.alloc                   += c->mem.alloc;
-  e->mem.freed                   += c->mem.freed;
-  e->mem.page_faults             += c->mem.page_faults;
-  e->mem.align_faults            += c->mem.align_faults;
+  e->mem.alloc += c->mem.alloc;
+  e->mem.freed += c->mem.freed;
+  e->mem.page_faults += c->mem.page_faults;
+  e->mem.align_faults += c->mem.align_faults;
 
   rscfl_timespec_add(&e->sched.wct_out_local, &c->sched.wct_out_local);
   rscfl_timespec_add(&e->sched.xen_sched_wct, &c->sched.xen_sched_wct);
 
-  e->sched.xen_schedules           += c->sched.xen_schedules;
-  e->sched.xen_sched_cycles        += c->sched.xen_sched_cycles;
-  e->sched.xen_blocks              += c->sched.xen_blocks;
-  e->sched.xen_yields              += c->sched.xen_yields;
+  e->sched.xen_schedules += c->sched.xen_schedules;
+  e->sched.xen_sched_cycles += c->sched.xen_sched_cycles;
+  e->sched.xen_blocks += c->sched.xen_blocks;
+  e->sched.xen_yields += c->sched.xen_yields;
   e->sched.xen_evtchn_pending_size += c->sched.xen_evtchn_pending_size;
-  e->sched.xen_credits_min = min(e->sched.xen_credits_min,
-                                 c->sched.xen_credits_min);
-  e->sched.xen_credits_max = max(e->sched.xen_credits_max,
-                                 c->sched.xen_credits_max);
+  e->sched.xen_credits_min =
+      min(e->sched.xen_credits_min, c->sched.xen_credits_min);
+  e->sched.xen_credits_max =
+      max(e->sched.xen_credits_max, c->sched.xen_credits_max);
 }
 
-struct subsys_accounting* rscfl_get_subsys_by_id(rscfl_handle rhdl,
+struct subsys_accounting *rscfl_get_subsys_by_id(rscfl_handle rhdl,
                                                  struct accounting *acct,
                                                  rscfl_subsys subsys_id)
 {
@@ -340,4 +428,3 @@ void rscfl_subsys_free(rscfl_handle rhdl, struct accounting *acct)
     if (subsys != NULL) subsys->in_use = 0;
   }
 }
-

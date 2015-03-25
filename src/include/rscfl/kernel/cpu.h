@@ -61,10 +61,12 @@ struct pid_acct {
   pid_t pid;
   struct rscfl_acct_layout_t *shared_buf;        // shared with user-space
   probe_priv *probe_data;     // private data used by each probe
-  syscall_interest_t *ctrl;  // pointer to the mapped data in the control driver.
+  rscfl_ctrl_layout_t *ctrl;  // pointer to the mapped data in the control driver.
   rscfl_subsys subsys_stack[SUBSYS_STACK_HEIGHT];
   rscfl_subsys *subsys_ptr;
   _Bool executing_probe;
+  struct hlist_node tokens;
+  unsigned short num_tokens;
 };
 typedef struct pid_acct pid_acct;
 

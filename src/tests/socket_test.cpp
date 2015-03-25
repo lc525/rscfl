@@ -8,7 +8,6 @@
 
 class SocketTest : public testing::Test
 {
-
  protected:
   virtual void SetUp()
   {
@@ -67,7 +66,7 @@ TEST_F(SocketTest, SocketTouchesVFS)
 TEST_F(SocketTest, SocketHasCPUCyclesForVFS)
 {
   struct subsys_accounting *subsys =
-    rscfl_get_subsys_by_id(rhdl_, &acct_, FILESYSTEMSVFSANDINFRASTRUCTURE);
+      rscfl_get_subsys_by_id(rhdl_, &acct_, FILESYSTEMSVFSANDINFRASTRUCTURE);
 
   ASSERT_NE(subsys, nullptr);
   // Ensure we have a number of CPU cycles > 0 for VFS on opening
@@ -80,21 +79,21 @@ TEST_F(SocketTest, SocketHasCPUCyclesForVFS)
 TEST_F(SocketTest, SocketTouchesSecuritySubsys)
 {
   // Socket must have touched networking general.
-  ASSERT_TRUE(rscfl_get_subsys_by_id(
-		rhdl_, &acct_, SECURITYSUBSYSTEM) != nullptr);
+  ASSERT_TRUE(rscfl_get_subsys_by_id(rhdl_, &acct_, SECURITYSUBSYSTEM) !=
+              nullptr);
 }
 
 TEST_F(SocketTest, SocketHasCPUCyclesForSecuritySubsys)
 {
   struct subsys_accounting *subsys =
-    rscfl_get_subsys_by_id(rhdl_, &acct_, SECURITYSUBSYSTEM);
+      rscfl_get_subsys_by_id(rhdl_, &acct_, SECURITYSUBSYSTEM);
   ASSERT_NE(subsys, nullptr);
   // Ensure we have a number of CPU cycles > 0 for VFS on opening
   // a socket.
   ASSERT_GT(subsys->cpu.cycles, 0);
 }
 
-TEST_F(SocketTest, EverySubsystemEnteredHasAPositiveSubsysEntries)
+TEST_F(SocketTest, EveryNormalSubsystemEnteredHasAPositiveSubsysEntries)
 {
   struct subsys_accounting *subsys;
   for (int i = 0; i < NUM_SUBSYSTEMS; i++) {
@@ -102,12 +101,14 @@ TEST_F(SocketTest, EverySubsystemEnteredHasAPositiveSubsysEntries)
     if (subsys != nullptr) {
       // If a subsystem is not NULL then it has been called into. Therefore
       // it should not have 0 in its listed number of entries.
-      ASSERT_GT(subsys->subsys_entries, 0);
+      if (i != USERSPACE_XEN) {
+        ASSERT_LT(0, subsys->subsys_entries) << "No entries to subsys " << i;
+      }
     }
   }
 }
 
-TEST_F(SocketTest, EverySubsystemEnteredHasAPositiveSubsysExits)
+TEST_F(SocketTest, EveryNormalSubsystemEnteredHasAPositiveSubsysExits)
 {
   struct subsys_accounting *subsys;
   for (int i = 0; i < NUM_SUBSYSTEMS; i++) {
@@ -115,8 +116,32 @@ TEST_F(SocketTest, EverySubsystemEnteredHasAPositiveSubsysExits)
     if (subsys != nullptr) {
       // If a subsystem is not NULL then it has been called into. Therefore
       // it should not have 0 in its listed number of exits.
-      ASSERT_GT(subsys->subsys_exits, 0);
+      if (i != USERSPACE_XEN) {
+        ASSERT_LT(0, subsys->subsys_exits) << "No exits from subsys " << i;
+      }
     }
+  }
+}
+
+TEST_F(SocketTest, XenUserspaceSubsystemEnteredHasNoSubsysExits)
+{
+  struct subsys_accounting *subsys;
+  subsys = rscfl_get_subsys_by_id(rhdl_, &acct_, USERSPACE_XEN);
+  if (subsys != nullptr) {
+    // We do not want exits from the xen userspace subsystem.
+    ASSERT_EQ(0, subsys->subsys_exits)
+        << "Userspace xen subsys shouldn't have exits.";
+  }
+}
+
+TEST_F(SocketTest, XenUserspaceSubsystemEnteredHasNoSubsysEntries)
+{
+  struct subsys_accounting *subsys;
+  subsys = rscfl_get_subsys_by_id(rhdl_, &acct_, USERSPACE_XEN);
+  if (subsys != nullptr) {
+    // We do not want entries into the xen userspace subsystem.
+    ASSERT_EQ(0, subsys->subsys_entries)
+        << "Userspace xen subsys shouldn't have entries.";
   }
 }
 
@@ -153,7 +178,7 @@ TEST_F(SocketTest, TotalSubsysEntriesEqualsTotalSubsysExits)
 // to open.
 TEST_F(SocketTest, RscflGivesDifferentResultsForRepeatedSocketOpens)
 {
-  auto* subsys_acct = rscfl_get_subsys_by_id(rhdl_, &acct_, SECURITYSUBSYSTEM);
+  auto *subsys_acct = rscfl_get_subsys_by_id(rhdl_, &acct_, SECURITYSUBSYSTEM);
   ASSERT_NE(subsys_acct, nullptr);
   int cycles0 = subsys_acct->cpu.cycles;
 

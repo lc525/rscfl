@@ -8,6 +8,7 @@
 
 class SocketTest : public testing::Test
 {
+
  protected:
   virtual void SetUp()
   {
@@ -66,7 +67,7 @@ TEST_F(SocketTest, SocketTouchesVFS)
 TEST_F(SocketTest, SocketHasCPUCyclesForVFS)
 {
   struct subsys_accounting *subsys =
-      rscfl_get_subsys_by_id(rhdl_, &acct_, FILESYSTEMSVFSANDINFRASTRUCTURE);
+    rscfl_get_subsys_by_id(rhdl_, &acct_, FILESYSTEMSVFSANDINFRASTRUCTURE);
 
   ASSERT_NE(subsys, nullptr);
   // Ensure we have a number of CPU cycles > 0 for VFS on opening
@@ -178,7 +179,7 @@ TEST_F(SocketTest, TotalSubsysEntriesEqualsTotalSubsysExits)
 // to open.
 TEST_F(SocketTest, RscflGivesDifferentResultsForRepeatedSocketOpens)
 {
-  auto *subsys_acct = rscfl_get_subsys_by_id(rhdl_, &acct_, SECURITYSUBSYSTEM);
+  auto* subsys_acct = rscfl_get_subsys_by_id(rhdl_, &acct_, SECURITYSUBSYSTEM);
   ASSERT_NE(subsys_acct, nullptr);
   int cycles0 = subsys_acct->cpu.cycles;
 

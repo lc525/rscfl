@@ -9,6 +9,7 @@
 const int kMaxExpectedCyclesSpentInHypervisorPerSubsystem = 100000;
 const int kMaxExpectedSchedulesPerSubsystem = 16;
 
+
 class SchedTest : public testing::Test
 {
  protected:

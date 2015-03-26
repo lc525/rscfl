@@ -17,19 +17,15 @@
 #include "rscfl/costs.h"
 #include "rscfl/res_common.h"
 
-#define max(a, b)       \
-  ({                    \
-    typeof(a) _a = (a); \
-    typeof(b) _b = (b); \
-    _a > _b ? _a : _b;  \
-  })
+#define max(a,b)                                \
+  ({ typeof (a) _a = (a);                       \
+    typeof (b) _b = (b);                        \
+    _a > _b ? _a : _b; })
 
-#define min(a, b)       \
-  ({                    \
-    typeof(a) _a = (a); \
-    typeof(b) _b = (b); \
-    _a > _b ? _b : _a;  \
-  })
+#define min(a,b)                                \
+  ({ typeof (a) _a = (a);                       \
+    typeof (b) _b = (b);                        \
+    _a > _b ? _b : _a; })
 
 // macro function definitions
 DEFINE_REDUCE_FUNCTION(rint, ru64)
@@ -37,7 +33,8 @@ DEFINE_REDUCE_FUNCTION(wc, struct timespec)
 
 // define subsystem name array for user-space includes of subsys_list.h
 const char *rscfl_subsys_name[NUM_SUBSYSTEMS] = {
-    SUBSYS_TABLE(SUBSYS_AS_STR_ARRAY)};
+    SUBSYS_TABLE(SUBSYS_AS_STR_ARRAY)
+};
 
 __thread rscfl_handle handle = NULL;
 
@@ -50,15 +47,14 @@ rscfl_handle rscfl_init_api(rscfl_version_t rscfl_ver)
 
   // library was compiled with RSCFL_VERSION, API called from rscfl_ver
   // emit warning if the APIs have different major versions
-  if (RSCFL_VERSION.major != rscfl_ver.major) {
-    fprintf(stderr,
-            "rscfl: API major version mismatch: "
-            "%d (header) vs %d (library)\n",
-            rscfl_ver.major, RSCFL_VERSION.major);
-#ifdef RSCFL_ERR_VER_MISMATCH
-    fprintf(stderr, "rscfl: initialisation aborted\n");
-    return NULL;
-#endif
+  if(RSCFL_VERSION.major != rscfl_ver.major) {
+    fprintf(stderr, "rscfl: API major version mismatch: "
+                    "%d (header) vs %d (library)\n",
+                    rscfl_ver.major, RSCFL_VERSION.major);
+    #ifdef RSCFL_ERR_VER_MISMATCH
+      fprintf(stderr, "rscfl: initialisation aborted\n");
+      return NULL;
+    #endif
     // if ERROR_ON_VERSION_MISMATCH is not defined, we'll still try to
     // initialize rscfl
   }
@@ -100,8 +96,7 @@ rscfl_handle rscfl_init_api(rscfl_version_t rscfl_ver)
   // Check data layout version
   if (rhdl->ctrl->version != rscfl_ver.data_layout) {
     fprintf(stderr,
-            "rscfl: Version mismatch between rscfl API and kernel data "
-            "layouts: %d (API) vs %d (.ko)\n",
+            "rscfl: Version mismatch between rscfl API and kernel data layouts: %d (API) vs %d (.ko)\n",
             rscfl_ver.data_layout, rhdl->ctrl->version);
     goto error;
   }
@@ -260,7 +255,7 @@ int rscfl_read_acct(rscfl_handle rhdl, struct accounting *acct)
   return -EINVAL;
 }
 
-subsys_idx_set *rscfl_get_subsys(rscfl_handle rhdl, struct accounting *acct)
+subsys_idx_set* rscfl_get_subsys(rscfl_handle rhdl, struct accounting *acct)
 {
   int curr_set_ix = 0, i;
   subsys_idx_set *ret_subsys_idx;
@@ -302,7 +297,7 @@ subsys_idx_set *rscfl_get_subsys(rscfl_handle rhdl, struct accounting *acct)
   return ret_subsys_idx;
 }
 
-subsys_idx_set *rscfl_get_new_aggregator(unsigned short no_subsystems)
+subsys_idx_set* rscfl_get_new_aggregator(unsigned short no_subsystems)
 {
   subsys_idx_set *ret_subsys_idx;
   if (no_subsystems > NUM_SUBSYSTEMS) no_subsystems = NUM_SUBSYSTEMS;
@@ -377,37 +372,36 @@ void free_subsys_idx_set(subsys_idx_set *subsys_set)
 }
 
 inline void rscfl_subsys_merge(struct subsys_accounting *e,
-                               const struct subsys_accounting *c)
-{
-  e->subsys_entries += c->subsys_entries;
-  e->subsys_exits += c->subsys_exits;
+                               const struct subsys_accounting *c) {
+  e->subsys_entries              += c->subsys_entries;
+  e->subsys_exits                += c->subsys_exits;
 
-  e->cpu.cycles += c->cpu.cycles;
-  e->cpu.branch_mispredictions += c->cpu.branch_mispredictions;
-  e->cpu.instructions += c->cpu.instructions;
+  e->cpu.cycles                  += c->cpu.cycles;
+  e->cpu.branch_mispredictions   += c->cpu.branch_mispredictions;
+  e->cpu.instructions            += c->cpu.instructions;
 
   rscfl_timespec_add(&e->cpu.wall_clock_time, &c->cpu.wall_clock_time);
 
-  e->mem.alloc += c->mem.alloc;
-  e->mem.freed += c->mem.freed;
-  e->mem.page_faults += c->mem.page_faults;
-  e->mem.align_faults += c->mem.align_faults;
+  e->mem.alloc                   += c->mem.alloc;
+  e->mem.freed                   += c->mem.freed;
+  e->mem.page_faults             += c->mem.page_faults;
+  e->mem.align_faults            += c->mem.align_faults;
 
   rscfl_timespec_add(&e->sched.wct_out_local, &c->sched.wct_out_local);
   rscfl_timespec_add(&e->sched.xen_sched_wct, &c->sched.xen_sched_wct);
 
-  e->sched.xen_schedules += c->sched.xen_schedules;
-  e->sched.xen_sched_cycles += c->sched.xen_sched_cycles;
-  e->sched.xen_blocks += c->sched.xen_blocks;
-  e->sched.xen_yields += c->sched.xen_yields;
+  e->sched.xen_schedules           += c->sched.xen_schedules;
+  e->sched.xen_sched_cycles        += c->sched.xen_sched_cycles;
+  e->sched.xen_blocks              += c->sched.xen_blocks;
+  e->sched.xen_yields              += c->sched.xen_yields;
   e->sched.xen_evtchn_pending_size += c->sched.xen_evtchn_pending_size;
-  e->sched.xen_credits_min =
-      min(e->sched.xen_credits_min, c->sched.xen_credits_min);
-  e->sched.xen_credits_max =
-      max(e->sched.xen_credits_max, c->sched.xen_credits_max);
+  e->sched.xen_credits_min = min(e->sched.xen_credits_min,
+                                 c->sched.xen_credits_min);
+  e->sched.xen_credits_max = max(e->sched.xen_credits_max,
+                                 c->sched.xen_credits_max);
 }
 
-struct subsys_accounting *rscfl_get_subsys_by_id(rscfl_handle rhdl,
+struct subsys_accounting* rscfl_get_subsys_by_id(rscfl_handle rhdl,
                                                  struct accounting *acct,
                                                  rscfl_subsys subsys_id)
 {

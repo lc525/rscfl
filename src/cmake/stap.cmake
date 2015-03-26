@@ -20,7 +20,7 @@ endfunction()
 #          gets rebuilt)
 #
 #  ====================================================================
-function(STAP_BUILD MOD_NAME INCLUDES OUT_DIR GEN_SRC SRC)
+function(STAP_BUILD MOD_NAME INCLUDES OUT_DIR GEN_SRC SRC DEPS)
   # Generate includes list
   foreach(FIL ${INCLUDES})
     get_filename_component(ABS_FIL ${FIL} ABSOLUTE)
@@ -82,7 +82,7 @@ function(STAP_BUILD MOD_NAME INCLUDES OUT_DIR GEN_SRC SRC)
       -I ${PROJECT_SOURCE_DIR}/tapsets
       ${ABS_FIL}
       > /dev/null
-    DEPENDS ${GEN_SRC} ${ARGN}
+    DEPENDS ${GEN_SRC} ${DEPS}
     COMMENT "Building stap kernel module ${MOD_NAME} from ${NM_FIL}"
   )
   add_custom_target(stap_gen ALL DEPENDS ${OUT_DIR}/${MOD_NAME}.c)
@@ -104,10 +104,11 @@ function(STAP_BUILD MOD_NAME INCLUDES OUT_DIR GEN_SRC SRC)
                               ${MODULE_OUTPUT_FILES}
                       COMMAND ${KBUILD_CMD}
                       COMMAND cp -f ${MODULE_BIN_FILE} ${PROJECT_BINARY_DIR}
-                      DEPENDS ${_stap_srcf} stap_gen
+                      DEPENDS stap_gen ${_stap_srcf} ${DEPS}
+                      COMMENT "Running kbuild for ${MODULE_BIN_FILE}"
                       VERBATIM )
 
   add_custom_target ( ${MODULE_TARGET_NAME} ALL
-                      DEPENDS ${MODULE_BIN_FILE})
+                      DEPENDS ${MODULE_BIN_FILE} stap_gen)
 
 endfunction()

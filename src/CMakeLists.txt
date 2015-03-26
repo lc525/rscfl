@@ -267,9 +267,9 @@ file(MAKE_DIRECTORY ${stap_OUT_DIR})
 stap_build(${stap_MOD_NAME}
   "${stap_INCLUDES}"
    ${stap_OUT_DIR}
-   ${stap_gen_SOURCES}
+   "${stap_gen_SOURCES}"
    "${stap_SOURCES}"
-   ${stap_DEPS}
+   "${stap_DEPS}"
 )
 
 # build examples

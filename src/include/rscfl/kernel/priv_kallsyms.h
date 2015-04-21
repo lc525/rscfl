@@ -24,6 +24,10 @@ _(__set_phys_to_machine)   \
 _(put_balloon_scratch_page)\
 _(get_balloon_scratch_page)\
 _(flush_tlb_all)           \
+_(_text)                  \
+_(_etext)                  \
+_(dma_contiguous_default_area)                  \
+_(dma_alloc_from_contiguous)\
 
 _once void* (*KPRIV(text_poke))(void *addr, const void *opcode, size_t len);
 _once void (*KPRIV(xen_evtchn_do_upcall))(struct pt_regs *regs);
@@ -40,6 +44,12 @@ _once bool (*KPRIV(__set_phys_to_machine))(unsigned long pfn, unsigned long mfn)
 _once void (*KPRIV(put_balloon_scratch_page))(void);
 _once struct page* (*KPRIV(get_balloon_scratch_page))(void);
 _once void (*KPRIV(flush_tlb_all))(void);
+_once char **KPRIV(_text);
+_once char **KPRIV(_etext);
+_once struct cma *KPRIV(dma_contiguous_default_area);
+_once struct page *(*KPRIV(dma_alloc_from_contiguous))(struct device *dev,
+                                                       int count,
+                                                       unsigned int align);
 
 int init_priv_kallsyms(void);
 

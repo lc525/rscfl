@@ -7,6 +7,7 @@
 #include "rscfl/kernel/measurement.h"
 #include "rscfl/kernel/probe_manager.h"
 #include "rscfl/kernel/priv_kallsyms.h"
+#include "rscfl/kernel/shdw.h"
 #include "rscfl/kernel/stap_shim.h"
 #include "rscfl/kernel/subsys_addr.h"
 
@@ -35,6 +36,8 @@ int probes_init(void)
   int subsys_num;
   u8 **probe_addrs_temp[] = {PROBE_LIST(PROBES_AS_ADDRS)};
   char *syscall_type_temp[] = {PROBE_LIST(PROBES_AS_SYSCALL_TYPE)};
+  shdw_hdl shdw;
+  unsigned char insns[1] = {0x90};
 
   void (*probe_pre_handlers_temp[])(void) = {PROBE_LIST(PROBES_AS_PRE_HANDLE)};
 
@@ -61,11 +64,19 @@ int probes_init(void)
   preempt_enable();
   rcd = _rscfl_dev_init();
   rcp = rscfl_counters_init();
-  rckp = rscfl_probes_init(
-      probe_addrs_temp,
-      syscall_type_temp,
-      sizeof(probe_pre_handlers_temp) / sizeof(kretprobe_handler_t),
-      RSCFL_NUM_PROBES, probe_pre_handlers_temp, probe_post_handlers_temp);
+  rckp = 0;
+  //  rckp = rscfl_probes_init(
+  //    probe_addrs_temp,
+  //    syscall_type_temp,
+  //    sizeof(probe_pre_handlers_temp) / sizeof(kretprobe_handler_t),
+  //    RSCFL_NUM_PROBES, probe_pre_handlers_temp, probe_post_handlers_temp);
+  shdw = shdw_create();
+  if (shdw < 0) {
+    return shdw;
+  }
+  write_cr0(read_cr0() & (~0x10000));
+  KPRIV(text_poke)((char *)KPRIV(_text) + 4096, &insns, 1);
+  shdw_switch(shdw);
   preempt_disable();
 
   if (rcc) {

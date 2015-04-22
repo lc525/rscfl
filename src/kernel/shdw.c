@@ -115,14 +115,17 @@ static void xen_update_mem_tables(unsigned long pfn, unsigned long mfn)
   }
 }
 
-static int update_xen(unsigned long phys_shdw_mem)
+static int update_xen(void *var)
 {
+  unsigned long phys_shdw_mem = *((unsigned long *)var);
   unsigned long mfn;
   int i;
-  char *c = kmalloc(30 * PAGE_SIZE, GFP_KERNEL);
-  //unmap_kernel_range((unsigned long)c, 30 * PAGE_SIZE);
+  char *c;
+  /* c = __va(page_to_phys(KPRIV(dma_alloc_from_contiguous)( */
+  /*     rscfl_ctrl_device, text_size / PAGE_SIZE + 1, 0))); */
+  c = text_start;
   debugk(KERN_ERR "mem at %p\n", c);
-  for (i = 0; i < 1; i++) {
+  for (i = 16; i < 30; i++) {
     debugk(KERN_ERR "Iter %d\n", i);
     mfn = virt_to_mfn(__va((char *)phys_shdw_mem) + PAGE_SIZE * i);
     xen_update_mem_tables((__pa(c) >> PAGE_SHIFT) + i, mfn);
@@ -143,12 +146,12 @@ int shdw_switch(shdw_hdl hdl)
   phys_shdw_mem = phys_texts[hdl];
   debugk(KERN_ERR "Swapping to shadow at %p\n", __va(phys_shdw_mem));
   unmap_kernel_range((unsigned long)__va(phys_shdw_mem),
-                     PAGE_ROUND_UP(text_size));
+                     ((text_size / 4096) + 1) * 4096 );
   debugk(KERN_ERR "Changing kernel page tables to be RW.\n");
   write_cr0(read_cr0() & (~0x10000));
 
-  //stop_machine(update_xen, (void *)phys_shdw_mem, NULL);
-  update_xen(phys_shdw_mem);
+  stop_machine(update_xen, &phys_shdw_mem, NULL);
+  //update_xen(phys_shdw_mem);
 
   debugk(KERN_ERR "Remapped\n");
   write_cr0(read_cr0() | (0x10000));

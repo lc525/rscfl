@@ -35,7 +35,7 @@
  */
 #define STRUCT_ACCT_NUM 13
 #define ACCT_SUBSYS_RATIO 5   // assume one syscall touches ~ 5 subsystems
-#define NUM_READY_TOKENS 5    // Number of tokens that the kernel can prepare
+#define NUM_READY_TOKENS 10   // Number of tokens that the kernel can prepare
                               // in advance.
 
 #ifndef PAGE_SIZE

@@ -145,6 +145,7 @@ int rscfl_get_token(rscfl_handle rhdl, rscfl_token_t **token)
   if (rhdl->reuseable_tokens != NULL) {
     token_list_hd = rhdl->reuseable_tokens;
     *token = token_list_hd->token;
+    (*token)->reset_count = 1;
     rhdl->reuseable_tokens = token_list_hd->next;
     free(token_list_hd);
   }
@@ -159,7 +160,6 @@ int rscfl_get_token(rscfl_handle rhdl, rscfl_token_t **token)
   // program needs to wait until the module creates more tokens.
     return -EAGAIN;
   }
-  (*token)->reset_count = 1;
 
   return 0;
 }

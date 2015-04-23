@@ -26,6 +26,8 @@ _(XENINTERRUPTS)
 #define PROBES_AS_PRE_HANDLE(a) rscfl_pre_handler_##a,
 #define PROBES_AS_RTN_HANDLE(a) rscfl_rtn_handler_##a,
 
+#define PTR 0xffffffff810590c0
+
 static int executing_probe = 0;
 
 int probes_init(void)
@@ -36,8 +38,9 @@ int probes_init(void)
   int subsys_num;
   u8 **probe_addrs_temp[] = {PROBE_LIST(PROBES_AS_ADDRS)};
   char *syscall_type_temp[] = {PROBE_LIST(PROBES_AS_SYSCALL_TYPE)};
-  shdw_hdl shdw;
-  unsigned char insns[1] = {0x90};
+  shdw_hdl shdw, shdw_b;
+  unsigned char insns[1] = {0x91};
+  volatile char *p = (char *)PTR;
 
   void (*probe_pre_handlers_temp[])(void) = {PROBE_LIST(PROBES_AS_PRE_HANDLE)};
 
@@ -71,12 +74,24 @@ int probes_init(void)
   //    sizeof(probe_pre_handlers_temp) / sizeof(kretprobe_handler_t),
   //    RSCFL_NUM_PROBES, probe_pre_handlers_temp, probe_post_handlers_temp);
   shdw = shdw_create();
+  shdw_b = shdw_create();
   if (shdw < 0) {
+    printk(KERN_ERR "Error creating shadow kernel\n");
     return shdw;
   }
   write_cr0(read_cr0() & (~0x10000));
-  KPRIV(text_poke)((char *)KPRIV(_text) + 4096, &insns, 1);
-  shdw_switch(shdw);
+  debugk("Pre-poke %x\n", *p);
+  KPRIV(text_poke)((void *)p, &insns, 1);
+  debugk("Poked %x\n", *p);
+  if (shdw_switch(shdw)) {
+    printk(KERN_ERR "Cannot switch to shadow kernel\n");
+  }
+  debugk("Welcome to a shadow: %x\n", *p);
+
+  if (shdw_switch(shdw_b)) {
+    printk("Can't switch to shdw_b.");
+  }
+  debugk("Goodbye shadow: %x\n", *p);
   preempt_disable();
 
   if (rcc) {

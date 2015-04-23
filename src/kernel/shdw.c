@@ -70,6 +70,9 @@ shdw_hdl shdw_create(void)
 
   page = KPRIV(dma_alloc_from_contiguous)(rscfl_ctrl_device,
                                           text_size / PAGE_SIZE + 1, 0);
+  if (page == NULL) {
+    return -ENOMEM;
+  }
 
   shdw_mem = __va((char *)page_to_phys(page));
 
@@ -125,8 +128,7 @@ static int update_xen(void *var)
   /*     rscfl_ctrl_device, text_size / PAGE_SIZE + 1, 0))); */
   c = text_start;
   debugk(KERN_ERR "mem at %p\n", c);
-  for (i = 16; i < 30; i++) {
-    debugk(KERN_ERR "Iter %d\n", i);
+  for (i = 0; i < (text_size - 1) / PAGE_SIZE + 1; i++) {
     mfn = virt_to_mfn(__va((char *)phys_shdw_mem) + PAGE_SIZE * i);
     xen_update_mem_tables((__pa(c) >> PAGE_SHIFT) + i, mfn);
   }
@@ -140,6 +142,7 @@ int shdw_switch(shdw_hdl hdl)
   int i;
 
   if (hdl > no_shdws) {
+    printk(KERN_ERR "Bad shadow hdl: %d\n", hdl);
     return -EINVAL;
   }
 

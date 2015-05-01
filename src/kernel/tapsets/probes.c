@@ -73,8 +73,8 @@ int probes_init(void)
                            RSCFL_NUM_PROBES, probe_pre_handlers_temp,
                            probe_post_handlers_temp);
 
-  shdw = shdw_create();
-  shdw_switch(shdw);
+  //shdw = shdw_create();
+  //shdw_switch(shdw);
 
   preempt_disable();
 

@@ -422,3 +422,16 @@ void rscfl_subsys_free(rscfl_handle rhdl, struct accounting *acct)
     if (subsys != NULL) subsys->in_use = 0;
   }
 }
+
+// Shadow kernels.
+
+void rscfl_spawn_shdw(rscfl_handle rhdl)
+{
+  rhdl->ctrl->interest.spawn_shdw = 1;
+}
+
+void rscfl_in_shdw_pages(rscfl_handle rhdl, int use_shdw, int shdw_pages)
+{
+  rhdl->ctrl->interest.use_shdw = use_shdw;
+  rhdl->ctrl->interest.shdw_pages = shdw_pages;
+}

@@ -7,6 +7,7 @@
 #include "rscfl/res_common.h"
 #include "rscfl/kernel/cpu.h"
 #include "rscfl/kernel/measurement.h"
+#include "rscfl/kernel/shdw.h"
 
 //TODO(oc243): make thread safe.
 static int num_tokens = 1;
@@ -58,6 +59,18 @@ int should_acct(void)
         continue;
       }
       tbl_token->val = xen_buffer_hd();
+    }
+  }
+
+  if (interest->spawn_shdw) {
+    shdw_create();
+  }
+
+  if (interest->use_shdw) {
+    if (interest->shdw_pages) {
+      shdw_switch_pages(interest->use_shdw, interest->shdw_pages);
+    } else {
+      shdw_switch(interest->use_shdw);
     }
   }
 

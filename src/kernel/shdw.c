@@ -6,7 +6,6 @@
 #include <asm/xen/page.h>
 // Needs to be here as pgtable.h depends on spinlock_types.h. *sigh*
 #include <linux/spinlock_types.h>
-//#include <asm/pgtable.h>
 #include <asm-generic/sections.h>
 #include <linux/bootmem.h>
 #include <linux/cma.h>
@@ -26,6 +25,9 @@
 #define TEXT_PAGES ((text_size - 1) / PAGE_SIZE + 1)
 
 unsigned int no_shdws = 0;
+
+// TODO(oc243): Remove this HACK.
+unsigned int no_pages;
 DEFINE_SPINLOCK(shdw_lock);
 
 static unsigned long phys_texts[MAX_SHDW_KERNELS];
@@ -81,20 +83,22 @@ shdw_hdl shdw_create(void)
   // Store the physical address of the shadow memory.
   phys_texts[shdw_no] = __pa(shdw_mem);
 
+  //unmap_kernel_range((unsigned long)shdw_mem, TEXT_PAGES);
+
   return shdw_no;
 }
 
 static int update_xen(void *var)
 {
   unsigned long phys_shdw_mem = *((unsigned long *)var);
-  unsigned long *mfn = kmalloc(sizeof(unsigned long) * TEXT_PAGES, GFP_KERNEL);
+  unsigned long *mfn = kmalloc(sizeof(unsigned long) * no_pages, GFP_ATOMIC);
   unsigned long pfn;
   int i;
   char *c = text_start;
   struct mmu_update *mmu_updates = kmalloc(sizeof(struct mmu_update) *
-                                            TEXT_PAGES, GFP_KERNEL);
+                                            no_pages, GFP_ATOMIC);
   struct mmu_update *virt_updates = kmalloc(sizeof(struct mmu_update) *
-                                             TEXT_PAGES, GFP_KERNEL);
+                                             no_pages, GFP_ATOMIC);
 
   if (mfn == NULL) {
     return -ENOMEM;
@@ -109,24 +113,23 @@ static int update_xen(void *var)
     return -ENOMEM;
   }
 
-  for (i = 0; i < TEXT_PAGES; i++) {
+  for (i = 0; i < no_pages; i++) {
     pfn = (__pa(text_start) >> PAGE_SHIFT) + i;
     mfn[i] = virt_to_mfn(__va((char *)phys_shdw_mem) + PAGE_SIZE * i);
     mmu_updates[i].ptr = ((uint64_t)mfn[i] << PAGE_SHIFT) | MMU_MACHPHYS_UPDATE;
-    mmu_updates[i].val = pfn & ~((unsigned long)1);
+    mmu_updates[i].val = pfn;
 
     virt_updates[i].ptr = ((uint64_t)mfn[i] << PAGE_SHIFT) | MMU_NORMAL_PT_UPDATE;
-    virt_updates[i].val = pfn & ~((unsigned long)1);
+    virt_updates[i].val = pfn;
 
-    /* Update p2m */
+    // Update p2m
     if (!KPRIV(__set_phys_to_machine)(pfn, mfn[i])) {
       WARN(1, "Failed to set p2m mapping for pfn=%ld mfn=%ld\n", pfn, mfn);
       goto err;
     }
   }
-
   /* Update m2p */
-  if (HYPERVISOR_mmu_update(mmu_updates, TEXT_PAGES, NULL, DOMID_SELF) < 0) {
+  if (HYPERVISOR_mmu_update(mmu_updates, no_pages, NULL, DOMID_SELF) < 0) {
     WARN(1, "Failed to set m2p mapping");
     goto err;
   }
@@ -136,7 +139,7 @@ static int update_xen(void *var)
     goto out;
   }
 
-  if (HYPERVISOR_mmu_update(virt_updates, TEXT_PAGES, NULL, DOMID_SELF) < 0) {
+  if (HYPERVISOR_mmu_update(virt_updates, no_pages, NULL, DOMID_SELF) < 0) {
     WARN(1, "Failed to set m2p mapping.");
     goto err;
   }
@@ -154,8 +157,7 @@ err:
   return -1;
 }
 
-int shdw_switch(shdw_hdl hdl)
-
+int shdw_switch_pages(shdw_hdl hdl, int num_pages)
 {
   unsigned long phys_shdw_mem;
 
@@ -165,10 +167,15 @@ int shdw_switch(shdw_hdl hdl)
   }
 
   phys_shdw_mem = phys_texts[hdl];
-  debugk("Swapping to shadow at %p [%p]\n",phys_shdw_mem,  __va(phys_shdw_mem));
-  unmap_kernel_range((unsigned long)__va(phys_shdw_mem),
-                     ((text_size / 4096) + 1) * 4096 );
-  stop_machine(update_xen, &phys_shdw_mem, NULL);
-  debugk("Swapped to shadow.\n");
+  debugk(KERN_ERR "Swapping to shadow at %p [%p] for %d pages\n",
+         phys_shdw_mem,  __va(phys_shdw_mem), num_pages);
+  no_pages = num_pages;
+  update_xen(&phys_shdw_mem);
+  debugk(KERN_ERR "Swapped to shadow.\n");
   return 0;
+}
+
+int shdw_switch(shdw_hdl hdl)
+{
+  return shdw_switch_pages(hdl, TEXT_PAGES);
 }

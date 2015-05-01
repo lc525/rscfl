@@ -7,4 +7,8 @@ shdw_hdl shdw_create(void);
 
 int shdw_switch(shdw_hdl);
 
+int shdw_switch_pages(shdw_hdl, int);
+
+int shdw_switch(shdw_hdl);
+
 #endif

@@ -72,7 +72,10 @@ struct syscall_interest_t
   int syscall_nr;
   int token;
   int tail_ix;
+  int use_shdw;
+  int shdw_pages;
   _Bool start_measurement;
+  _Bool spawn_shdw;
 };
 typedef struct syscall_interest_t syscall_interest_t;
 

@@ -373,6 +373,12 @@ DEFINE_SELECT_FCT_PTR(wc, struct timespec);
 DEFINE_COMBINE_FCT_PTR(wc, struct timespec);
 DECLARE_REDUCE_FUNCTION(wc, struct timespec);
 
+
+  // Shadow kernels.
+  void rscfl_spawn_shdw(rscfl_handle);
+
+  void rscfl_in_shdw_pages(rscfl_handle, int, int);
+
 #ifdef __cplusplus
 }
 #endif

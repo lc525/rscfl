@@ -75,7 +75,12 @@ struct syscall_interest_t
   int use_shdw;
   int shdw_pages;
   _Bool start_measurement;
-  _Bool spawn_shdw;
+  /*
+   * 0: Don't spawned
+   * 1: Spawn but don't use
+   * 2: Spawn and interpose the scheduler.
+   */
+  int spawn_shdw;
 };
 typedef struct syscall_interest_t syscall_interest_t;
 

@@ -67,6 +67,8 @@ struct pid_acct {
   _Bool executing_probe;
   struct hlist_node tokens;
   unsigned short num_tokens;
+  int shdw_kernel;
+  int shdw_pages;
 };
 typedef struct pid_acct pid_acct;
 

@@ -430,6 +430,16 @@ void rscfl_spawn_shdw(rscfl_handle rhdl)
   rhdl->ctrl->interest.spawn_shdw = 1;
 }
 
+void rscfl_set_num_shdw_pages(rscfl_handle rhdl, int pages)
+{
+  rhdl->ctrl->interest.shdw_pages = pages;
+}
+
+void rscfl_spawn_shdw_for_pid(rscfl_handle rhdl)
+{
+  rhdl->ctrl->interest.spawn_shdw = 2;
+}
+
 void rscfl_in_shdw_pages(rscfl_handle rhdl, int use_shdw, int shdw_pages)
 {
   rhdl->ctrl->interest.use_shdw = use_shdw;

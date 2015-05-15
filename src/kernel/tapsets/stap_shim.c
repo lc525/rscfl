@@ -62,8 +62,29 @@ int should_acct(void)
     }
   }
 
-  if (interest->spawn_shdw) {
-    shdw_create();
+  switch(interest->spawn_shdw) {
+    case 1:
+      //TODO(oc243): Return shadow number to userspace.
+      if (shdw_create() < 0) {
+        printk(KERN_ERR "Unable to create a shadow kernel.\n");
+      }
+      interest->spawn_shdw = 0;
+      break;
+    case 2:
+      current_pid_acct->shdw_kernel = shdw_create();
+      interest->spawn_shdw = 0;
+      break;
+    default:
+      break;
+  }
+
+  /*
+   * The interest might be specifying that the pid should now use a different
+   * number of shadow pages.
+   */
+  if (interest->shdw_pages) {
+    current_pid_acct->shdw_pages = interest->shdw_pages;
+    interest->shdw_pages = 0;
   }
 
   if (interest->use_shdw) {

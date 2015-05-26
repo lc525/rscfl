@@ -42,8 +42,11 @@ static void record_ctx_switch(pid_acct *p_acct,
  * one extra hash table search on every context switch, for all processes
  * and one timestamp read per switch to or from a rscfl accounted path.
  */
-void on_ctx_switch(pid_t next_tid)
+void on_ctx_switch(void *ignore,
+                   struct task_struct *prev,
+                   struct task_struct *next)
 {
+  pid_t next_tid = next->pid;
   pid_acct *curr_acct = CPU_VAR(current_acct);
   if (curr_acct != NULL) {
     record_ctx_switch(curr_acct, 0);
@@ -72,9 +75,13 @@ void on_ctx_switch(pid_t next_tid)
  *
  * this can execute on ANY cpu
  */
-void on_cpu_switch(int cpu_from, int cpu_to, pid_t pid)
+void on_cpu_switch(void *ignore,
+                   struct task_struct *p,
+                   int cpu_to)
 {
   pid_acct *it;
+  pid_t pid = p->pid;
+  int cpu_from = task_cpu(p);
 
   /* We assume that if the process is long-lived, after a while all CPUs will
    * have its pid_acct structure within their hash table. So the fast path is to
@@ -106,10 +113,11 @@ void on_cpu_switch(int cpu_from, int cpu_to, pid_t pid)
  * TODO(lc525): possible optimisation is to keep a set of what CPUs a pid has
  * been on, so that we minimise the number of hash table look-ups
  */
-void on_task_exit(pid_t pid)
+void on_task_exit(struct task_struct *p)
 {
   int cpu_id;
   pid_acct *it;
+  pid_t pid = p->pid;
 
   for_each_present_cpu(cpu_id) {
     hash_for_each_possible(per_cpu(pid_acct_tbl, cpu_id), it, link, pid) {

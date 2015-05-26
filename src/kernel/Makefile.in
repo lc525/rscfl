@@ -1,2 +1,4 @@
 obj-m := @rscfl_MOD_NAME@.o
 @rscfl_MOD_NAME@-y := @RSCFL_O_FILES@
+
+ccflags-y := @RSCFL_MOD_INCLUDES@

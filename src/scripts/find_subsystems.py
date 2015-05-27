@@ -39,6 +39,8 @@ RSCFL_SUBSYS_HEADER_TEMPLATE = """
 #ifndef _RSCFL_SUBSYS_H_
 #define _RSCFL_SUBSYS_H_
 
+#include <rscfl/macros.h>
+
 #define SUBSYS_TABLE(_) \\
 {%- for _, subsystem in subsystems %}
 _({{ subsystem.id }}, {{ subsystem.short_name }}, \"{{ subsystem.long_name }}\") \\
@@ -102,7 +104,7 @@ void rscfl_rtn_handler_{{ subsystem }}(void)
 {{ '}' }}
 {% endfor %}
 
-static u8 **probe_addrs[] = {{ '{'  }}
+static u8 **UNUSED(probe_addrs[]) = {{ '{'  }}
 {% for subsys in subsystems %}
   {{ subsys }}_ADDRS,
 {% endfor %}
@@ -120,7 +122,7 @@ void (*rscfl_post_handlers[]) (void) = {{ '{' }}
 {% endfor %}
 {{ '};' }}
 
-static char* syscall_type[] = {{ '{'  }}
+static char* UNUSED(syscall_type[]) = {{ '{'  }}
 {% for subsys in subsystems %}
   {{ subsys }}_INTERNAL_SYSCALL,
 {% endfor %}

@@ -212,7 +212,7 @@ int rscfl_counters_update_subsys_vals(struct subsys_accounting *add_subsys,
 
   pid_acct *current_pid_acct;
 
-  uint64_t hypervisor_cycles, hypervisor_timestamp;
+  uint64_t hypervisor_timestamp;
 
   u64 cycles = rscfl_get_cycles();
   struct timespec time = rscfl_get_timestamp();
@@ -243,7 +243,6 @@ int rscfl_counters_update_subsys_vals(struct subsys_accounting *add_subsys,
   if (*KPRIV(HYPERVISOR_shared_info) != KPRIV(xen_dummy_shared_info)) {
     // We are running in a Xen VM.
 
-    int evtchn_size = 0;
     int hd = sched_info->sched_hd;
     int tl = 0;
     sched_event_t *event;

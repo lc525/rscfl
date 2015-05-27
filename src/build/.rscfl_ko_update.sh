@@ -24,18 +24,14 @@ sudo dmesg --clear
 if [ ! -z "$MODNAME" ]
 then
   #existing processes using rscfl*.ko
-  echo "killing processes dealing with rscfl*.ko..."
-  PIDS=`ps -ef | grep staprun | grep -v "grep" | awk '{ print $2; }'`
-  if [ ! -z "$PIDS" ]
-  then
-    sudo kill -s SIGINT $PIDS
-  fi
+  echo "Removing modules with name rscfl*.ko..."
+  lsmod | grep rscfl | sed 's/ .*$//' | xargs modprobe -r
 fi
 
 if [ $# -eq 1 ]
 then
   #insert new module
-  echo "running new module ($1) with staprun..."
-  sudo staprun $1 &
+  echo "running new module ($1)..."
+  sudo insmod $1 &
 fi
 

@@ -29,8 +29,6 @@ static int rscfl_perf_create_counter(__u64 config, struct perf_event **pevent)
    * counters.
    */
   int cpus = smp_processor_id();
-  struct task_struct task;
-  perf_overflow_handler_t overflow_handler;
 
   attr.type = PERF_TYPE_SOFTWARE;
   attr.size = sizeof(struct perf_event_attr);

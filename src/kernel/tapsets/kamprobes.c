@@ -228,7 +228,6 @@ int kamprobes_init(int max_probes)
 int kamprobes_register(u8 **orig_addr, char sys_type, void (*pre_handler)(void),
                        void (*post_handler)(void))
 {
-  void *callq_target;
   char *wrapper_fp;
   int offset;
   char *target;

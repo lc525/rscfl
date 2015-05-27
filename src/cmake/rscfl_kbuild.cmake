@@ -29,6 +29,10 @@ function(RSCFL_KBUILD MOD_NAME INCLUDES OUT_DIR SRC DEPS)
       list(APPEND _rscfl_include_path -I${ABS_FIL})
     endif()
   endforeach()
+  #list(APPEND _rscfl_include_path -I$ENV{RSCFL_LINUX_ROOT}/include)
+  list(APPEND _rscfl_include_path -I$ENV{RSCFL_LINUX_HEADERS})
+  list(APPEND _rscfl_include_path -I$ENV{RSCFL_LINUX_HEADERS}/arch/x86/include/generated)
+  list(APPEND _rscfl_include_path -I$ENV{RSCFL_LINUX_HEADERS}/arch/x86/include/generated/uapi)
   JOIN("${_rscfl_include_path}" " " _rscfl_includes)
   set(RSCFL_MOD_INCLUDES ${_rscfl_includes})
 
@@ -66,12 +70,10 @@ function(RSCFL_KBUILD MOD_NAME INCLUDES OUT_DIR SRC DEPS)
   set( MODULE_BIN_FILE    ${OUT_DIR}/${MOD_NAME}.ko )
   set( MODULE_OUTPUT_FILES    ${_rscfl_objsfp} )
   set( MODULE_SOURCE_DIR  ${OUT_DIR} )
-
-  set( KERNEL_DIR "/lib/modules/${CMAKE_SYSTEM_VERSION}/build" )
+  set( KERNEL_DIR "/lib/modules/${CMAKE_SYSTEM_VERSION}/build/" )
   set( KBUILD_CMD $(MAKE)
                   -C ${KERNEL_DIR}
                   M=${MODULE_SOURCE_DIR}
-                  O=${OUT_DIR}
                   modules )
 
   add_custom_command( OUTPUT  ${MODULE_BIN_FILE}

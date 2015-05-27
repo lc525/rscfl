@@ -113,7 +113,7 @@ void on_cpu_switch(void *ignore,
  * TODO(lc525): possible optimisation is to keep a set of what CPUs a pid has
  * been on, so that we minimise the number of hash table look-ups
  */
-void on_task_exit(struct task_struct *p)
+void on_task_exit(void *ignore, struct task_struct *p)
 {
   int cpu_id;
   pid_acct *it;

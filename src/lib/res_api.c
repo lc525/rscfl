@@ -43,6 +43,7 @@ rscfl_handle rscfl_init_api(rscfl_version_t rscfl_ver)
   struct stat sb;
   void *ctrl, *buf;
   int fd_data, fd_ctrl;
+  struct accounting acct;
 
   // library was compiled with RSCFL_VERSION, API called from rscfl_ver
   // emit warning if the APIs have different major versions
@@ -60,12 +61,10 @@ rscfl_handle rscfl_init_api(rscfl_version_t rscfl_ver)
 
   fd_data = open("/dev/" RSCFL_DATA_DRIVER, O_RDONLY);
   fd_ctrl = open("/dev/" RSCFL_CTRL_DRIVER, O_RDWR);
-  rscfl_handle rhdl = (rscfl_handle)malloc(sizeof(*rhdl));
+  rscfl_handle rhdl = (rscfl_handle)calloc(1, sizeof(*rhdl));
   if (!rhdl) {
     return NULL;
   }
-  rhdl->buf = NULL;
-  rhdl->ctrl = NULL;
 
   if ((fd_data == -1) || (fd_ctrl == -1)) {
     goto error;
@@ -101,12 +100,18 @@ rscfl_handle rscfl_init_api(rscfl_version_t rscfl_ver)
             rscfl_ver.data_layout, rhdl->ctrl->version);
     goto error;
   }
+  // Make an (accounted-for) system call to initialise the tokens.
+  if (rscfl_acct_next(rhdl)) {
+    goto error;
+  };
 
   if ((close(fd_data) == -1) || (close(fd_ctrl) == -1)) {
     goto error;
   }
+  if (rscfl_read_acct(rhdl, &acct)) {
+    goto error;
+  }
 
-  rhdl->lst_syscall.id = 0;
   return rhdl;
 
 error:
@@ -122,7 +127,7 @@ error:
   return NULL;
 }
 
-rscfl_handle rscfl_get_handle()
+rscfl_handle rscfl_get_handle(void)
 {
   if (handle == NULL) {
     handle = rscfl_init();
@@ -130,9 +135,53 @@ rscfl_handle rscfl_get_handle()
   return handle;
 }
 
-int rscfl_acct_next(rscfl_handle rhdl)
+int rscfl_get_token(rscfl_handle rhdl, rscfl_token_t **token)
 {
-  int rc;
+  rscfl_token_list_t *token_list_hd;
+  if ((rhdl == NULL) || (token == NULL)) {
+    return -EINVAL;
+  }
+  // First see if we already have a token that we can reuse.
+  if (rhdl->reuseable_tokens != NULL) {
+    token_list_hd = rhdl->reuseable_tokens;
+    *token = token_list_hd->token;
+    (*token)->reset_count = 1;
+    rhdl->reuseable_tokens = token_list_hd->next;
+    free(token_list_hd);
+  }
+  // There are no reusable tokens. Get one of the freshly-baked tokens that
+  // the rscfl kernel module has prepared for us.
+  else if (rhdl->ready_token_sp) {
+    rhdl->ready_token_sp--;
+    *token = rhdl->fresh_tokens[rhdl->ready_token_sp];
+    rhdl->fresh_tokens[rhdl->ready_token_sp]->reset_count = 1;
+  } else {
+  // There are no reusable tokens, and no freshly-baked tokens. The userspace
+  // program needs to wait until the module creates more tokens.
+    return -EAGAIN;
+  }
+
+  return 0;
+}
+
+int rscfl_free_token(rscfl_handle rhdl, rscfl_token_t *token)
+{
+  rscfl_token_list_t *new_hd;
+  if ((rhdl == NULL) || (token == NULL)) {
+    return -EINVAL;
+  }
+  new_hd = (rscfl_token_list_t *)malloc(sizeof(rscfl_token_list_t));
+  if (new_hd == NULL) {
+    return -ENOMEM;
+  }
+  new_hd->next = rhdl->reuseable_tokens;
+  new_hd->token = token;
+  rhdl->reuseable_tokens = new_hd;
+  return 0;
+}
+
+int rscfl_acct_next_token(rscfl_handle rhdl, rscfl_token_t *token)
+{
   syscall_interest_t *to_acct;
   if (rhdl == NULL) {
     return -EINVAL;
@@ -141,14 +190,47 @@ int rscfl_acct_next(rscfl_handle rhdl)
   to_acct = &rhdl->ctrl->interest;
   to_acct->syscall_id = ++rhdl->lst_syscall.id;
   to_acct->syscall_nr = -1;
-
+  rhdl->ctrl->num_new_tokens = NUM_READY_TOKENS - rhdl->ready_token_sp - 1;
+  if (token != NULL) {
+    to_acct->start_measurement = token->reset_count;
+    token->reset_count = 0;
+    to_acct->token = token->id;
+  } else {
+    to_acct->start_measurement = 1;
+    to_acct->token = 0;
+  }
   return 0;
 }
 
 int rscfl_read_acct(rscfl_handle rhdl, struct accounting *acct)
 {
   int i = 0;
-  if (rhdl == NULL) return -1;
+  if (rhdl == NULL) {
+    return -EINVAL;
+  }
+
+  // See if we have any more fresh tokens to register in rhdl.
+
+  struct rscfl_acct_layout_t *shared_mem =
+      (struct rscfl_acct_layout_t *)rhdl->buf;
+  struct rscfl_token *new_token;
+  for (i = 0; i < NUM_READY_TOKENS; i++) {
+    if (rhdl->ctrl->new_tokens[i]) {
+      if (rhdl->ready_token_sp  < NUM_READY_TOKENS) {
+        // Move the token onto the stack of fresh tokens.
+        new_token = malloc(sizeof(struct rscfl_token));
+        if (new_token == NULL) {
+          return -ENOMEM;
+        }
+
+        new_token->id = rhdl->ctrl->new_tokens[i];
+        rhdl->fresh_tokens[rhdl->ready_token_sp] = new_token;
+        rhdl->ctrl->new_tokens[i] = 0;
+        rhdl->ready_token_sp++;
+      }
+
+    }
+  }
 
   struct accounting *shared_acct = (struct accounting *)rhdl->buf;
   if (shared_acct != NULL) {
@@ -340,4 +422,3 @@ void rscfl_subsys_free(rscfl_handle rhdl, struct accounting *acct)
     if (subsys != NULL) subsys->in_use = 0;
   }
 }
-

@@ -35,6 +35,8 @@
  */
 #define STRUCT_ACCT_NUM 13
 #define ACCT_SUBSYS_RATIO 5   // assume one syscall touches ~ 5 subsystems
+#define NUM_READY_TOKENS 10   // Number of tokens that the kernel can prepare
+                              // in advance.
 
 #ifndef PAGE_SIZE
 #define PAGE_SIZE 4096
@@ -68,6 +70,9 @@ struct syscall_interest_t
 {
   unsigned long syscall_id;
   int syscall_nr;
+  int token;
+  int tail_ix;
+  _Bool start_measurement;
 };
 typedef struct syscall_interest_t syscall_interest_t;
 
@@ -75,6 +80,8 @@ struct rscfl_ctrl_layout_t
 {
   unsigned int version;
   syscall_interest_t interest;
+  int new_tokens[NUM_READY_TOKENS];
+  int num_new_tokens;
 };
 typedef struct rscfl_ctrl_layout_t rscfl_ctrl_layout_t;
 

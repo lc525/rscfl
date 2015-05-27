@@ -1,9 +1,18 @@
 #include "rscfl/kernel/stap_shim.h"
 
+#include <linux/hashtable.h>
+
 #include "rscfl/config.h"
 #include "rscfl/costs.h"
 #include "rscfl/res_common.h"
 #include "rscfl/kernel/cpu.h"
+#include "rscfl/kernel/measurement.h"
+
+//TODO(oc243): make thread safe.
+static int num_tokens = 1;
+static _Bool init;
+
+static int num_tokens;
 
 int should_acct(void)
 {
@@ -11,6 +20,8 @@ int should_acct(void)
   struct accounting *acct_buf;
   pid_acct *current_pid_acct;
   rscfl_acct_layout_t *rscfl_shared_mem;
+  int i;
+  struct rscfl_kernel_token *tbl_token;
 
   preempt_disable();
   current_pid_acct = CPU_VAR(current_acct);
@@ -24,7 +35,7 @@ int should_acct(void)
     return 0;
   }
 
-  interest = current_pid_acct->ctrl;
+  interest = &current_pid_acct->ctrl->interest;
   if (!interest->syscall_id) {
     // There are no interests registered for this pid.
     preempt_enable();
@@ -38,6 +49,16 @@ int should_acct(void)
     // We have already called this function for the current syscall.
     preempt_enable();
     return 1;
+  }
+
+  if ((interest->token == 0) || (interest->start_measurement)) {
+    // Update buffer head.
+    hash_for_each_possible(tokens, tbl_token, link, interest->token) {
+      if (interest->token != tbl_token->id) {
+        continue;
+      }
+      tbl_token->val = xen_buffer_hd();
+    }
   }
 
   // Find a free struct accounting in the shared memory that we can
@@ -62,6 +83,26 @@ int should_acct(void)
   // Initialise the subsys_accounting indices to -1, as they are used
   // to index an array, so 0 is valid.
   memset(acct_buf->acct_subsys, -1, sizeof(short) * NUM_SUBSYSTEMS);
+
+  if (!init) {
+    hash_init(tokens);
+    init = 1;
+  }
+
+  for (i = 0; i < current_pid_acct->ctrl->num_new_tokens; i++) {
+    struct rscfl_kernel_token *token =
+        kzalloc(GFP_KERNEL, sizeof(struct rscfl_kernel_token));
+    // If we can't allocate a token it isn't the end of the world - we don't
+    // promise to be able to. So keep going.
+    if (token == NULL) {
+      break;
+    }
+    token->id = num_tokens++;
+    hash_add(tokens, &token->link, token->id);
+    current_pid_acct->ctrl->new_tokens[i] = token->id;
+  }
+  current_pid_acct->ctrl->num_new_tokens = 0;
+  
   preempt_enable();
   return 1;
 }
@@ -82,7 +123,7 @@ int clear_acct_next(void)
   preempt_disable();
 
   current_pid_acct = CPU_VAR(current_acct);
-  interest = current_pid_acct->ctrl;
+  interest = &current_pid_acct->ctrl->interest;
   // Clear the cached pointer to the struct accounting.
   current_pid_acct->probe_data->syscall_acct = NULL;
   // Reset the interest so we stop accounting.

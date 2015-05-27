@@ -1,4 +1,7 @@
 BasedOnStyle: Google
 BreakBeforeBraces: Linux
 AllowShortFunctionsOnASingleLine: false
-
+DerivePointerAlignment: true
+PenaltyBreakString: 9999999
+DerivePointerAlignment: true
+AlignOperands: true

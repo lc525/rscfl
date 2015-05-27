@@ -14,7 +14,6 @@
 class APITest : public testing::Test
 {
  protected:
-
   virtual void SetUp()
   {
     int bind_err = 0;
@@ -172,4 +171,43 @@ TEST_F(APITest, MergeHypervisorMinCreditsGivesSmallestValue)
   rscfl_subsys_merge(&larger, &smaller);
   // We should now have credit 10 as the min number of credits.
   ASSERT_EQ(10, larger.sched.xen_credits_min);
+}
+
+TEST_F(APITest, SubsequentGetTokensHaveUniqueValues)
+{
+  rscfl_token_t *token_a;
+  rscfl_token_t *token_b;
+  ASSERT_EQ(0, rscfl_get_token(rhdl_, &token_a));
+  ASSERT_EQ(0, rscfl_get_token(rhdl_, &token_b));
+
+  // Make sure that the tokens have different IDs.
+  ASSERT_NE(token_a->id, token_b->id);
+}
+
+TEST_F(APITest, MultipleGetTokensSucceedOrFailGracefully)
+{
+  int rc;
+  rscfl_token_t *token;
+  for (int i = 0; i < 20; i++) {
+    rc = rscfl_get_token(rhdl_, &token);
+    if ((rc != 0 ) && (rc != -EAGAIN)) {
+      // Is there a better way to do this?
+      ASSERT_TRUE(false);
+    }
+
+  }
+}
+
+/*
+ * We reserve token 0 for times where we don't want to tokenize Rscfl.
+ * Make sure that we don't get assigned it
+ */
+TEST_F(APITest, TokenIDNotZero)
+{
+  int rc;
+  rscfl_token_t *token;
+  for (int i = 0; i < 20; i++) {
+    rc = rscfl_get_token(rhdl_, &token);
+    ASSERT_NE(0, token->id) << "token id=" << token->id;
+  }
 }

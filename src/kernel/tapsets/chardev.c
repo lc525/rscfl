@@ -256,7 +256,7 @@ static int ctrl_mmap(struct file *filp, struct vm_area_struct *vma)
   // We need to store the address of the control page for the pid, so we
   // can see when an interest is raised.
   current_pid_acct = CPU_VAR(current_acct);
-  current_pid_acct->ctrl = &ctrl_layout->interest;
+  current_pid_acct->ctrl = ctrl_layout;
 
   drv_data = (rscfl_vma_data*) vma->vm_private_data;
   drv_data->pid_acct_node = current_pid_acct;

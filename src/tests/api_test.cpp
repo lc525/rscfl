@@ -210,6 +210,7 @@ TEST_F(APITest, TokenIDNotZero)
   rscfl_token_t *token;
   for (int i = 0; i < 20; i++) {
     rc = rscfl_get_token(rhdl_, &token);
+    ASSERT_EQ(rc, 0);
     ASSERT_NE(0, token->id) << "token id=" << token->id;
   }
 }

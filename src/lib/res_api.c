@@ -210,9 +210,6 @@ int rscfl_read_acct(rscfl_handle rhdl, struct accounting *acct)
   }
 
   // See if we have any more fresh tokens to register in rhdl.
-
-  struct rscfl_acct_layout_t *shared_mem =
-      (struct rscfl_acct_layout_t *)rhdl->buf;
   struct rscfl_token *new_token;
   for (i = 0; i < NUM_READY_TOKENS; i++) {
     if (rhdl->ctrl->new_tokens[i]) {

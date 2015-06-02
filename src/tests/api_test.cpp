@@ -70,7 +70,7 @@ TEST_F(APITest,
 {
   int no_subsys_in_idx = 0;
   one_acct_ = rscfl_get_subsys(rhdl_, &acct_);
-  ASSERT_TRUE(one_acct_ != NULL);
+  ASSERT_NE(nullptr, one_acct_);
 
   // make sure all subsystems were transferred
   EXPECT_EQ(one_acct_->set_size, acct_.nr_subsystems);
@@ -97,7 +97,7 @@ TEST_F(APITest,
 {
   int no_subsys_in_idx = 0;
   one_acct_ = rscfl_get_subsys(rhdl_, &acct_);
-  ASSERT_TRUE(one_acct_ != NULL);
+  ASSERT_NE(nullptr, one_acct_);
 
   // check that the index and id's array data match
   // constraint: idx(id(i)) == i

@@ -86,7 +86,9 @@ TEST_F(APITest,
 
   // check that the set actually contains subsystems with data
   for(int i = 0; i < one_acct_->set_size; ++i) {
-    EXPECT_NE(0, one_acct_->set[i].cpu.cycles);
+    if (one_acct_->ids[i] != USERSPACE_XEN) {
+      EXPECT_NE(0, one_acct_->set[i].cpu.cycles);
+    }
   }
 }
 
@@ -116,7 +118,7 @@ TEST_F(APITest,
   // sum cycles for all subsystems
   ru64 sum_cycles = 0;
   for(int i = 0; i < subsys_agg_->set_size; ++i) {
-    sum_cycles = subsys_agg_->set[i].cpu.cycles;
+    sum_cycles += subsys_agg_->set[i].cpu.cycles;
   }
   EXPECT_LT(0, sum_cycles);
 
@@ -126,7 +128,7 @@ TEST_F(APITest,
 
   ru64 sum_cycles2 = 0;
   for(int i = 0; i < subsys_agg_->set_size; ++i) {
-    sum_cycles2 = subsys_agg_->set[i].cpu.cycles;
+    sum_cycles2 += subsys_agg_->set[i].cpu.cycles;
   }
   EXPECT_LT(sum_cycles, sum_cycles2);
 

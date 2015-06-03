@@ -376,7 +376,7 @@ DECLARE_REDUCE_FUNCTION(wc, struct timespec);
 
 
 // Shadow kernels.
-int rscfl_spawn_shdw(rscfl_handle);
+int rscfl_spawn_shdw(rscfl_handle, shdw_hdl *);
 
 int rscfl_use_shdw_pages(rscfl_handle, int, int);
 

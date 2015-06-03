@@ -427,11 +427,14 @@ void rscfl_subsys_free(rscfl_handle rhdl, struct accounting *acct)
 
 // Shadow kernels.
 
-int rscfl_spawn_shdw(rscfl_handle rhdl)
+int rscfl_spawn_shdw(rscfl_handle rhdl, shdw_hdl *hdl)
 {
+  int rc;
   rscfl_ioctl_t ioctl_arg = {0};
   ioctl_arg.shdw_operation = SPAWN_ONLY;
-  return ioctl(rhdl->fd_ctrl, RSCFL_SHDW_CMD, &ioctl_arg);
+  rc = ioctl(rhdl->fd_ctrl, RSCFL_SHDW_CMD, &ioctl_arg);
+  *hdl = ioctl_arg.new_shdw_id;
+  return rc;
 }
 
 int rscfl_spawn_shdw_for_pid(rscfl_handle rhdl)

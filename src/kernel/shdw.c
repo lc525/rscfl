@@ -4,8 +4,6 @@
 #include <asm/pgtable_types.h>
 #include <asm/xen/hypercall.h>
 #include <asm/xen/page.h>
-// Needs to be here as pgtable.h depends on spinlock_types.h. *sigh*
-#include <linux/spinlock_types.h>
 #include <asm-generic/sections.h>
 #include <linux/bootmem.h>
 #include <linux/cma.h>

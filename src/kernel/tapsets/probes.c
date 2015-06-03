@@ -63,11 +63,10 @@ int probes_init(void)
   rcd = _rscfl_dev_init();
   rcp = rscfl_counters_init();
   rckp = rscfl_probes_init(
-      probe_addrs_temp, syscall_type_temp,
-      sizeof(probe_pre_handlers_temp) /
-      sizeof(kretprobe_handler_t),
-      RSCFL_NUM_PROBES, probe_pre_handlers_temp,
-      probe_post_handlers_temp);
+      probe_addrs_temp,
+      syscall_type_temp,
+      sizeof(probe_pre_handlers_temp) / sizeof(kretprobe_handler_t),
+      RSCFL_NUM_PROBES, probe_pre_handlers_temp, probe_post_handlers_temp);
   preempt_disable();
 
   if (rcc) {

@@ -62,38 +62,30 @@ int should_acct(void)
     }
   }
 
-  switch(interest->spawn_shdw) {
-    case 1:
+  switch(interest->shdw_operation) {
+    case NOP:
+      break;
+    case SPAWN_ONLY:
       //TODO(oc243): Return shadow number to userspace.
       if (shdw_create() < 0) {
         printk(KERN_ERR "Unable to create a shadow kernel.\n");
       }
-      interest->spawn_shdw = 0;
       break;
-    case 2:
+    case SPAWN_SWAP_ON_SCHED:
       current_pid_acct->shdw_kernel = shdw_create();
       interest->spawn_shdw = 0;
       break;
+    case SWAP:
+      if (interest->shdw_pages) {
+        shdw_switch_pages(interest->use_shdw, interest->shdw_pages);
+      } else {
+        shdw_switch(interest->use_shdw);
+      }
     default:
       break;
   }
-
-  /*
-   * The interest might be specifying that the pid should now use a different
-   * number of shadow pages.
-   */
-  if (interest->shdw_pages) {
-    current_pid_acct->shdw_pages = interest->shdw_pages;
-    interest->shdw_pages = 0;
-  }
-
-  if (interest->use_shdw) {
-    if (interest->shdw_pages) {
-      shdw_switch_pages(interest->use_shdw, interest->shdw_pages);
-    } else {
-      shdw_switch(interest->use_shdw);
-    }
-  }
+  // Operation now performed.
+  interest->shdw_operation = NOP;
 
   // Find a free struct accounting in the shared memory that we can
   // use.

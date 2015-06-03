@@ -59,6 +59,8 @@
 #define debugk(format, ...)
 #endif
 
+typedef enum {NOP, SPAWN_ONLY, SPAWN_SWAP_ON_SCHED, SWAP} shdw_op;
+
 struct rscfl_acct_layout_t
 {
   struct accounting acct[STRUCT_ACCT_NUM];
@@ -75,12 +77,7 @@ struct syscall_interest_t
   int use_shdw;
   int shdw_pages;
   _Bool start_measurement;
-  /*
-   * 0: Don't spawned
-   * 1: Spawn but don't use
-   * 2: Spawn and interpose the scheduler.
-   */
-  int spawn_shdw;
+  shdw_op shdw_operation;
 };
 typedef struct syscall_interest_t syscall_interest_t;
 

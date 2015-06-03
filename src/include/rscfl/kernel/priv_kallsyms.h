@@ -24,7 +24,7 @@ _(__set_phys_to_machine)   \
 _(put_balloon_scratch_page)\
 _(get_balloon_scratch_page)\
 _(flush_tlb_all)           \
-_(_text)                  \
+_(_text)                   \
 _(_etext)                  \
 _(dma_contiguous_default_area)                  \
 _(dma_alloc_from_contiguous)\

@@ -427,7 +427,7 @@ void rscfl_subsys_free(rscfl_handle rhdl, struct accounting *acct)
 
 void rscfl_spawn_shdw(rscfl_handle rhdl)
 {
-  rhdl->ctrl->interest.spawn_shdw = 1;
+  rhdl->ctrl->interest.shdw_operation = SPAWN_ONLY;
 }
 
 void rscfl_set_num_shdw_pages(rscfl_handle rhdl, int pages)
@@ -437,7 +437,7 @@ void rscfl_set_num_shdw_pages(rscfl_handle rhdl, int pages)
 
 void rscfl_spawn_shdw_for_pid(rscfl_handle rhdl)
 {
-  rhdl->ctrl->interest.spawn_shdw = 2;
+  rhdl->ctrl->interest.shdw_operation = SPAWN_SWAP_ON_SCHED;
 }
 
 void rscfl_in_shdw_pages(rscfl_handle rhdl, int use_shdw, int shdw_pages)

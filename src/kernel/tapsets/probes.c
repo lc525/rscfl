@@ -36,8 +36,6 @@ int probes_init(void)
   int subsys_num;
   u8 **probe_addrs_temp[] = {PROBE_LIST(PROBES_AS_ADDRS)};
   char *syscall_type_temp[] = {PROBE_LIST(PROBES_AS_SYSCALL_TYPE)};
-  shdw_hdl shdw;
-  unsigned char insns[1] = {0x91};
 
   void (*probe_pre_handlers_temp[])(void) = {PROBE_LIST(PROBES_AS_PRE_HANDLE)};
 

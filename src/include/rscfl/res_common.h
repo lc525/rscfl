@@ -99,8 +99,11 @@ struct rscfl_ioctl
 {
   // in.
   shdw_op shdw_operation;
-  shdw_hdl use_shdw;
-  int shdw_pages;
+  // Handle to the shadow kernel to swap to if shdw_operation==SWAP.
+  shdw_hdl swap_to_shdw;
+  // When shdw_operation==SWAP then swap the first num_shdw_pages to the shadow
+  // kernel.
+  int num_shdw_pages;
   // out.
   shdw_hdl new_shdw_id;
 };

@@ -281,7 +281,9 @@ static long rscfl_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
   copy_from_user(&rscfl_arg, (rscfl_ioctl_t *)arg, sizeof(rscfl_ioctl_t));
   switch (cmd) {
     case RSCFL_SHDW_CMD:
-      rc = do_shdw_op(rscfl_arg.shdw_operation, &shdw);
+      shdw = rscfl_arg.swap_to_shdw;
+      rc = do_shdw_op(rscfl_arg.shdw_operation, &shdw,
+                      rscfl_arg.num_shdw_pages);
       if (rc) {
         return rc;
       }

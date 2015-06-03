@@ -448,7 +448,7 @@ int rscfl_use_shdw_pages(rscfl_handle rhdl, int use_shdw, int shdw_pages)
 {
   rscfl_ioctl_t ioctl_arg = {0};
   ioctl_arg.shdw_operation = SWAP;
-  ioctl_arg.use_shdw = use_shdw;
-  ioctl_arg.shdw_pages = shdw_pages;
+  ioctl_arg.swap_to_shdw = use_shdw;
+  ioctl_arg.num_shdw_pages = shdw_pages;
   return ioctl(rhdl->fd_ctrl, RSCFL_SHDW_CMD, &ioctl_arg);
 }

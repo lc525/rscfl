@@ -21,6 +21,6 @@ int shdw_switch_pages(shdw_hdl, int n);
  */
 int shdw_reset(void);
 
-int do_shdw_op(shdw_op, shdw_hdl *);
+int do_shdw_op(shdw_op, shdw_hdl *, int num_pages);
 
 #endif

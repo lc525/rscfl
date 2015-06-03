@@ -30,15 +30,6 @@ static unsigned long phys_texts[MAX_SHDW_KERNELS];
 
 static shdw_hdl current_shdw;
 
-struct cma
-{
-  unsigned long base_pfn;
-  unsigned long count;
-  unsigned long *bitmap;
-  unsigned int order_per_bit; /* Order of pages represented by one bit */
-  struct mutex lock;
-};
-
 static char *text_start;
 static char *text_end;
 static unsigned long text_size;
@@ -93,7 +84,7 @@ int shdw_create(shdw_hdl *shdw_no)
   return 0;
 }
 
-static int update_xen(unsigned long phys_shdw_mem, unsigned int no_pages)
+static int update_xen_pt(unsigned long phys_shdw_mem, unsigned int no_pages)
 {
   unsigned long *mfn = kmalloc(sizeof(unsigned long) * no_pages, GFP_ATOMIC);
   unsigned long pfn;
@@ -176,7 +167,7 @@ int shdw_switch_pages(shdw_hdl hdl, int num_pages)
   }
 
   phys_shdw_mem = phys_texts[hdl];
-  update_xen(phys_shdw_mem, num_pages);
+  update_xen_pt(phys_shdw_mem, num_pages);
   current_shdw = hdl;
   return 0;
 }
@@ -196,7 +187,7 @@ int shdw_reset(void)
   }
 }
 
-int do_shdw_op(shdw_op op, shdw_hdl *shdw)
+int do_shdw_op(shdw_op op, shdw_hdl *shdw, int num_pages)
 {
   pid_acct *current_pid_acct = CPU_VAR(current_acct);
   syscall_interest_t *interest;
@@ -221,11 +212,12 @@ int do_shdw_op(shdw_op op, shdw_hdl *shdw)
         }
         break;
       case SWAP:
-        if (interest->shdw_pages) {
-          return shdw_switch_pages(interest->use_shdw, interest->shdw_pages);
+        if (num_pages) {
+          return shdw_switch_pages(*shdw, num_pages);
         } else {
-          return shdw_switch(interest->use_shdw);
+          return shdw_switch(*shdw);
         }
+        break;
       default:
         break;
     }

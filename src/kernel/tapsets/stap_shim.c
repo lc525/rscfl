@@ -7,7 +7,6 @@
 #include "rscfl/res_common.h"
 #include "rscfl/kernel/cpu.h"
 #include "rscfl/kernel/measurement.h"
-#include "rscfl/kernel/shdw.h"
 
 //TODO(oc243): make thread safe.
 static int num_tokens = 1;
@@ -61,31 +60,6 @@ int should_acct(void)
       tbl_token->val = xen_buffer_hd();
     }
   }
-
-  switch(interest->shdw_operation) {
-    case NOP:
-      break;
-    case SPAWN_ONLY:
-      //TODO(oc243): Return shadow number to userspace.
-      if (shdw_create() < 0) {
-        printk(KERN_ERR "Unable to create a shadow kernel.\n");
-      }
-      break;
-    case SPAWN_SWAP_ON_SCHED:
-      current_pid_acct->shdw_kernel = shdw_create();
-      interest->spawn_shdw = 0;
-      break;
-    case SWAP:
-      if (interest->shdw_pages) {
-        shdw_switch_pages(interest->use_shdw, interest->shdw_pages);
-      } else {
-        shdw_switch(interest->use_shdw);
-      }
-    default:
-      break;
-  }
-  // Operation now performed.
-  interest->shdw_operation = NOP;
 
   // Find a free struct accounting in the shared memory that we can
   // use.

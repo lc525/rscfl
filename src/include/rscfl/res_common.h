@@ -59,7 +59,13 @@
 #define debugk(format, ...)
 #endif
 
+#define RSCFL_SHDW_CMD _IOR('R', 35, struct rscfl_ioctl)
+
+/*
+ * Shadow kernels.
+ */
 typedef enum {NOP, SPAWN_ONLY, SPAWN_SWAP_ON_SCHED, SWAP} shdw_op;
+typedef int shdw_hdl;
 
 struct rscfl_acct_layout_t
 {
@@ -74,10 +80,9 @@ struct syscall_interest_t
   int syscall_nr;
   int token;
   int tail_ix;
-  int use_shdw;
+  shdw_hdl use_shdw;
   int shdw_pages;
   _Bool start_measurement;
-  shdw_op shdw_operation;
 };
 typedef struct syscall_interest_t syscall_interest_t;
 
@@ -89,6 +94,17 @@ struct rscfl_ctrl_layout_t
   int num_new_tokens;
 };
 typedef struct rscfl_ctrl_layout_t rscfl_ctrl_layout_t;
+
+struct rscfl_ioctl
+{
+  // in.
+  shdw_op shdw_operation;
+  shdw_hdl use_shdw;
+  int shdw_pages;
+  // out.
+  shdw_hdl new_shdw_id;
+};
+typedef struct rscfl_ioctl rscfl_ioctl_t;
 
 #ifdef __cplusplus
 extern "C" {

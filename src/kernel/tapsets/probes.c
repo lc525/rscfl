@@ -26,8 +26,6 @@ _(XENINTERRUPTS)
 #define PROBES_AS_PRE_HANDLE(a) rscfl_pre_handler_##a,
 #define PROBES_AS_RTN_HANDLE(a) rscfl_rtn_handler_##a,
 
-#define PTR 0xffffffff810590c0
-
 static int executing_probe = 0;
 
 int probes_init(void)
@@ -40,7 +38,6 @@ int probes_init(void)
   char *syscall_type_temp[] = {PROBE_LIST(PROBES_AS_SYSCALL_TYPE)};
   shdw_hdl shdw;
   unsigned char insns[1] = {0x91};
-  volatile char *p = (char *)PTR;
 
   void (*probe_pre_handlers_temp[])(void) = {PROBE_LIST(PROBES_AS_PRE_HANDLE)};
 
@@ -67,15 +64,12 @@ int probes_init(void)
   preempt_enable();
   rcd = _rscfl_dev_init();
   rcp = rscfl_counters_init();
-  rckp = rscfl_probes_init(probe_addrs_temp, syscall_type_temp,
-                           sizeof(probe_pre_handlers_temp) /
-                           sizeof(kretprobe_handler_t),
-                           RSCFL_NUM_PROBES, probe_pre_handlers_temp,
-                           probe_post_handlers_temp);
-
-  //shdw = shdw_create();
-  //shdw_switch(shdw);
-
+  rckp = rscfl_probes_init(
+      probe_addrs_temp, syscall_type_temp,
+      sizeof(probe_pre_handlers_temp) /
+      sizeof(kretprobe_handler_t),
+      RSCFL_NUM_PROBES, probe_pre_handlers_temp,
+      probe_post_handlers_temp);
   preempt_disable();
 
   if (rcc) {

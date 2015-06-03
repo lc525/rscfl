@@ -106,6 +106,7 @@ struct rscfl_handle_t {
   rscfl_token_t *fresh_tokens[NUM_READY_TOKENS];
   rscfl_token_list_t *reuseable_tokens;
   int ready_token_sp;
+  int fd_ctrl;
 };
 typedef struct rscfl_handle_t *rscfl_handle;
 
@@ -375,11 +376,9 @@ DECLARE_REDUCE_FUNCTION(wc, struct timespec);
 
 
 // Shadow kernels.
-void rscfl_spawn_shdw(rscfl_handle);
+int rscfl_spawn_shdw(rscfl_handle);
 
-void rscfl_in_shdw_pages(rscfl_handle, int, int);
-
-  void rscfl_set_num_shdw_pages(rscfl_handle, int pages);
+int rscfl_use_shdw_pages(rscfl_handle, int, int);
 
 #ifdef __cplusplus
 }

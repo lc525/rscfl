@@ -54,10 +54,14 @@ void on_ctx_switch(pid_t next_tid)
     if(curr_acct->pid == next_tid){
       CPU_VAR(current_acct) = curr_acct;
       record_ctx_switch(curr_acct, 1);
+      // Switch shadow kernel if this process has a shadow kernel associated
+      // with it.
       if (curr_acct->shdw_kernel) {
         if (shdw_switch_pages(curr_acct->shdw_kernel, curr_acct->shdw_pages)) {
-          printk(KERN_ERR "Unable to switch to process's shadow kernel");
+          printk(KERN_ERR "Unable to switch to process's shadow kernel\n");
         }
+      } else {
+        shdw_reset();
       }
       return;
     }

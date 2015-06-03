@@ -7,6 +7,7 @@
 #include "rscfl/costs.h"
 #include "rscfl/res_common.h"
 #include "rscfl/kernel/cpu.h"
+#include "rscfl/kernel/shdw.h"
 #include "rscfl/kernel/stap_shim.h"
 
 static struct cdev rscfl_data_cdev;
@@ -18,9 +19,13 @@ static struct class *data_class, *ctrl_class;
 
 static int data_mmap(struct file *, struct vm_area_struct *);
 static int ctrl_mmap(struct file *, struct vm_area_struct *);
+static long rscfl_ioctl(struct file *, unsigned int cmd, unsigned long arg);
 
 static struct file_operations data_fops = {.mmap = data_mmap, };
-static struct file_operations ctrl_fops = {.mmap = ctrl_mmap, };
+static struct file_operations ctrl_fops = {
+  .mmap = ctrl_mmap,
+  .unlocked_ioctl = rscfl_ioctl,
+};
 
 struct rscfl_vma_data {
   pid_acct *pid_acct_node;
@@ -265,5 +270,25 @@ static int ctrl_mmap(struct file *filp, struct vm_area_struct *vma)
   drv_data->pid_acct_node = current_pid_acct;
   preempt_enable();
 
+  return 0;
+}
+
+static long rscfl_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
+{
+  rscfl_ioctl_t rscfl_arg;
+  shdw_hdl shdw;
+  int rc;
+  copy_from_user(&rscfl_arg, (rscfl_ioctl_t *)arg, sizeof(rscfl_ioctl_t));
+  switch (cmd) {
+    case RSCFL_SHDW_CMD:
+      rc = do_shdw_op(rscfl_arg.shdw_operation, &shdw);
+      if (rc) {
+        return rc;
+      }
+      rscfl_arg.new_shdw_id = shdw;
+      copy_to_user((rscfl_ioctl_t *)arg, &rscfl_arg, sizeof(rscfl_ioctl_t));
+      return 0;
+      break;
+  }
   return 0;
 }

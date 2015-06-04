@@ -1,5 +1,7 @@
 #include "rscfl/kernel/probe_manager.h"
 
+#include "linux/irqflags.h"
+
 #include "rscfl/kernel/kamprobes.h"
 
 void rscfl_unregister_probes(void)

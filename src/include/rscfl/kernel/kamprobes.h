@@ -2,7 +2,6 @@
 #define _RSCFL_KAMPROBES_H_
 
 #include <linux/types.h>
-#include <linux/kprobes.h>
 
 void kamprobes_unregister_all(void);
 

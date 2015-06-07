@@ -36,7 +36,7 @@ static int __init rscfl_init(void)
   } else {
     for_each_kernel_tracepoint(get_tracepoints, NULL);
     if(rscfl_tracepoint_status != HAS_TRACEPOINT_ALL) {
-      printk(KERN_ERR "rscfl: unable to find required kernel tracepoints");
+      printk(KERN_ERR "rscfl: unable to find required kernel tracepoints\n");
       return rscfl_tracepoint_status;
     }
     retsch = register_sched_interposition();

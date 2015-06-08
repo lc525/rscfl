@@ -1,0 +1,45 @@
+* cpu.h is a dumping ground
+** TODO Do something with probe_priv
+** TODO Rename pid_acct to pid_data
+** TODO Comment struct pid_acct
+** TODO Move swtruct pid_acct to another header
+** TODO Comments
+* kamprobes.h
+** DONE Does it need its two #includes?
+* measurement.h
+** TODO Move out xen stuff
+** TODO Document xen_buffer_hd
+** TODO Rename measurement.h
+* priv_kallsyms.h
+** DONE Sort
+* probe_manager.h
+** DONE Move kamprobes_init to kamprobes.h
+** DONE Fix comment
+* probes.h
+** TODO Why do we have probes_init and rscfl_probes_init?
+** TODO Can this be combined with probe_manager.h?
+** TODO Move subsystem_{entry,exit} into subsystems.h
+** TODO Move get_subsys into subsystems.h
+* sched.h
+** DONE Remove #includes?
+* stap_shim.h
+** TODO Delete
+* PMurHash.c
+** DONE Delete
+* Measurement.c
+** TODO Move out the xen stuff and sched stuff
+* stap_shim.c
+** TODO Move should_acct and clear_acct_next into subsystems.c
+** TODO Separate out tokens from should_acct
+** TODO Create get_accounting() function to return a struct accounting
+* Probes.c
+** TODO Consistent naming of subsys and subsystem, subsyses
+** TODO probes_init should be rscfl_init
+** TODO probes_cleanup should be rscfl_cleanup
+* Directories
+** TODO Remove src/kernel/counters
+** TODO create src/kernel/measurement/{xen,perf,measurement,sched}.{c,h}
+** TODO Remove directory tapsets
+** DONE Delete examples directory
+** DONE Delete kernel/README.txt
+** TODO Create a repository with hotdep contents

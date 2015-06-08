@@ -7,7 +7,7 @@
 #include "rscfl/costs.h"
 #include "rscfl/res_common.h"
 #include "rscfl/kernel/cpu.h"
-#include "rscfl/kernel/stap_shim.h"
+#include "rscfl/kernel/acct.h"
 
 static struct cdev rscfl_data_cdev;
 static struct cdev rscfl_ctrl_cdev;

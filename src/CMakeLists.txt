@@ -223,6 +223,7 @@ set (rscfl_KINCLUDES
 
 set (rscfl_KSOURCES
   ${PROJECT_COMMON_DIR}/res_common.c
+  ${PROJECT_SOURCE_DIR}/acct.c
   ${PROJECT_SOURCE_DIR}/counters/measurement.c
   ${PROJECT_SOURCE_DIR}/counters/perf.c
   ${PROJECT_SOURCE_DIR}/PMurHash.c
@@ -234,7 +235,6 @@ set (rscfl_KSOURCES
   ${PROJECT_SOURCE_DIR}/tapsets/kamprobes.c
   ${PROJECT_SOURCE_DIR}/tapsets/probes.c
   ${PROJECT_SOURCE_DIR}/tapsets/sched.c
-  ${PROJECT_SOURCE_DIR}/tapsets/stap_shim.c
 )
 
 set (rscfl_KDEPS # if any of those files change, the stap ko is rebuilt
@@ -243,6 +243,7 @@ set (rscfl_KDEPS # if any of those files change, the stap ko is rebuilt
   ${PROJECT_INCLUDE_DIR}/rscfl/costs.h
   ${PROJECT_INCLUDE_DIR}/rscfl/PMurHash.h
   ${PROJECT_INCLUDE_DIR}/rscfl/res_common.h
+  ${PROJECT_INCLUDE_DIR}/rscfl/kernel/acct.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/chardev.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/hasht.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/kamprobes.h
@@ -251,7 +252,6 @@ set (rscfl_KDEPS # if any of those files change, the stap ko is rebuilt
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/priv_kallsyms.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/probes.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/sched.h
-  ${PROJECT_INCLUDE_DIR}/rscfl/kernel/stap_shim.h
 )
 
 file(MAKE_DIRECTORY ${rscfl_OUT_DIR})

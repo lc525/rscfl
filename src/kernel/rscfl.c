@@ -5,6 +5,9 @@
 #include <trace/events/sched.h>
 
 #include <rscfl/config.h>
+#include "rscfl/kernel/cpu.h"
+#include "rscfl/kernel/chardev.h"
+#include "rscfl/kernel/measurement.h"
 #include <rscfl/kernel/priv_kallsyms.h>
 #include <rscfl/kernel/probes.h>
 #include <rscfl/kernel/sched.h>
@@ -28,38 +31,87 @@ static short rscfl_tracepoint_status = HAS_TRACEPOINT_NONE;
 
 static int __init rscfl_init(void)
 {
-  int ret, retsch;
-  ret = probes_init();
-  if (ret) {
-    printk(KERN_ERR "rscfl: unable to initialise\n");
-    return ret;
-  } else {
-    for_each_kernel_tracepoint(get_tracepoints, NULL);
-    if(rscfl_tracepoint_status != HAS_TRACEPOINT_ALL) {
-      printk(KERN_ERR "rscfl: unable to find required kernel tracepoints\n");
-      return rscfl_tracepoint_status;
-    }
-    retsch = register_sched_interposition();
-    if(retsch) {
-      printk(KERN_ERR "rscfl: unable to interpose scheduler\n");
-      return retsch;
-    } else {
-      printk(KERN_NOTICE "rscfl: running\n");
-      return 0;
-    }
+
+  int rc;
+
+  // Get addresses for private kernel symbols.
+  rc = init_priv_kallsyms();
+  if (rc) {
+    printk(KERN_ERR "rscfl: cannot find required kernel kallsyms\n");
+    return rc;
   }
+
+  // Initialise per-CPU hash tables.
+  rc = _rscfl_cpus_init();
+  if (rc) {
+    printk(KERN_ERR "rscfl: cannot initialize per-cpu hash tables\n");
+    return rc;
+  }
+  debugk("per-thread mmap alloc: Total: %lu, /acct: %d, /subsys: %lu\n",
+         MMAP_BUF_SIZE, STRUCT_ACCT_NUM, ACCT_SUBSYS_NUM);
+
+  // Initialise the rscfl drivers.
+  rc = _rscfl_dev_init();
+  if (rc) {
+    printk(KERN_ERR "rscfl: cannot initialize rscfl drivers\n");
+    return rc;
+  }
+
+  // Initialise the rscfl counters, which measure the resources consumed.
+  rc = rscfl_counters_init();
+  if (rc) {
+    printk(KERN_ERR "rscfl: cannot initialize rscfl measurement counters\n");
+    return rc;
+  }
+
+  rc = probes_init();
+  if (rc) {
+    // Do not fail just because we couldn't set a couple of probes
+    // instead, print a warning.
+    printk(KERN_WARNING "rscfl: failed to insert %d probes\n", rc);
+  }
+
+  for_each_kernel_tracepoint(get_tracepoints, NULL);
+  if (rscfl_tracepoint_status != HAS_TRACEPOINT_ALL) {
+    printk(KERN_ERR "rscfl: unable to find required kernel tracepoints\n");
+    probes_cleanup();
+    return rscfl_tracepoint_status;
+  }
+  rc = register_sched_interposition();
+  if (rc) {
+    printk(KERN_ERR "rscfl: unable to interpose scheduler\n");
+    probes_cleanup();
+    return rc;
+  }
+  printk(KERN_NOTICE "rscfl: running\n");
+  return 0;
+
+
 }
 
 static void __exit rscfl_cleanup(void)
 {
-  int ret, retsch;
-  retsch = unregister_sched_interposition();
-  if (retsch) {
+  int rcs, rcd, rcc, rcp;
+
+  rcs = unregister_sched_interposition();
+  if (rcs) {
     printk(KERN_ERR "rscfl: disabling scheduler interposition failed\n");
   }
-  ret = probes_cleanup();
-  if (ret) {
-    printk(KERN_ERR "rscfl: unable to cleanup\n");
+
+  rcd = _rscfl_dev_cleanup();
+  rcp = probes_cleanup();
+  rscfl_counters_stop();
+
+  rcc = _rscfl_cpus_cleanup();
+
+  if (rcd) {
+    printk(KERN_ERR "rscfl: cannot cleanup rscfl drivers\n");
+  }
+  if (rcc) {
+    printk(KERN_ERR "rscfl: cannot cleanup per-cpu hash tables\n");
+  }
+  if (rcp) {
+    printk(KERN_ERR "rscfl: cannot cleanup probes\n");
   }
   tracepoint_synchronize_unregister();
 }

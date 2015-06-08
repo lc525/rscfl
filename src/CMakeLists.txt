@@ -262,9 +262,6 @@ rscfl_kbuild(${rscfl_MOD_NAME}
    "${rscfl_KDEPS}"
 )
 
-# build examples
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/examples)
-
 # build user-facing library
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/lib)
 

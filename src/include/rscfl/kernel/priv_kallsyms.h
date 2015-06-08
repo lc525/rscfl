@@ -2,6 +2,7 @@
 
 #include <asm/pgtable_types.h>
 #include <linux/mutex.h>
+#include <linux/tracepoint.h>
 #include <linux/types.h>
 
 #define KPRIV(name) name##_ptr

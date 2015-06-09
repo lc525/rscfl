@@ -229,6 +229,7 @@ set (rscfl_KSOURCES
   ${PROJECT_SOURCE_DIR}/PMurHash.c
   ${PROJECT_SOURCE_DIR}/priv_kallsyms.c
   ${PROJECT_SOURCE_DIR}/rscfl.c
+  ${PROJECT_SOURCE_DIR}/subsys.c
   ${PROJECT_SOURCE_DIR}/tapsets/chardev.c
   ${PROJECT_SOURCE_DIR}/tapsets/cpu.c
   ${PROJECT_SOURCE_DIR}/tapsets/hasht.c
@@ -252,6 +253,7 @@ set (rscfl_KDEPS # if any of those files change, the stap ko is rebuilt
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/priv_kallsyms.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/probes.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/sched.h
+  ${PROJECT_INCLUDE_DIR}/rscfl/kernel/subsys.h
 )
 
 file(MAKE_DIRECTORY ${rscfl_OUT_DIR})

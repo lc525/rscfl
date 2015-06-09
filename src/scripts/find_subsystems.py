@@ -36,8 +36,8 @@ stage = ""
 
 # Code to be included at the top of the subsystems header.
 RSCFL_SUBSYS_HEADER_TEMPLATE = """
-#ifndef _RSCFL_SUBSYS_H_
-#define _RSCFL_SUBSYS_H_
+#ifndef _RSCFL_SUBSYS_LIST_H_
+#define _RSCFL_SUBSYS_LIST_H_
 
 #include <rscfl/macros.h>
 
@@ -70,6 +70,7 @@ RSCFL_SUBSYS_ADDR_TEMPLATE = """
 
 #include <linux/types.h>
 
+#include "rscfl/kernel/subsys.h"
 #include "rscfl/{{ subsys_list_header }}"
 
 #define RSCFL_NUM_PROBES {{ NUM_PROBES }}
@@ -91,14 +92,14 @@ static char {{ subsystem }}_INTERNAL_SYSCALL[] = {{ '{' }}
 
 void rscfl_pre_handler_{{ subsystem }}(void)
 {{ '{' }}
-  rscfl_subsystem_entry({{ subsystem }});
+  rscfl_subsys_entry({{ subsystem }});
 {{ '}' }}
 
 void rscfl_rtn_handler_{{ subsystem }}(void)
 {{ '{' }}
   asm("push %rax;");
   asm("push %rdx;");
-  rscfl_subsystem_exit({{ subsystem }});
+  rscfl_subsys_exit({{ subsystem }});
   asm("pop %rdx;");
   asm("pop %rax;");
 {{ '}' }}

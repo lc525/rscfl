@@ -18,6 +18,7 @@
 #include "rscfl/kernel/perf.h"
 #include "rscfl/kernel/priv_kallsyms.h"
 #include "rscfl/kernel/probes.h"
+#include "rscfl/kernel/subsys.h"
 #include "rscfl/res_common.h"
 
 #define NUM_XEN_PAGES 10

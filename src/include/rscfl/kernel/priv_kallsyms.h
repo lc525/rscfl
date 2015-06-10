@@ -17,6 +17,10 @@
 _(HYPERVISOR_shared_info)  \
 _(__set_phys_to_machine)   \
 _(__vmalloc_node_range)    \
+_(_etext)                  \
+_(_text)                   \
+_(dma_alloc_from_contiguous)\
+_(dma_contiguous_default_area)                  \
 _(flush_tlb_all)           \
 _(get_balloon_scratch_page)\
 _(put_balloon_scratch_page)\
@@ -32,6 +36,12 @@ _once void* (*KPRIV(__vmalloc_node_range))(
     unsigned long size, unsigned long align, unsigned long start,
     unsigned long end, gfp_t gfp_mask, pgprot_t prot, int node,
     const void *caller);
+_once char **KPRIV(_etext);
+_once char **KPRIV(_text);
+_once struct cma *KPRIV(dma_contiguous_default_area);
+_once struct page *(*KPRIV(dma_alloc_from_contiguous))(struct device *dev,
+                                                       int count,
+                                                       unsigned int align);
 _once void (*KPRIV(flush_tlb_all))(void);
 _once struct page* (*KPRIV(get_balloon_scratch_page))(void);
 _once void (*KPRIV(put_balloon_scratch_page))(void);

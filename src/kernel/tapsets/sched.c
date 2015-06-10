@@ -6,6 +6,7 @@
 #include "rscfl/kernel/cpu.h"
 #include "rscfl/kernel/hasht.h"
 #include "rscfl/kernel/probes.h"
+#include "rscfl/kernel/shdw.h"
 #include "rscfl/res_common.h"
 
 static void record_ctx_switch(pid_acct *p_acct,
@@ -56,6 +57,15 @@ void on_ctx_switch(void *ignore,
     if(curr_acct->pid == next_tid){
       CPU_VAR(current_acct) = curr_acct;
       record_ctx_switch(curr_acct, 1);
+      // Switch shadow kernel if this process has a shadow kernel associated
+      // with it.
+      if (curr_acct->shdw_kernel) {
+        if (shdw_switch_pages(curr_acct->shdw_kernel, curr_acct->shdw_pages)) {
+          printk(KERN_ERR "Unable to switch to process's shadow kernel\n");
+        }
+      } else {
+        shdw_reset();
+      }
       return;
     }
   }

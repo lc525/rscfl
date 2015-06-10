@@ -7,6 +7,7 @@
 #include "rscfl/kernel/measurement.h"
 #include "rscfl/kernel/probe_manager.h"
 #include "rscfl/kernel/priv_kallsyms.h"
+#include "rscfl/kernel/shdw.h"
 #include "rscfl/kernel/stap_shim.h"
 #include "rscfl/kernel/subsys_addr.h"
 

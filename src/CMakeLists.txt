@@ -227,6 +227,7 @@ set (rscfl_KSOURCES
   ${PROJECT_SOURCE_DIR}/counters/perf.c
   ${PROJECT_SOURCE_DIR}/priv_kallsyms.c
   ${PROJECT_SOURCE_DIR}/rscfl.c
+  ${PROJECT_SOURCE_DIR}/shdw.c
   ${PROJECT_SOURCE_DIR}/tapsets/chardev.c
   ${PROJECT_SOURCE_DIR}/tapsets/cpu.c
   ${PROJECT_SOURCE_DIR}/tapsets/kamprobes.c
@@ -249,6 +250,7 @@ set (rscfl_KDEPS # if any of those files change, the stap ko is rebuilt
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/priv_kallsyms.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/probes.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/sched.h
+  ${PROJECT_INCLUDE_DIR}/rscfl/kernel/shdw.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/stap_shim.h
 )
 

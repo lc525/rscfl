@@ -1,4 +1,4 @@
-# systemtap kernel module build file
+# rscfl kernel module build file
 # author: Lucian Carata <lc525@cam.ac.uk>
 
 function(JOIN VALUES GLUE OUTPUT)
@@ -8,7 +8,7 @@ endfunction()
 
 #  ====================================================================
 #
-# STAP_BUILD (public function)
+# RSCFL_KBUILD (public function)
 #   MOD_NAME = the name of resulting kernel module
 #   INCLUDES = include files to add to kbuild make
 #   OUT_DIR = the output directory for stap results
@@ -20,45 +20,44 @@ endfunction()
 #          gets rebuilt)
 #
 #  ====================================================================
-function(STAP_BUILD MOD_NAME INCLUDES OUT_DIR GEN_SRC SRC DEPS)
+function(RSCFL_KBUILD MOD_NAME INCLUDES OUT_DIR SRC DEPS)
   # Generate includes list
   foreach(FIL ${INCLUDES})
     get_filename_component(ABS_FIL ${FIL} ABSOLUTE)
-    list(FIND _stap_include_path -I${ABS_FIL} _contains_already)
+    list(FIND _rscfl_include_path -I${ABS_FIL} _contains_already)
     if(${_contains_already} EQUAL -1)
-      list(APPEND _stap_include_path -I${ABS_FIL})
+      list(APPEND _rscfl_include_path -I${ABS_FIL})
     endif()
   endforeach()
-  JOIN("${_stap_include_path}" " " _stap_includes)
-  set(STAP_INCLUDES ${_stap_includes})
+  #list(APPEND _rscfl_include_path -I$ENV{RSCFL_LINUX_ROOT}/include)
+  list(APPEND _rscfl_include_path -I$ENV{RSCFL_LINUX_HEADERS})
+  list(APPEND _rscfl_include_path -I$ENV{RSCFL_LINUX_HEADERS}/arch/x86/include/generated)
+  list(APPEND _rscfl_include_path -I$ENV{RSCFL_LINUX_HEADERS}/arch/x86/include/generated/uapi)
+  JOIN("${_rscfl_include_path}" " " _rscfl_includes)
+  set(RSCFL_MOD_INCLUDES ${_rscfl_includes})
 
   if(NOT DEFINED DEFINE_NDEBUG)
     set(K_DBG "-g")
   endif()
 
-  # Generate extra files list
+  # Generate object file list
   foreach(SRC_FIL ${SRC})
     get_filename_component(ABS_PATH ${SRC_FIL} ABSOLUTE)
+    get_filename_component(SRCF_DIR ${ABS_PATH} DIRECTORY)
     get_filename_component(FNAME ${ABS_PATH} NAME)
     get_filename_component(FNAME_NAME ${ABS_PATH} NAME_WE)
-    add_custom_command(OUTPUT ${OUT_DIR}/${FNAME}
-                       COMMAND ${CMAKE_COMMAND} -E copy ${ABS_PATH} ${OUT_DIR}
-                       DEPENDS ${ABS_PATH}
-                       COMMENT "Copying source file ${FNAME} for .ko")
-    list(FIND _stap_objs ${FNAME_NAME}.o _contains_already)
+
+    file(RELATIVE_PATH _add_file ${OUT_DIR} ${SRCF_DIR}/${FNAME})
+    get_filename_component(S_REL ${_add_file} DIRECTORY)
+
+    list(FIND _rscfl_objs ${S_REL}/${FNAME_NAME}.o _contains_already)
     if(${_contains_already} EQUAL -1)
-      list(APPEND _stap_objs ${FNAME_NAME}.o)
-      list(APPEND _stap_objsfp ${OUT_DIR}/${FNAME_NAME}.o)
-      list(APPEND _stap_srcf ${OUT_DIR}/${FNAME})
+      list(APPEND _rscfl_objs ${S_REL}/${FNAME_NAME}.o)
+      list(APPEND _rscfl_objsfp ${OUT_DIR}/${FNAME_NAME}.o)
+      list(APPEND _rscfl_srcf ${SRC_FIL})
     endif()
   endforeach()
-  JOIN("${_stap_objs}" " " STAP_O_FILES)
-
-  find_path(STAP_RUNTIME runtime_defines.h
-  PATHS /usr/local/share/systemtap/runtime
-        /usr/share/systemtap/runtime
-  NO_DEFAULT_PATH # ignore system paths
-  )
+  JOIN("${_rscfl_objs}" " " RSCFL_O_FILES)
 
   # Generate kernel module Makefile
   configure_file(
@@ -66,35 +65,12 @@ function(STAP_BUILD MOD_NAME INCLUDES OUT_DIR GEN_SRC SRC DEPS)
     "${OUT_DIR}/Makefile"
     @ONLY)
 
-  get_filename_component(ABS_FIL ${GEN_SRC} ABSOLUTE)
-  get_filename_component(NM_FIL ${GEN_SRC} NAME)
-
-  # Generate stap sources
-  add_custom_command(
-    OUTPUT ${OUT_DIR}/${MOD_NAME}.c
-    COMMAND stap
-    ARGS
-      -g                  # guru mode
-      -p 3                # stop after code gen
-      --tmpdir=${OUT_DIR} # temporary directory
-      -k                  # keep temporary directory
-      -m ${MOD_NAME}      # force module name
-      -I ${PROJECT_SOURCE_DIR}/tapsets
-      ${ABS_FIL}
-      > /dev/null
-    DEPENDS ${GEN_SRC} ${DEPS}
-    COMMENT "Building stap kernel module ${MOD_NAME} from ${NM_FIL}"
-  )
-  add_custom_target(stap_gen ALL DEPENDS ${OUT_DIR}/${MOD_NAME}.c)
-
-
   # Build kernel module
   set( MODULE_TARGET_NAME rscfl_ko )
   set( MODULE_BIN_FILE    ${OUT_DIR}/${MOD_NAME}.ko )
-  set( MODULE_OUTPUT_FILES    ${_stap_objsfp} )
+  set( MODULE_OUTPUT_FILES    ${_rscfl_objsfp} )
   set( MODULE_SOURCE_DIR  ${OUT_DIR} )
-
-  set( KERNEL_DIR "/lib/modules/${CMAKE_SYSTEM_VERSION}/build" )
+  set( KERNEL_DIR "/lib/modules/${CMAKE_SYSTEM_VERSION}/build/" )
   set( KBUILD_CMD $(MAKE)
                   -C ${KERNEL_DIR}
                   M=${MODULE_SOURCE_DIR}
@@ -104,11 +80,11 @@ function(STAP_BUILD MOD_NAME INCLUDES OUT_DIR GEN_SRC SRC DEPS)
                               ${MODULE_OUTPUT_FILES}
                       COMMAND ${KBUILD_CMD}
                       COMMAND cp -f ${MODULE_BIN_FILE} ${PROJECT_BINARY_DIR}
-                      DEPENDS stap_gen ${_stap_srcf} ${DEPS}
+                      DEPENDS ${_rscfl_srcf} ${DEPS}
                       COMMENT "Running kbuild for ${MODULE_BIN_FILE}"
                       VERBATIM )
 
   add_custom_target ( ${MODULE_TARGET_NAME} ALL
-                      DEPENDS ${MODULE_BIN_FILE} stap_gen)
+                      DEPENDS ${MODULE_BIN_FILE})
 
 endfunction()

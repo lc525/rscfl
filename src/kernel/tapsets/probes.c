@@ -26,14 +26,10 @@ _(XENINTERRUPTS)
 #define PROBES_AS_PRE_HANDLE(a) rscfl_pre_handler_##a,
 #define PROBES_AS_RTN_HANDLE(a) rscfl_rtn_handler_##a,
 
-static int executing_probe = 0;
-
 int probes_init(void)
 {
-  u8 **probe_addr;
   int rcsym = 0, rcd = 0, rcc = 0, rcp = 0, rckp = 0;
   kprobe_pre_handler_t pre_handler = pre_handler;
-  int subsys_num;
   u8 **probe_addrs_temp[] = {PROBE_LIST(PROBES_AS_ADDRS)};
   char *syscall_type_temp[] = {PROBE_LIST(PROBES_AS_SYSCALL_TYPE)};
 

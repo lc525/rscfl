@@ -11,6 +11,8 @@
 #endif
 
 #define RSCFL_PROJECT_NAME "@CMAKE_PROJECT_NAME@"
+#define RSCFL_DESC "rscfl: application-centric kernel resource measurement"
+#define RSCFL_KVERSION "@VERSION@"
 
 typedef struct {
   unsigned int major;
@@ -43,5 +45,6 @@ static const char RSCFL_VERSION_STR[] = "@VERSION@";
 // syscall.
 #define RSCFL_CTRL_MAJOR 92
 #define RSCFL_CTRL_MINOR 0
+
 #endif
 

@@ -11,6 +11,7 @@
 
 #include "rscfl/config.h"
 #include "rscfl/costs.h"
+#include "rscfl/macros.h"
 
 #define RSCFL_DATA_DRIVER "rscfl-data"
 #define RSCFL_CTRL_DRIVER "rscfl-ctrl"
@@ -52,12 +53,6 @@
 #define ACCT_SUBSYS_NUM ( (MMAP_BUF_SIZE                                       \
                            - STRUCT_ACCT_NUM * sizeof(struct accounting)       \
                           ) / sizeof(struct subsys_accounting) )
-
-#ifndef NDEBUG
-#define debugk(format, ...) printk(format, ##__VA_ARGS__)
-#else
-#define debugk(format, ...)
-#endif
 
 #define RSCFL_SHDW_CMD _IOR('R', 35, struct rscfl_ioctl)
 

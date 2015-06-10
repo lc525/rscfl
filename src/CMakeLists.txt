@@ -211,29 +211,25 @@ subsys_header_gen(${LINUX_ROOT}
 )
 
 # build systemtap modules
-include(stap)
+include(rscfl_kbuild)
 
-set (stap_OUT_DIR ${PROJECT_BINARY_DIR}/Kstap_gen)
-set (stap_MOD_NAME rscfl_${PVER})
+set (rscfl_OUT_DIR ${PROJECT_BINARY_DIR}/Kbuild)
+set (rscfl_MOD_NAME rscfl_${PVER})
 
-set (stap_INCLUDES
+set (rscfl_KINCLUDES
   ${PROJECT_INCLUDE_DIR} # for cost.h and other headers
   ${PROJECT_BINARY_DIR}  # for generated config.h
 )
 
-set (stap_gen_SOURCES
-  ${PROJECT_SOURCE_DIR}/resourceful.stp
-)
-set (stap_SOURCES
+set (rscfl_KSOURCES
   ${PROJECT_COMMON_DIR}/res_common.c
   ${PROJECT_SOURCE_DIR}/counters/measurement.c
   ${PROJECT_SOURCE_DIR}/counters/perf.c
-  ${PROJECT_SOURCE_DIR}/PMurHash.c
   ${PROJECT_SOURCE_DIR}/priv_kallsyms.c
+  ${PROJECT_SOURCE_DIR}/rscfl.c
   ${PROJECT_SOURCE_DIR}/shdw.c
   ${PROJECT_SOURCE_DIR}/tapsets/chardev.c
   ${PROJECT_SOURCE_DIR}/tapsets/cpu.c
-  ${PROJECT_SOURCE_DIR}/tapsets/hasht.c
   ${PROJECT_SOURCE_DIR}/tapsets/kamprobes.c
   ${PROJECT_SOURCE_DIR}/tapsets/probe_manager.c
   ${PROJECT_SOURCE_DIR}/tapsets/probes.c
@@ -241,14 +237,12 @@ set (stap_SOURCES
   ${PROJECT_SOURCE_DIR}/tapsets/stap_shim.c
 )
 
-set (stap_DEPS # if any of those files change, the stap ko is rebuilt
+set (rscfl_KDEPS # if any of those files change, the stap ko is rebuilt
   subsys_gen
   ${PROJECT_BINARY_DIR}/rscfl/config.h
   ${PROJECT_INCLUDE_DIR}/rscfl/costs.h
-  ${PROJECT_INCLUDE_DIR}/rscfl/PMurHash.h
   ${PROJECT_INCLUDE_DIR}/rscfl/res_common.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/chardev.h
-  ${PROJECT_INCLUDE_DIR}/rscfl/kernel/hasht.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/kamprobes.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/measurement.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/probe_manager.h
@@ -258,24 +252,17 @@ set (stap_DEPS # if any of those files change, the stap ko is rebuilt
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/sched.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/shdw.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/stap_shim.h
-  ${PROJECT_SOURCE_DIR}/resourceful.stp
-  ${PROJECT_SOURCE_DIR}/tapsets/sched.stp
-  ${PROJECT_SOURCE_DIR}/tapsets/shim.stp
 )
 
-file(MAKE_DIRECTORY ${stap_OUT_DIR})
+file(MAKE_DIRECTORY ${rscfl_OUT_DIR})
 
 # remember to pass variables that contain lists of files/directories with ""
-stap_build(${stap_MOD_NAME}
-  "${stap_INCLUDES}"
-   ${stap_OUT_DIR}
-   ${stap_gen_SOURCES}
-   "${stap_SOURCES}"
-   ${stap_DEPS}
+rscfl_kbuild(${rscfl_MOD_NAME}
+  "${rscfl_KINCLUDES}"
+   ${rscfl_OUT_DIR}
+   "${rscfl_KSOURCES}"
+   "${rscfl_KDEPS}"
 )
-
-# build examples
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/examples)
 
 # build user-facing library
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/lib)

@@ -34,6 +34,8 @@ static char *text_start;
 static char *text_end;
 static unsigned long text_size;
 
+extern struct device *rscfl_ctrl_device;
+
 int shdw_create(shdw_hdl *shdw_no)
 {
   char *shdw_mem;

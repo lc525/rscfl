@@ -106,6 +106,7 @@ struct rscfl_handle_t {
   rscfl_token_t *fresh_tokens[NUM_READY_TOKENS];
   rscfl_token_list_t *reuseable_tokens;
   int ready_token_sp;
+  int fd_ctrl;
 };
 typedef struct rscfl_handle_t *rscfl_handle;
 
@@ -372,6 +373,12 @@ DECLARE_REDUCE_FUNCTION(rint, ru64);
 DEFINE_SELECT_FCT_PTR(wc, struct timespec);
 DEFINE_COMBINE_FCT_PTR(wc, struct timespec);
 DECLARE_REDUCE_FUNCTION(wc, struct timespec);
+
+
+// Shadow kernels.
+int rscfl_spawn_shdw(rscfl_handle, shdw_hdl *);
+
+int rscfl_use_shdw_pages(rscfl_handle, int, int);
 
 #ifdef __cplusplus
 }

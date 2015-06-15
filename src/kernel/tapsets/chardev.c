@@ -6,19 +6,26 @@
 #include "rscfl/config.h"
 #include "rscfl/costs.h"
 #include "rscfl/res_common.h"
-#include "rscfl/kernel/cpu.h"
 #include "rscfl/kernel/acct.h"
+#include "rscfl/kernel/cpu.h"
+#include "rscfl/kernel/shdw.h"
 
 static struct cdev rscfl_data_cdev;
 static struct cdev rscfl_ctrl_cdev;
+
+struct device *rscfl_ctrl_device;
 
 static struct class *data_class, *ctrl_class;
 
 static int data_mmap(struct file *, struct vm_area_struct *);
 static int ctrl_mmap(struct file *, struct vm_area_struct *);
+static long rscfl_ioctl(struct file *, unsigned int cmd, unsigned long arg);
 
 static struct file_operations data_fops = {.mmap = data_mmap, };
-static struct file_operations ctrl_fops = {.mmap = ctrl_mmap, };
+static struct file_operations ctrl_fops = {
+  .mmap = ctrl_mmap,
+  .unlocked_ioctl = rscfl_ioctl,
+};
 
 struct rscfl_vma_data {
   pid_acct *pid_acct_node;
@@ -48,7 +55,7 @@ static int drv_dev_uevent_rw(struct device *dev, struct kobj_uevent_env *env) {
 
 static int drv_init(int major, int minor, char *drv_name, _Bool dev_rw,
                     struct file_operations *fops, struct cdev *cdev,
-                    struct class **class)
+                    struct class **class, struct device **dev)
 {
   int rc;
   int dev_no = MKDEV(major, minor);
@@ -66,7 +73,7 @@ static int drv_init(int major, int minor, char *drv_name, _Bool dev_rw,
   } else {
     (*class)->dev_uevent = drv_dev_uevent_r;
   }
-  device_create(*class, NULL, dev_no, NULL, drv_name);
+  *dev = device_create(*class, NULL, dev_no, NULL, drv_name);
   if (rc < 0) {
     return rc;
   }
@@ -77,15 +84,16 @@ static int drv_init(int major, int minor, char *drv_name, _Bool dev_rw,
 int _rscfl_dev_init(void)
 {
   int rc;
+  struct device *dev;
   debugk("Init data driver\n");
   rc = drv_init(RSCFL_DATA_MAJOR, RSCFL_DATA_MINOR, RSCFL_DATA_DRIVER, 0,
-                &data_fops, &rscfl_data_cdev, &data_class);
+                &data_fops, &rscfl_data_cdev, &data_class, &dev);
   if (rc) {
     return rc;
   }
   debugk("Init ctrl driver\n");
   rc = drv_init(RSCFL_CTRL_MAJOR, RSCFL_CTRL_MINOR, RSCFL_CTRL_DRIVER, 1,
-                &ctrl_fops, &rscfl_ctrl_cdev, &ctrl_class);
+                &ctrl_fops, &rscfl_ctrl_cdev, &ctrl_class, &rscfl_ctrl_device);
   if (rc) {
     printk(KERN_ERR "Cannot initialise ctrl driver\n");
     // TODO(oc243): uninitialise the data driver.
@@ -262,5 +270,27 @@ static int ctrl_mmap(struct file *filp, struct vm_area_struct *vma)
   drv_data->pid_acct_node = current_pid_acct;
   preempt_enable();
 
+  return 0;
+}
+
+static long rscfl_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
+{
+  rscfl_ioctl_t rscfl_arg;
+  shdw_hdl shdw;
+  int rc;
+  copy_from_user(&rscfl_arg, (rscfl_ioctl_t *)arg, sizeof(rscfl_ioctl_t));
+  switch (cmd) {
+    case RSCFL_SHDW_CMD:
+      shdw = rscfl_arg.swap_to_shdw;
+      rc = do_shdw_op(rscfl_arg.shdw_operation, &shdw,
+                      rscfl_arg.num_shdw_pages);
+      if (rc) {
+        return rc;
+      }
+      rscfl_arg.new_shdw_id = shdw;
+      copy_to_user((rscfl_ioctl_t *)arg, &rscfl_arg, sizeof(rscfl_ioctl_t));
+      return 0;
+      break;
+  }
   return 0;
 }

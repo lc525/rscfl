@@ -71,6 +71,7 @@ static int __init rscfl_init(void)
     printk(KERN_WARNING "rscfl: failed to insert %d probes\n", rc);
   }
 
+  // Initialise scheduler interposition.
   for_each_kernel_tracepoint(get_tracepoints, NULL);
   if (rscfl_tracepoint_status != HAS_TRACEPOINT_ALL) {
     printk(KERN_ERR "rscfl: unable to find required kernel tracepoints\n");
@@ -94,15 +95,15 @@ static void __exit rscfl_cleanup(void)
   int rcs, rcd, rcc, rcp;
 
   rcs = unregister_sched_interposition();
+  tracepoint_synchronize_unregister();
+  rcp = probes_cleanup();
+  rscfl_counters_stop();
+  rcd = _rscfl_dev_cleanup();
+  rcc = _rscfl_cpus_cleanup();
+
   if (rcs) {
     printk(KERN_ERR "rscfl: disabling scheduler interposition failed\n");
   }
-
-  rcd = _rscfl_dev_cleanup();
-  rcp = probes_cleanup();
-  rscfl_counters_stop();
-
-  rcc = _rscfl_cpus_cleanup();
 
   if (rcd) {
     printk(KERN_ERR "rscfl: cannot cleanup rscfl drivers\n");
@@ -113,7 +114,7 @@ static void __exit rscfl_cleanup(void)
   if (rcp) {
     printk(KERN_ERR "rscfl: cannot cleanup probes\n");
   }
-  tracepoint_synchronize_unregister();
+
 }
 
 

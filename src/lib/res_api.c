@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <sys/socket.h>
 #include <sys/syscall.h>
@@ -69,6 +70,7 @@ rscfl_handle rscfl_init_api(rscfl_version_t rscfl_ver)
   if ((fd_data == -1) || (fd_ctrl == -1)) {
     goto error;
   }
+  rhdl->fd_ctrl = fd_ctrl;
 
   // mmap memory to store our struct accountings, and struct subsys_accountings
 
@@ -105,7 +107,7 @@ rscfl_handle rscfl_init_api(rscfl_version_t rscfl_ver)
     goto error;
   };
 
-  if ((close(fd_data) == -1) || (close(fd_ctrl) == -1)) {
+  if (close(fd_data) == -1) {
     goto error;
   }
   if (rscfl_read_acct(rhdl, &acct)) {
@@ -418,4 +420,32 @@ void rscfl_subsys_free(rscfl_handle rhdl, struct accounting *acct)
     struct subsys_accounting *subsys = rscfl_get_subsys_by_id(rhdl, acct, i);
     if (subsys != NULL) subsys->in_use = 0;
   }
+}
+
+// Shadow kernels.
+
+int rscfl_spawn_shdw(rscfl_handle rhdl, shdw_hdl *hdl)
+{
+  int rc;
+  rscfl_ioctl_t ioctl_arg = {0};
+  ioctl_arg.shdw_operation = SPAWN_ONLY;
+  rc = ioctl(rhdl->fd_ctrl, RSCFL_SHDW_CMD, &ioctl_arg);
+  *hdl = ioctl_arg.new_shdw_id;
+  return rc;
+}
+
+int rscfl_spawn_shdw_for_pid(rscfl_handle rhdl)
+{
+  rscfl_ioctl_t ioctl_arg = {0};
+  ioctl_arg.shdw_operation = SPAWN_SWAP_ON_SCHED;
+  return ioctl(rhdl->fd_ctrl, RSCFL_SHDW_CMD, &ioctl_arg);
+}
+
+int rscfl_use_shdw_pages(rscfl_handle rhdl, int use_shdw, int shdw_pages)
+{
+  rscfl_ioctl_t ioctl_arg = {0};
+  ioctl_arg.shdw_operation = SWAP;
+  ioctl_arg.swap_to_shdw = use_shdw;
+  ioctl_arg.num_shdw_pages = shdw_pages;
+  return ioctl(rhdl->fd_ctrl, RSCFL_SHDW_CMD, &ioctl_arg);
 }

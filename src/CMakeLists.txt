@@ -226,13 +226,12 @@ set (rscfl_KSOURCES
   ${PROJECT_SOURCE_DIR}/acct.c
   ${PROJECT_SOURCE_DIR}/counters/measurement.c
   ${PROJECT_SOURCE_DIR}/counters/perf.c
-  ${PROJECT_SOURCE_DIR}/PMurHash.c
   ${PROJECT_SOURCE_DIR}/priv_kallsyms.c
   ${PROJECT_SOURCE_DIR}/rscfl.c
+  ${PROJECT_SOURCE_DIR}/shdw.c
   ${PROJECT_SOURCE_DIR}/subsys.c
   ${PROJECT_SOURCE_DIR}/tapsets/chardev.c
   ${PROJECT_SOURCE_DIR}/tapsets/cpu.c
-  ${PROJECT_SOURCE_DIR}/tapsets/hasht.c
   ${PROJECT_SOURCE_DIR}/tapsets/kamprobes.c
   ${PROJECT_SOURCE_DIR}/tapsets/probes.c
   ${PROJECT_SOURCE_DIR}/tapsets/sched.c
@@ -242,11 +241,9 @@ set (rscfl_KDEPS # if any of those files change, the stap ko is rebuilt
   subsys_gen
   ${PROJECT_BINARY_DIR}/rscfl/config.h
   ${PROJECT_INCLUDE_DIR}/rscfl/costs.h
-  ${PROJECT_INCLUDE_DIR}/rscfl/PMurHash.h
   ${PROJECT_INCLUDE_DIR}/rscfl/res_common.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/acct.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/chardev.h
-  ${PROJECT_INCLUDE_DIR}/rscfl/kernel/hasht.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/kamprobes.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/measurement.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/perf.h
@@ -254,6 +251,7 @@ set (rscfl_KDEPS # if any of those files change, the stap ko is rebuilt
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/probes.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/sched.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/subsys.h
+  ${PROJECT_INCLUDE_DIR}/rscfl/kernel/shdw.h
 )
 
 file(MAKE_DIRECTORY ${rscfl_OUT_DIR})
@@ -265,9 +263,6 @@ rscfl_kbuild(${rscfl_MOD_NAME}
    "${rscfl_KSOURCES}"
    "${rscfl_KDEPS}"
 )
-
-# build examples
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/examples)
 
 # build user-facing library
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/lib)

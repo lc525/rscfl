@@ -2,10 +2,12 @@
 
 #include "linux/kprobes.h"
 
+#include "rscfl/kernel/acct.h"
 #include "rscfl/kernel/cpu.h"
 #include "rscfl/kernel/kamprobes.h"
 #include "rscfl/kernel/measurement.h"
-#include "rscfl/kernel/acct.h"
+#include "rscfl/kernel/priv_kallsyms.h"
+#include "rscfl/kernel/shdw.h"
 #include "rscfl/kernel/subsys_addr.h"
 
 #define PROBE_LIST(_)               \

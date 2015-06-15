@@ -4,6 +4,7 @@
 #include "rscfl/config.h"
 #include "rscfl/costs.h"
 #include "rscfl/kernel/hasht.h"
+#include "rscfl/kernel/priv_kallsyms.h"
 #include "rscfl/res_common.h"
 #include "rscfl/subsys_list.h"
 
@@ -67,6 +68,8 @@ struct pid_acct {
   _Bool executing_probe;
   struct hlist_node tokens;
   unsigned short num_tokens;
+  int shdw_kernel;
+  int shdw_pages;
 };
 typedef struct pid_acct pid_acct;
 
@@ -89,5 +92,9 @@ DECLARE_PER_CPU(pid_acct*, current_acct);
  */
 int _rscfl_cpus_init(void);
 int _rscfl_cpus_cleanup(void);
+
+static inline int is_vm(void) {
+  return *KPRIV(HYPERVISOR_shared_info) != KPRIV(xen_dummy_shared_info);
+}
 
 #endif

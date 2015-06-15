@@ -2,10 +2,9 @@
 
 #include "linux/kprobes.h"
 
-#include "rscfl/kernel/chardev.h"
 #include "rscfl/kernel/cpu.h"
+#include "rscfl/kernel/kamprobes.h"
 #include "rscfl/kernel/measurement.h"
-#include "rscfl/kernel/probe_manager.h"
 #include "rscfl/kernel/priv_kallsyms.h"
 #include "rscfl/kernel/shdw.h"
 #include "rscfl/kernel/stap_shim.h"
@@ -28,84 +27,42 @@ _(XENINTERRUPTS)
 
 int probes_init(void)
 {
-  int rcsym = 0, rcd = 0, rcc = 0, rcp = 0, rckp = 0;
   kprobe_pre_handler_t pre_handler = pre_handler;
   u8 **probe_addrs_temp[] = {PROBE_LIST(PROBES_AS_ADDRS)};
   char *syscall_type_temp[] = {PROBE_LIST(PROBES_AS_SYSCALL_TYPE)};
 
-  void (*probe_pre_handlers_temp[])(void) = {PROBE_LIST(PROBES_AS_PRE_HANDLE)};
+  int i, rc, failures = 0;
+  unsigned long flags;
 
+  void (*probe_pre_handlers_temp[])(void) = {PROBE_LIST(PROBES_AS_PRE_HANDLE)};
   void (*probe_post_handlers_temp[])(void) = {PROBE_LIST(PROBES_AS_RTN_HANDLE)};
 
-  // get addresses for private kernel symbols
-  rcsym = init_priv_kallsyms();
-  if (rcsym) {
-    printk(KERN_ERR "rscfl: cannot find required kernel kallsyms\n");
-    return rcsym;
-  }
-  // stap disables preemption even when running begin/end probes.
-  // however, _rscfl_shim_init might sleep,
-  // causing an BUG: scheduled in atomic section kernel error (for
-  // sleeping with preemption disabled).
-  //
-  // because we know what we're doing, temporarily enable
-  // scheduling here.
-  // TODO(lc525): see if we need to restore IRQs as well
-  //
-  rcc = _rscfl_cpus_init();
-  debugk("per-thread mmap alloc: Total: %lu, /acct: %d, /subsys: %lu\n",
-         MMAP_BUF_SIZE, STRUCT_ACCT_NUM, ACCT_SUBSYS_NUM);
-  preempt_enable();
-  rcd = _rscfl_dev_init();
-  rcp = rscfl_counters_init();
-  rckp = rscfl_probes_init(
-      probe_addrs_temp,
-      syscall_type_temp,
-      sizeof(probe_pre_handlers_temp) / sizeof(kretprobe_handler_t),
-      RSCFL_NUM_PROBES, probe_pre_handlers_temp, probe_post_handlers_temp);
-  preempt_disable();
+  int num_subsys = sizeof(probe_pre_handlers_temp) / sizeof(kretprobe_handler_t);
 
-  if (rcc) {
-    printk(KERN_ERR "rscfl: cannot initialize per-cpu hash tables\n");
-    return rcc;
+  kamprobes_init(RSCFL_NUM_PROBES);
+  local_irq_save(flags);
+  for (i = 0; i < num_subsys; i++) {
+    u8 **sub_addr = probe_addrs_temp[i];
+    int j = 0;
+    while (*sub_addr) {
+      rc = kamprobes_register(sub_addr, syscall_type_temp[i][j],
+                              probe_pre_handlers_temp[i],
+                              probe_post_handlers_temp[i]);
+      if (rc) {
+        failures++;
+      }
+      sub_addr++;
+      j++;
+    }
   }
-  if (rcd) {
-    printk(KERN_ERR "rscfl: cannot initialize rscfl drivers\n");
-    return rcd;
-  }
-  if (rcp) {
-    printk(KERN_ERR "rscfl: cannot initialise perf\n");
-    return rcp;
-  }
-  if (rckp) {
-    // do not fail just because we couldn't set a couple of probes
-    // instead, print a warning
-    printk(KERN_WARNING "rscfl: failed to insert %d probes\n", rckp);
-  }
-  // Need to make kprobes work properly, and then return rckp.
-  return 0;
+  local_irq_restore(flags);
+  return failures;
 }
 
 int probes_cleanup(void)
 {
-  int rcd = 0, rcc = 0;
-
-  // see comment in probes_init for why we need to explicitly enable
-  // preemption here
-  preempt_enable();
-  rcd = _rscfl_dev_cleanup();
-  rscfl_unregister_probes();
-  rscfl_counters_stop();
-  preempt_disable();
-  rcc = _rscfl_cpus_cleanup();
-
-  if (rcd) {
-    printk(KERN_ERR "rscfl: cannot cleanup rscfl drivers\n");
-  }
-  if (rcc) {
-    printk(KERN_ERR "rscfl: cannot cleanup per-cpu hash tables\n");
-  }
-  return (rcd | rcc);
+  kamprobes_unregister_all();
+  return 0;
 }
 
 /*

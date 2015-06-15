@@ -71,6 +71,7 @@ static int __init rscfl_init(void)
     printk(KERN_WARNING "rscfl: failed to insert %d probes\n", rc);
   }
 
+  // Initialise scheduler interposition.
   for_each_kernel_tracepoint(get_tracepoints, NULL);
   if (rscfl_tracepoint_status != HAS_TRACEPOINT_ALL) {
     printk(KERN_ERR "rscfl: unable to find required kernel tracepoints\n");

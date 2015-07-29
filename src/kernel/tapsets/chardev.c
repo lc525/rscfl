@@ -8,6 +8,7 @@
 #include "rscfl/res_common.h"
 #include "rscfl/kernel/acct.h"
 #include "rscfl/kernel/cpu.h"
+#include "rscfl/kernel/rscfl.h"
 #include "rscfl/kernel/shdw.h"
 
 static struct cdev rscfl_data_cdev;
@@ -289,6 +290,10 @@ static long rscfl_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
       }
       rscfl_arg.new_shdw_id = shdw;
       copy_to_user((rscfl_ioctl_t *)arg, &rscfl_arg, sizeof(rscfl_ioctl_t));
+      return 0;
+      break;
+    case RSCFL_SHUTDOWN_CMD:
+      do_module_shutdown();
       return 0;
       break;
   }

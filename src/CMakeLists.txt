@@ -77,6 +77,10 @@ include(InternalMacros)
 # OPTIONS
 #
 ###
+
+# enable this if running on top of an rscfl-enabled XEN hypervisor
+set(XEN_ENABLED 0)
+
 set(CMAKE_C_FLAGS "-Werror")
 if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Debug)
@@ -249,6 +253,7 @@ set (rscfl_KDEPS # if any of those files change, the stap ko is rebuilt
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/perf.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/priv_kallsyms.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/probes.h
+  ${PROJECT_INCLUDE_DIR}/rscfl/kernel/rscfl.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/sched.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/subsys.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/shdw.h
@@ -266,6 +271,9 @@ rscfl_kbuild(${rscfl_MOD_NAME}
 
 # build user-facing library
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/lib)
+
+# build utility scripts
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/scripts)
 
 # add tests
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/tests)

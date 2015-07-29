@@ -20,5 +20,15 @@ int _rscfl_cpus_init(void)
 
 int _rscfl_cpus_cleanup(void)
 {
+  int cpu_id;
+  int bkt;
+  pid_acct *it;
+
+  CPU_VAR(current_acct) = NULL;
+  for_each_present_cpu(cpu_id) {
+    hash_for_each(per_cpu(pid_acct_tbl, cpu_id), bkt, it, link) {
+      hash_del(&it->link);
+    }
+  }
   return 0;
 }

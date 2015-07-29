@@ -104,7 +104,7 @@ int should_acct(void)
     current_pid_acct->ctrl->new_tokens[i] = token->id;
   }
   current_pid_acct->ctrl->num_new_tokens = 0;
-  
+
   preempt_enable();
   return 1;
 }

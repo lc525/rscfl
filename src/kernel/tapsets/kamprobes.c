@@ -17,8 +17,8 @@
 
 struct orig_insn
 {
-  char *loc;
-  char vals[CALL_WIDTH];
+  u8 *loc;
+  unsigned char vals[CALL_WIDTH];
 };
 
 static struct orig_insn *probe_list;
@@ -27,7 +27,7 @@ static unsigned int no_probes = 0;
 static char *wrapper_start = NULL;
 static char *wrapper_end;
 
-static void add_to_probe_list(char *loc)
+static void add_to_probe_list(u8 *loc)
 {
   int i;
   probe_list[no_probes].loc = loc;
@@ -44,8 +44,10 @@ void kamprobes_unregister_all(void)
   get_online_cpus();
   mutex_lock(KPRIV(text_mutex));
   for (i = 0; i < no_probes; i++) {
-    KPRIV(text_poke)(probe_list[i].loc, probe_list[i].vals, CALL_WIDTH);
+    KPRIV(text_poke)(probe_list[i].loc, &probe_list[i].vals, CALL_WIDTH);
   }
+  debugk(KERN_NOTICE "Unregistered %d probes\n", no_probes);
+  no_probes = 0;
   mutex_unlock(KPRIV(text_mutex));
   put_online_cpus();
 }
@@ -225,6 +227,11 @@ int kamprobes_init(int max_probes)
   return 0;
 }
 
+void kamprobes_free() {
+  kfree(probe_list);
+  vfree(wrapper_start);
+}
+
 int kamprobes_register(u8 **orig_addr, char sys_type, void (*pre_handler)(void),
                        void (*post_handler)(void))
 {
@@ -240,7 +247,9 @@ int kamprobes_register(u8 **orig_addr, char sys_type, void (*pre_handler)(void),
   const char jmpq_opcode = 0xe9;
 
   // Refuse to register probes on any addr which is not a callq or a noop
-  if(!is_call_ins(orig_addr) && !is_noop(orig_addr)) return -EINVAL;
+   if(!is_call_ins(orig_addr) && !is_noop(orig_addr)) return -EINVAL;
+  // TODO(lc525) return to the code above [--- TESTING ---]
+  // if(!is_call_ins(orig_addr) || sys_type == ADDR_KERNEL_SYSCALL) return -EINVAL;
 
   // If *orig_addr is not a call instruction then we assume it is the start
   // of a sys_ function, so is called through magic pointers. We don't want to

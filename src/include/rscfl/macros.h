@@ -16,4 +16,6 @@
   #define UNUSED(x) x
 #endif
 
+#define NOT(x) 1-x
+
 #endif

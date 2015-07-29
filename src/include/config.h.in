@@ -46,5 +46,11 @@ static const char RSCFL_VERSION_STR[] = "@VERSION@";
 #define RSCFL_CTRL_MAJOR 92
 #define RSCFL_CTRL_MINOR 0
 
+// Control whether we should disable all XEN-related code (getting shared
+// pages from the hypervisor and reading rscfl-related data from them).
+//
+// Enabling this requires you have a rscfl-enabled XEN hypervisor!
+#define XEN_ENABLED @XEN_ENABLED@
+
 #endif
 

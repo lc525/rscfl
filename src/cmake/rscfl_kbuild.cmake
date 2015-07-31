@@ -86,5 +86,7 @@ function(RSCFL_KBUILD MOD_NAME INCLUDES OUT_DIR SRC DEPS)
 
   add_custom_target ( ${MODULE_TARGET_NAME} ALL
                       DEPENDS ${MODULE_BIN_FILE})
+  add_custom_command( TARGET ${MODULE_TARGET_NAME} POST_BUILD
+                      COMMAND ln -sf ${MOD_NAME}.ko rscfl.ko)
 
 endfunction()

@@ -40,7 +40,6 @@ int shdw_create(shdw_hdl *shdw_no)
 {
   char *shdw_mem;
   struct page *page;
-  pte_t pte;
 
   if (!is_vm()) {
     printk(KERN_ERR "Cannot create a shadow kernel without a hypervisor\n");
@@ -89,9 +88,8 @@ int shdw_create(shdw_hdl *shdw_no)
 static int update_xen_pt(unsigned long phys_shdw_mem, unsigned int no_pages)
 {
   unsigned long *mfn = kmalloc(sizeof(unsigned long) * no_pages, GFP_ATOMIC);
-  unsigned long pfn;
+  unsigned long pfn = 0;
   int i;
-  char *c = text_start;
   struct mmu_update *mmu_updates = kmalloc(sizeof(struct mmu_update) *
                                             no_pages, GFP_ATOMIC);
   struct mmu_update *virt_updates = kmalloc(sizeof(struct mmu_update) *
@@ -121,7 +119,7 @@ static int update_xen_pt(unsigned long phys_shdw_mem, unsigned int no_pages)
 
     // Update p2m
     if (!KPRIV(__set_phys_to_machine)(pfn, mfn[i])) {
-      WARN(1, "Failed to set p2m mapping for pfn=%ld mfn=%ld\n", pfn, mfn);
+      WARN(1, "Failed to set p2m mapping for pfn=%ld mfn=%ld\n", pfn, mfn[i]);
       goto err;
     }
   }

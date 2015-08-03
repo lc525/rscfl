@@ -1,4 +1,4 @@
-#include "rscfl/kernel/stap_shim.h"
+#include "rscfl/kernel/acct.h"
 
 #include <linux/hashtable.h>
 
@@ -14,12 +14,35 @@ static _Bool init;
 
 static int num_tokens;
 
+static struct accounting *alloc_acct(pid_acct *current_pid_acct)
+{
+  rscfl_acct_layout_t *rscfl_shared_mem = current_pid_acct->shared_buf;
+  struct accounting *acct_buf = rscfl_shared_mem->acct;
+
+  BUG_ON(!acct_buf);
+  while (acct_buf->in_use) {
+    acct_buf++;
+    if ((void *)acct_buf + sizeof(struct accounting) >
+        (void *)current_pid_acct->shared_buf->subsyses) {
+      acct_buf = current_pid_acct->shared_buf->acct;
+      printk(KERN_WARNING "_should_acct: wraparound!<<<<<<<\n");
+      break;
+    }
+  }
+  acct_buf->in_use = 1;
+  acct_buf->nr_subsystems = 0;
+  acct_buf->syscall_id.id = current_pid_acct->ctrl->interest.syscall_id;
+  // Initialise the subsys_accounting indices to -1, as they are used
+  // to index an array, so 0 is valid.
+  memset(acct_buf->acct_subsys, -1, sizeof(short) * NUM_SUBSYSTEMS);
+
+  return acct_buf;
+}
+
 int should_acct(void)
 {
   syscall_interest_t *interest;
-  struct accounting *acct_buf;
   pid_acct *current_pid_acct;
-  rscfl_acct_layout_t *rscfl_shared_mem;
   int i;
   struct rscfl_kernel_token *tbl_token;
 
@@ -61,28 +84,7 @@ int should_acct(void)
     }
   }
 
-  // Find a free struct accounting in the shared memory that we can
-  // use.
-  rscfl_shared_mem = current_pid_acct->shared_buf;
-  acct_buf = rscfl_shared_mem->acct;
-  BUG_ON(!acct_buf);
-  while (acct_buf->in_use) {
-    acct_buf++;
-    if ((void *)acct_buf + sizeof(struct accounting) >
-        (void *)current_pid_acct->shared_buf->subsyses) {
-      acct_buf = current_pid_acct->shared_buf->acct;
-      printk(KERN_WARNING "_should_acct: wraparound!<<<<<<<\n");
-      break;
-    }
-  }
-  // We have a free struct accounting now, so use it.
-  current_pid_acct->probe_data->syscall_acct = acct_buf;
-  acct_buf->in_use = 1;
-  acct_buf->nr_subsystems = 0;
-  acct_buf->syscall_id.id = interest->syscall_id;
-  // Initialise the subsys_accounting indices to -1, as they are used
-  // to index an array, so 0 is valid.
-  memset(acct_buf->acct_subsys, -1, sizeof(short) * NUM_SUBSYSTEMS);
+  current_pid_acct->probe_data->syscall_acct = alloc_acct(current_pid_acct);
 
   if (!init) {
     hash_init(tokens);

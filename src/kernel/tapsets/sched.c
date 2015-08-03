@@ -8,6 +8,7 @@
 #include "rscfl/kernel/probes.h"
 #include "rscfl/kernel/shdw.h"
 #include "rscfl/res_common.h"
+#include "rscfl/kernel/subsys.h"
 
 static void record_ctx_switch(pid_acct *p_acct,
                               int values_add)

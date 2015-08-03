@@ -77,6 +77,10 @@ include(InternalMacros)
 # OPTIONS
 #
 ###
+
+# enable this if running on top of an rscfl-enabled XEN hypervisor
+set(XEN_ENABLED 0)
+
 set(CMAKE_C_FLAGS "-Werror")
 if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Debug)
@@ -223,17 +227,18 @@ set (rscfl_KINCLUDES
 
 set (rscfl_KSOURCES
   ${PROJECT_COMMON_DIR}/res_common.c
+  ${PROJECT_SOURCE_DIR}/acct.c
   ${PROJECT_SOURCE_DIR}/counters/measurement.c
   ${PROJECT_SOURCE_DIR}/counters/perf.c
   ${PROJECT_SOURCE_DIR}/priv_kallsyms.c
   ${PROJECT_SOURCE_DIR}/rscfl.c
   ${PROJECT_SOURCE_DIR}/shdw.c
+  ${PROJECT_SOURCE_DIR}/subsys.c
   ${PROJECT_SOURCE_DIR}/tapsets/chardev.c
   ${PROJECT_SOURCE_DIR}/tapsets/cpu.c
   ${PROJECT_SOURCE_DIR}/tapsets/kamprobes.c
   ${PROJECT_SOURCE_DIR}/tapsets/probes.c
   ${PROJECT_SOURCE_DIR}/tapsets/sched.c
-  ${PROJECT_SOURCE_DIR}/tapsets/stap_shim.c
 )
 
 set (rscfl_KDEPS # if any of those files change, the stap ko is rebuilt
@@ -241,6 +246,7 @@ set (rscfl_KDEPS # if any of those files change, the stap ko is rebuilt
   ${PROJECT_BINARY_DIR}/rscfl/config.h
   ${PROJECT_INCLUDE_DIR}/rscfl/costs.h
   ${PROJECT_INCLUDE_DIR}/rscfl/res_common.h
+  ${PROJECT_INCLUDE_DIR}/rscfl/kernel/acct.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/chardev.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/kamprobes.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/measurement.h
@@ -248,8 +254,8 @@ set (rscfl_KDEPS # if any of those files change, the stap ko is rebuilt
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/priv_kallsyms.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/probes.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/sched.h
+  ${PROJECT_INCLUDE_DIR}/rscfl/kernel/subsys.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/shdw.h
-  ${PROJECT_INCLUDE_DIR}/rscfl/kernel/stap_shim.h
 )
 
 file(MAKE_DIRECTORY ${rscfl_OUT_DIR})

@@ -19,17 +19,22 @@ while getopts ":h" opt; do
   esac
 done
 
-sudo dmesg --clear
-
 if [ ! -z "$MODNAME" ]
 then
+  scripts/rscfl_stop
+  if [ $? -eq 0 ]
+  then
+    echo "Stop rscfl OK, cool off period...(30s)"
+  fi
+  sleep 30
   #existing processes using rscfl*.ko
   echo "Removing modules with name rscfl*.ko..."
-  lsmod | grep rscfl | sed 's/ .*$//' | xargs modprobe -r
+  lsmod | grep rscfl | sed 's/ .*$//' | xargs sudo rmmod
 fi
 
 if [ $# -eq 1 ]
 then
+  sudo dmesg --clear
   #insert new module
   echo "running new module ($1)..."
   sudo insmod $1 &

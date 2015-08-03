@@ -54,7 +54,8 @@
                            - STRUCT_ACCT_NUM * sizeof(struct accounting)       \
                           ) / sizeof(struct subsys_accounting) )
 
-#define RSCFL_SHDW_CMD _IOR('R', 35, struct rscfl_ioctl)
+#define RSCFL_SHDW_CMD _IOR('R', 0x2F, struct rscfl_ioctl)
+#define RSCFL_SHUTDOWN_CMD _IO('R', 0x30)
 
 /*
  * Shadow kernels.

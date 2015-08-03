@@ -1,0 +1,5 @@
+update_modules.cmake is authored by
+  - Eugene A. Shatokhin
+  - Andrey V.Tsyvarev
+ taken from their kedr project (https://github.com/euspectre/kedr.git)
+ Licensed under GPLv2.

@@ -3,8 +3,8 @@
 ### 1. Building from source
 
 The build process for Resourceful involves generating a list of kernel probe
-points. The automated as long as you have access to a linux kernel source tree
-and a vmlinux image with debug symbols (the default on Ubuntu systems).
+points. This is automated as long as you have access to a linux kernel source
+tree and a vmlinux image with debug symbols (the default on Ubuntu systems).
 
 Resourceful doesn't require you to _run_ a customized kernel, but the static
 analysis step performed at build time for determining the probe points locations
@@ -18,8 +18,8 @@ variables:
 * `RSCFL_LINUX_VMLINUX` - The path towards a vmlinux that was built with `CONFIG_DEBUG_INFO=y`
 * `RSCFL_LINUX_BUILD` - The linux directory in which vmlinux was originally built
 
-The trickiest bit is setting the RSCFL_LINUX_BUILD variable. This is the path
-which was used to build the vmlinux pointed to by RSCFL_LINUX_VMLINUX. If you're
+The trickiest bit is setting the `RSCFL_LINUX_BUILD` variable. This is the path
+which was used to build the vmlinux pointed to by `RSCFL_LINUX_VMLINUX`. If you're
 working with a distribution's vmlinux, this can be difficult to find.
 
 We'll automate the process, but until then you'll have to:
@@ -54,7 +54,7 @@ Stopping Resourceful is a two-step process:
   $ rscfl_stop
   $ modprobe -r rscfl_sys.ko
 ```
-Some kernel BUG_ON messages might appear in dmesg, but they should be benign.
+Some kernel `BUG_ON` messages might appear in dmesg, but they should be benign.
 
 If needed you can also remove Resourceful from your system by running the
 following command in the build directory. Please make sure you have stopped

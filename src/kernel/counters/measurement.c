@@ -30,6 +30,7 @@
 #define CURRENT_XEN_NUM_EVENTS 256
 
 ru64 no_evtchn_events = 0;
+short disable_xen = NOT(XEN_ENABLED);
 
 struct sched_event
 {
@@ -101,7 +102,7 @@ static int xen_scheduler_init(void)
 
   struct page *pg;
 
-  if (*KPRIV(HYPERVISOR_shared_info) == KPRIV(xen_dummy_shared_info)) {
+  if (*KPRIV(HYPERVISOR_shared_info) == KPRIV(xen_dummy_shared_info) || disable_xen) {
     // Not running on Xen.
     return 0;
   }
@@ -189,7 +190,7 @@ int xen_buffer_hd(void)
       // by this amount.
       0x18);
 
-  if (*KPRIV(HYPERVISOR_shared_info) != KPRIV(xen_dummy_shared_info)) {
+  if (*KPRIV(HYPERVISOR_shared_info) != KPRIV(xen_dummy_shared_info) && !disable_xen) {
     // We are running in a Xen VM.
     return sched_info->sched_hd;
   } else {
@@ -241,7 +242,7 @@ int rscfl_counters_update_subsys_vals(struct subsys_accounting *add_subsys,
   }
 
   // HYPERVISOR
-  if (*KPRIV(HYPERVISOR_shared_info) != KPRIV(xen_dummy_shared_info)) {
+  if (*KPRIV(HYPERVISOR_shared_info) != KPRIV(xen_dummy_shared_info) && !disable_xen) {
     // We are running in a Xen VM.
 
     int hd = sched_info->sched_hd;

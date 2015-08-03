@@ -77,6 +77,10 @@ include(InternalMacros)
 # OPTIONS
 #
 ###
+
+# enable this if running on top of an rscfl-enabled XEN hypervisor
+set(XEN_ENABLED 0)
+
 set(CMAKE_C_FLAGS "-Werror")
 if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Debug)

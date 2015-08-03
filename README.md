@@ -1,6 +1,6 @@
-#rscfl
+# **rscfl**
 
-## Building Resourceful from source
+### 1. Building from source
 
 The build process for Resourceful involves generating a list of kernel probe
 points. The automated as long as you have access to a linux kernel source tree
@@ -14,9 +14,9 @@ the equivalent version of the vanilla kernel sources is highly recommended).
 Before starting the build process, please set the following environment
 variables:
 
-`RSCFL_LINUX_ROOT` - A linux source directory for subsystem identification
-`RSCFL_LINUX_VMLINUX` - The path towards a vmlinux that was built with `CONFIG_DEBUG_INFO=y`
-`RSCFL_LINUX_BUILD` - The linux directory in which vmlinux was originally built
+* `RSCFL_LINUX_ROOT` - A linux source directory for subsystem identification
+* `RSCFL_LINUX_VMLINUX` - The path towards a vmlinux that was built with `CONFIG_DEBUG_INFO=y`
+* `RSCFL_LINUX_BUILD` - The linux directory in which vmlinux was originally built
 
 The trickiest bit is setting the RSCFL_LINUX_BUILD variable. This is the path
 which was used to build the vmlinux pointed to by RSCFL_LINUX_VMLINUX. If you're

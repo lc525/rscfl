@@ -228,17 +228,18 @@ set (rscfl_KINCLUDES
 set (rscfl_KSOURCES
   ${PROJECT_COMMON_DIR}/res_common.c
   ${PROJECT_SOURCE_DIR}/acct.c
-  ${PROJECT_SOURCE_DIR}/counters/measurement.c
-  ${PROJECT_SOURCE_DIR}/counters/perf.c
+  ${PROJECT_SOURCE_DIR}/measurement/measurement.c
+  ${PROJECT_SOURCE_DIR}/measurement/perf.c
   ${PROJECT_SOURCE_DIR}/priv_kallsyms.c
   ${PROJECT_SOURCE_DIR}/rscfl.c
   ${PROJECT_SOURCE_DIR}/shdw.c
   ${PROJECT_SOURCE_DIR}/subsys.c
-  ${PROJECT_SOURCE_DIR}/tapsets/chardev.c
-  ${PROJECT_SOURCE_DIR}/tapsets/cpu.c
-  ${PROJECT_SOURCE_DIR}/tapsets/kamprobes.c
-  ${PROJECT_SOURCE_DIR}/tapsets/probes.c
-  ${PROJECT_SOURCE_DIR}/tapsets/sched.c
+  ${PROJECT_SOURCE_DIR}/chardev.c
+  ${PROJECT_SOURCE_DIR}/cpu.c
+  ${PROJECT_SOURCE_DIR}/kamprobes.c
+  ${PROJECT_SOURCE_DIR}/probes.c
+  ${PROJECT_SOURCE_DIR}/sched.c
+  ${PROJECT_SOURCE_DIR}/xen.c
 )
 
 set (rscfl_KDEPS # if any of those files change, the stap ko is rebuilt
@@ -257,6 +258,7 @@ set (rscfl_KDEPS # if any of those files change, the stap ko is rebuilt
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/sched.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/subsys.h
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/shdw.h
+  ${PROJECT_INCLUDE_DIR}/rscfl/kernel/xen.h
 )
 
 file(MAKE_DIRECTORY ${rscfl_OUT_DIR})

@@ -51,6 +51,9 @@ _once void* (*KPRIV(text_poke))(void *addr, const void *opcode, size_t len);
 _once struct shared_info *KPRIV(xen_dummy_shared_info);
 _once void (*KPRIV(xen_evtchn_do_upcall))(struct pt_regs *regs);
 
+#undef _once
+
 int init_priv_kallsyms(void);
+
 
 #endif /* _RSCFL_PRIV_KALLSYMS_H_ */

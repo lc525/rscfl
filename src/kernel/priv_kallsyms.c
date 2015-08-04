@@ -8,16 +8,21 @@
 #define XSTR(s) STR(s)
 #define STR(s) #s
 
+static int symbols_not_found = 0;
+
 #define KSYM_INIT(ksym_name)                                        \
 {                                                                   \
   KPRIV(ksym_name) = (void *)kallsyms_lookup_name(XSTR(ksym_name)); \
-  if(KPRIV(ksym_name) == NULL)                                      \
-    return 1;                                                       \
-  debugk(KERN_NOTICE XSTR(ksym_name) ": %p\n", KPRIV(ksym_name));               \
+  if(KPRIV(ksym_name) == NULL){                                     \
+    printk(KERN_ERR XSTR(ksym_name) ": not found\n");               \
+    symbols_not_found++;                                            \
+  } else {                                                          \
+    debugk(KERN_NOTICE XSTR(ksym_name) ": %p\n", KPRIV(ksym_name)); \
+  }                                                                 \
 }                                                                   \
 
 int init_priv_kallsyms(void)
 {
   PRIV_KSYM_TABLE(KSYM_INIT);
-  return 0;
+  return -symbols_not_found;
 }

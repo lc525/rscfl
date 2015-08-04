@@ -1,5 +1,6 @@
 #!/bin/bash
 echo "Cleaning build dirs ..."
 ls -1A | grep -v '.*.json\|^\.' | xargs -I files rm -rf "files"
-rm -rf ./.*.cmd
+find .. -name "*.o" -exec rm '{}' \;
+find .. -name "*.cmd" -exec rm '{}' \;
 # rm -rf ../common/external/gtest/build/*

@@ -80,6 +80,15 @@ include(InternalMacros)
 
 # enable this if running on top of an rscfl-enabled XEN hypervisor
 set(XEN_ENABLED 0)
+# enable this if you want shadow kernels [experimental feature]
+set(SHDW_ENABLED 0)
+
+if(XEN_ENABLED EQUAL 0)
+  message("-- [OPTION] Building without XEN support")
+endif()
+if(SHDW_ENABLED EQUAL 0)
+  message("-- [OPTION] Building without shadow kernel support")
+endif()
 
 set(CMAKE_C_FLAGS "-Werror")
 if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)

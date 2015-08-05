@@ -19,5 +19,8 @@
 int init_priv_kallsyms(void)
 {
   PRIV_KSYM_TABLE(KSYM_INIT);
+#if SHDW_ENABLED != 0
+  PRIV_KSYM_SHDW_TABLE(KSYM_INIT);
+#endif
   return 0;
 }

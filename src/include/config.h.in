@@ -52,5 +52,13 @@ static const char RSCFL_VERSION_STR[] = "@VERSION@";
 // Enabling this requires you have a rscfl-enabled XEN hypervisor!
 #define XEN_ENABLED @XEN_ENABLED@
 
+// Control whether you want rscfl-based shadow kernels support.
+// Please see https://www.repository.cam.ac.uk/handle/1810/248815 for more
+// details
+//
+// Enabling this requires a kernel with CMA (Contiguous Memory Allocation)
+// support
+#define SHDW_ENABLED @SHDW_ENABLED@
+
 #endif
 

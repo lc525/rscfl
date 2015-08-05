@@ -1,5 +1,7 @@
 #include "rscfl/kernel/shdw.h"
 
+#if SHDW_ENABLED != 0
+
 #include <asm/page.h>
 #include <asm/pgtable_types.h>
 #include <asm/xen/hypercall.h>
@@ -225,3 +227,5 @@ int do_shdw_op(shdw_op op, shdw_hdl *shdw, int num_pages)
   }
   return -EINVAL;
 }
+
+#endif /* SHDW_ENABLED */

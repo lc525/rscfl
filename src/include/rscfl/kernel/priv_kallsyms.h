@@ -5,6 +5,8 @@
 #include <linux/tracepoint.h>
 #include <linux/types.h>
 
+#include "rscfl/config.h"
+
 #define KPRIV(name) name##_ptr
 
 #ifdef _PRIV_KALLSYMS_IMPL_
@@ -19,8 +21,6 @@ _(__set_phys_to_machine)   \
 _(__vmalloc_node_range)    \
 _(_etext)                  \
 _(_text)                   \
-_(dma_alloc_from_contiguous)\
-_(dma_contiguous_default_area)                  \
 _(flush_tlb_all)           \
 _(get_balloon_scratch_page)\
 _(put_balloon_scratch_page)\
@@ -30,6 +30,15 @@ _(text_poke)               \
 _(xen_dummy_shared_info)   \
 _(xen_evtchn_do_upcall)    \
 
+
+#if SHDW_ENABLED != 0
+
+#define PRIV_KSYM_SHDW_TABLE(_) \
+_(dma_alloc_from_contiguous)    \
+_(dma_contiguous_default_area)  \
+
+#endif
+
 _once struct shared_info **KPRIV(HYPERVISOR_shared_info);
 _once bool (*KPRIV(__set_phys_to_machine))(unsigned long pfn, unsigned long mfn);
 _once void* (*KPRIV(__vmalloc_node_range))(
@@ -38,10 +47,6 @@ _once void* (*KPRIV(__vmalloc_node_range))(
     const void *caller);
 _once char **KPRIV(_etext);
 _once char **KPRIV(_text);
-_once struct cma *KPRIV(dma_contiguous_default_area);
-_once struct page *(*KPRIV(dma_alloc_from_contiguous))(struct device *dev,
-                                                       int count,
-                                                       unsigned int align);
 _once void (*KPRIV(flush_tlb_all))(void);
 _once struct page* (*KPRIV(get_balloon_scratch_page))(void);
 _once void (*KPRIV(put_balloon_scratch_page))(void);
@@ -50,6 +55,13 @@ _once struct mutex *KPRIV(text_mutex);
 _once void* (*KPRIV(text_poke))(void *addr, const void *opcode, size_t len);
 _once struct shared_info *KPRIV(xen_dummy_shared_info);
 _once void (*KPRIV(xen_evtchn_do_upcall))(struct pt_regs *regs);
+
+#if SHDW_ENABLED != 0
+_once struct cma *KPRIV(dma_contiguous_default_area);
+_once struct page *(*KPRIV(dma_alloc_from_contiguous))(struct device *dev,
+    int count,
+    unsigned int align);
+#endif
 
 int init_priv_kallsyms(void);
 

@@ -7,6 +7,7 @@
 #include "rscfl/res_common.h"
 #include "rscfl/kernel/cpu.h"
 #include "rscfl/kernel/measurement.h"
+#include "rscfl/kernel/xen.h"
 
 //TODO(oc243): make thread safe.
 static int num_tokens = 1;

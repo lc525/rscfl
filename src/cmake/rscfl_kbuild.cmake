@@ -89,4 +89,17 @@ function(RSCFL_KBUILD MOD_NAME INCLUDES OUT_DIR SRC DEPS)
   add_custom_command( TARGET ${MODULE_TARGET_NAME} POST_BUILD
                       COMMAND ln -sf ${MOD_NAME}.ko rscfl.ko)
 
+  # Install .ko
+  install(FILES ${PROJECT_BINARY_DIR}/${MOD_NAME}.ko
+          DESTINATION /lib/modules/${CMAKE_SYSTEM_VERSION})
+
+  install(CODE "
+  execute_process(COMMAND ln -sf /lib/modules/${CMAKE_SYSTEM_VERSION}/${MOD_NAME}.ko
+                  rscfl_sys.ko
+                  WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
+  ")
+
+  install(FILES ${PROJECT_BINARY_DIR}/rscfl_sys.ko
+          DESTINATION /lib/modules/${CMAKE_SYSTEM_VERSION})
+
 endfunction()

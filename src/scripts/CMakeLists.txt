@@ -20,3 +20,6 @@ add_executable(rscfl_stop ${RSCFL_STOP_SOURCES})
 add_dependencies(rscfl_stop subsys_gen)
 target_link_libraries(rscfl_stop res_api)
 
+install(TARGETS rscfl_stop
+  RUNTIME DESTINATION bin
+)

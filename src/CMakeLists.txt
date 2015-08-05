@@ -173,6 +173,16 @@ endif(WITH_TESTS)
 # BUILD
 #
 ###
+
+# Uninstall target, place it here because others might want to set
+# dependencies on it
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/cmake/uninstall.cmake.in"
+               "${CMAKE_CURRENT_BINARY_DIR}/uninstall.cmake"
+               IMMEDIATE @ONLY)
+add_custom_target(uninstall_files
+  COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/uninstall.cmake)
+add_custom_target(uninstall)
+
 ensure_out_of_source_build("${PNAME} requires an out of source build. ")
 
 configure_project(
@@ -216,6 +226,8 @@ subsys_header_gen(${LINUX_ROOT}
 
 # build systemtap modules
 include(rscfl_kbuild)
+set(UPDATE_MODULES_UNINSTALL_AFTER uninstall_files)
+include(update_modules)
 
 set (rscfl_OUT_DIR ${PROJECT_BINARY_DIR}/Kbuild)
 set (rscfl_MOD_NAME rscfl_${PVER})
@@ -259,6 +271,9 @@ set (rscfl_KDEPS # if any of those files change, the stap ko is rebuilt
   ${PROJECT_INCLUDE_DIR}/rscfl/kernel/shdw.h
 )
 
+install(DIRECTORY include/rscfl/ DESTINATION include/rscfl)
+install(FILES ${PROJECT_BINARY_DIR}/rscfl/config.h DESTINATION include/rscfl)
+
 file(MAKE_DIRECTORY ${rscfl_OUT_DIR})
 
 # remember to pass variables that contain lists of files/directories with ""
@@ -277,3 +292,4 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/scripts)
 
 # add tests
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/tests)
+

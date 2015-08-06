@@ -200,7 +200,7 @@ static inline int is_call_ins(u8 **addr)
 
 static inline int is_noop(u8 **addr)
 {
-  return (**addr == 0x90 || **addr == 0x0f || **addr == 0x1f);
+  return (**addr == 0x90 || **addr == 0x0f || **addr == 0x1f || **addr == 0x66);
 }
 
 int kamprobes_init(int max_probes)
@@ -247,7 +247,10 @@ int kamprobes_register(u8 **orig_addr, char sys_type, void (*pre_handler)(void),
   const char jmpq_opcode = 0xe9;
 
   // Refuse to register probes on any addr which is not a callq or a noop
-   if(!is_call_ins(orig_addr) && !is_noop(orig_addr)) return -EINVAL;
+  if(!is_call_ins(orig_addr) && !is_noop(orig_addr)) {
+    printk(KERN_ERR "Failed to set probe at %p", (void *)*orig_addr);
+    return -EINVAL;
+  }
   // TODO(lc525) return to the code above [--- TESTING ---]
   // if(!is_call_ins(orig_addr) || sys_type == ADDR_KERNEL_SYSCALL) return -EINVAL;
 

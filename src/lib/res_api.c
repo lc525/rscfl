@@ -64,10 +64,12 @@ rscfl_handle rscfl_init_api(rscfl_version_t rscfl_ver)
   fd_ctrl = open("/dev/" RSCFL_CTRL_DRIVER, O_RDWR);
   rscfl_handle rhdl = (rscfl_handle)calloc(1, sizeof(*rhdl));
   if (!rhdl) {
+    fprintf(stderr, "Unable to allocate memory for rscfl handle\n");
     return NULL;
   }
 
   if ((fd_data == -1) || (fd_ctrl == -1)) {
+    fprintf(stderr, "rscfl:Unable to access data or ctrl devices\n");
     goto error;
   }
   rhdl->fd_ctrl = fd_ctrl;
@@ -80,6 +82,8 @@ rscfl_handle rscfl_init_api(rscfl_version_t rscfl_ver)
   buf = mmap(NULL, MMAP_BUF_SIZE, PROT_READ | PROT_WRITE,
              MAP_PRIVATE | MAP_POPULATE, fd_data, 0);
   if (buf == MAP_FAILED) {
+    fprintf(stderr,
+	    "rscfl: Unable to mmap shared memory with kernel module for data.\n");
     goto error;
   }
   rhdl->buf = buf;
@@ -88,6 +92,8 @@ rscfl_handle rscfl_init_api(rscfl_version_t rscfl_ver)
   ctrl = mmap(NULL, MMAP_CTL_SIZE, PROT_READ | PROT_WRITE,
               MAP_PRIVATE | MAP_POPULATE, fd_ctrl, 0);
   if (ctrl == MAP_FAILED) {
+    fprintf(stderr,
+	    "rscfl: Unable to mmap shared memory for storing interests\n");
     goto error;
   }
 

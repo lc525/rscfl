@@ -8,7 +8,6 @@
 #define XSTR(s) STR(s)
 #define STR(s) #s
 
-static int symbols_not_found = 0;
 
 #define KSYM_INIT(ksym_name)                                        \
 {                                                                   \
@@ -23,6 +22,7 @@ static int symbols_not_found = 0;
 
 int init_priv_kallsyms(void)
 {
+  int symbols_not_found = 0;
   PRIV_KSYM_TABLE(KSYM_INIT);
-  return -symbols_not_found;
+  return -1;
 }

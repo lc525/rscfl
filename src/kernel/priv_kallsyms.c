@@ -24,5 +24,8 @@ int init_priv_kallsyms(void)
 {
   int symbols_not_found = 0;
   PRIV_KSYM_TABLE(KSYM_INIT);
-  return -1;
+  if(symbols_not_found)
+    return -ENOSYS;
+  else
+    return 0;
 }

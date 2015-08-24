@@ -190,13 +190,9 @@ int shdw_reset(void)
 int do_shdw_op(shdw_op op, shdw_hdl *shdw, int num_pages)
 {
   pid_acct *current_pid_acct = CPU_VAR(current_acct);
-  syscall_interest_t *interest;
   int rc;
 
   if (is_vm()) {
-    if ((current_pid_acct != NULL) && (current_pid_acct->ctrl != NULL)) {
-      interest = &current_pid_acct->ctrl->interest;
-    }
     switch(op) {
       case NOP:
         break;

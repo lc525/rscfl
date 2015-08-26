@@ -58,6 +58,7 @@ void on_ctx_switch(void *ignore,
     if(curr_acct->pid == next_tid){
       CPU_VAR(current_acct) = curr_acct;
       record_ctx_switch(curr_acct, 1);
+#if SHDW_ENABLED != 0
       // Switch shadow kernel if this process has a shadow kernel associated
       // with it.
       if (curr_acct->shdw_kernel) {
@@ -67,6 +68,7 @@ void on_ctx_switch(void *ignore,
       } else {
         shdw_reset();
       }
+#endif
       return;
     }
   }

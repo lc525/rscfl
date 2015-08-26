@@ -8,11 +8,10 @@
 #define XSTR(s) STR(s)
 #define STR(s) #s
 
-
 #define KSYM_INIT(ksym_name)                                        \
 {                                                                   \
   KPRIV(ksym_name) = (void *)kallsyms_lookup_name(XSTR(ksym_name)); \
-  if(KPRIV(ksym_name) == NULL){                                     \
+  if(KPRIV(ksym_name) == NULL) {                                    \
     printk(KERN_ERR XSTR(ksym_name) ": not found\n");               \
     symbols_not_found++;                                            \
   } else {                                                          \
@@ -24,6 +23,10 @@ int init_priv_kallsyms(void)
 {
   int symbols_not_found = 0;
   PRIV_KSYM_TABLE(KSYM_INIT);
+#if SHDW_ENABLED != 0
+  PRIV_KSYM_SHDW_TABLE(KSYM_INIT);
+#endif
+
   if(symbols_not_found)
     return -ENOSYS;
   else

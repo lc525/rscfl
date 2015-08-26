@@ -3,6 +3,8 @@
 
 #include "rscfl/res_common.h"
 
+#if SHDW_ENABLED != 0
+
 int shdw_create(shdw_hdl *);
 
 /*
@@ -22,5 +24,7 @@ int shdw_switch_pages(shdw_hdl, int n);
 int shdw_reset(void);
 
 int do_shdw_op(shdw_op, shdw_hdl *, int num_pages);
+
+#endif /* SHDW_ENABLED */
 
 #endif

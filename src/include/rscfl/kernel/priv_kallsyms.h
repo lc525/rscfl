@@ -21,6 +21,7 @@ _(__set_phys_to_machine)   \
 _(__vmalloc_node_range)    \
 _(_etext)                  \
 _(_text)                   \
+_(can_probe)               \
 _(flush_tlb_all)           \
 _(get_balloon_scratch_page)\
 _(put_balloon_scratch_page)\
@@ -47,6 +48,7 @@ _once void* (*KPRIV(__vmalloc_node_range))(
     const void *caller);
 _once char **KPRIV(_etext);
 _once char **KPRIV(_text);
+_once int (*KPRIV(can_probe))(unsigned long paddr);
 _once void (*KPRIV(flush_tlb_all))(void);
 _once struct page* (*KPRIV(get_balloon_scratch_page))(void);
 _once void (*KPRIV(put_balloon_scratch_page))(void);

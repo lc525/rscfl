@@ -247,7 +247,8 @@ int kamprobes_register(u8 **orig_addr, char sys_type, void (*pre_handler)(void),
   const char jmpq_opcode = 0xe9;
 
   // Refuse to register probes on any addr which is not a callq or a noop
-  if(!is_call_ins(orig_addr) && !is_noop(orig_addr)) {
+  if((!is_call_ins(orig_addr) && !is_noop(orig_addr)) ||
+     !(KPRIV(can_probe)((unsigned long)*orig_addr))) {
     printk(KERN_ERR "Failed to set probe at %p\n", (void *)*orig_addr);
     return -EINVAL;
   }

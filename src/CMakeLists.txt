@@ -19,7 +19,7 @@ project(${PNAME} C CXX)
 # - all releases with the same major version need to be compatible API-wise
 # - set PROJECT_TAG_VERSION to "" if you want no tags (the variable is needed)
 set(PROJECT_MAJOR_VERSION 0)
-set(PROJECT_MINOR_VERSION 7)
+set(PROJECT_MINOR_VERSION 8)
 set(PROJECT_PATCH_VERSION 0)
 # data layout version. libraries and kernel modules with different data
 # layouts will not be able to communicate. this is not the same as MAJOR_VERSION
@@ -79,9 +79,9 @@ include(InternalMacros)
 ###
 
 # enable this if running on top of an rscfl-enabled XEN hypervisor
-set(XEN_ENABLED 0)
+set(XEN_ENABLED 1)
 # enable this if you want shadow kernels [experimental feature]
-set(SHDW_ENABLED 0)
+set(SHDW_ENABLED 1)
 
 if(XEN_ENABLED EQUAL 0)
   message("-- [OPTION] Building without XEN support")

@@ -1,5 +1,5 @@
 #ifndef _RSCFL_SHDW_H_
-#define _RSCFL_SDHW_H_
+#define _RSCFL_SHDW_H_
 
 #include "rscfl/res_common.h"
 

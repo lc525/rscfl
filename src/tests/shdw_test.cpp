@@ -6,6 +6,7 @@
 #include <rscfl/costs.h>
 #include <rscfl/user/res_api.h>
 
+#if SHDW_ENABLED != 0
 class ShdwTest : public testing::Test
 {
  protected:
@@ -85,3 +86,4 @@ TEST_F(ShdwTest, RepeatedlySwitchShadowWithoutCrashing)
   }
   ofs.close();
 }
+#endif

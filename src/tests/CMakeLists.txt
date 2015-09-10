@@ -34,10 +34,12 @@ if(WITH_TESTS)
   )
   lib_test(sendfile_test "${sendfile_test_SOURCES}" "${TEST_LINK}")
 
-  set (shdw_test_SOURCES
-    ${TESTS_DIR}/shdw_test.cpp
-  )
-  lib_test(shdw_test "${shdw_test_SOURCES}" "${TEST_LINK}")
+  if(SHDW_ENABLED)
+    set (shdw_test_SOURCES
+      ${TESTS_DIR}/shdw_test.cpp
+    )
+    lib_test(shdw_test "${shdw_test_SOURCES}" "${TEST_LINK}")
+  endif(SHDW_ENABLED)
 
   set (socket_test_SOURCES
     ${TESTS_DIR}/socket_test.cpp

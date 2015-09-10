@@ -277,12 +277,12 @@ static int ctrl_mmap(struct file *filp, struct vm_area_struct *vma)
 static long rscfl_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
 {
   rscfl_ioctl_t rscfl_arg;
-  shdw_hdl shdw;
-  int rc;
   copy_from_user(&rscfl_arg, (rscfl_ioctl_t *)arg, sizeof(rscfl_ioctl_t));
   switch (cmd) {
 #if SHDW_ENABLED != 0
-    case RSCFL_SHDW_CMD:
+    case RSCFL_SHDW_CMD:{
+      int rc;
+      shdw_hdl shdw;
       shdw = rscfl_arg.swap_to_shdw;
       rc = do_shdw_op(rscfl_arg.shdw_operation, &shdw, rscfl_arg.num_shdw_pages);
       if (rc) {
@@ -292,6 +292,7 @@ static long rscfl_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
       copy_to_user((rscfl_ioctl_t *)arg, &rscfl_arg, sizeof(rscfl_ioctl_t));
       return 0;
       break;
+    }
  #endif /* SHDW_ENABLED */
     case RSCFL_SHUTDOWN_CMD:
       do_module_shutdown();

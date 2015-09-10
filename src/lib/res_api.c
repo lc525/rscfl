@@ -444,6 +444,7 @@ int rscfl_spawn_shdw_for_pid(rscfl_handle rhdl)
 {
   rscfl_ioctl_t ioctl_arg = {0};
   ioctl_arg.shdw_operation = SPAWN_SWAP_ON_SCHED;
+  ioctl_arg.num_shdw_pages = -1;
   return ioctl(rhdl->fd_ctrl, RSCFL_SHDW_CMD, &ioctl_arg);
 }
 

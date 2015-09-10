@@ -69,10 +69,12 @@ int shdw_create(shdw_hdl *shdw_no)
   page = KPRIV(dma_alloc_from_contiguous)(rscfl_ctrl_device,
                                           text_size / PAGE_SIZE + 1, 0);
   if (page == NULL) {
+    printk(KERN_ERR "Cannot allocate contiguous memory for shadow kernel\n");
     return -ENOMEM;
   }
   shdw_mem = __va((char *)page_to_phys(page));
   if (shdw_mem == NULL) {
+    printk(KERN_ERR "Cannot convert shadow page to physical address\n");
     return -ENOMEM;
   }
 
@@ -127,7 +129,7 @@ static int update_xen_pt(unsigned long phys_shdw_mem, unsigned int no_pages)
   }
   /* Update m2p */
   if (HYPERVISOR_mmu_update(mmu_updates, no_pages, NULL, DOMID_SELF) < 0) {
-    WARN(1, "Failed to set m2p mapping");
+    printk(KERN_ERR "Failed to set m2p mapping\n");
     goto err;
   }
 
@@ -137,7 +139,7 @@ static int update_xen_pt(unsigned long phys_shdw_mem, unsigned int no_pages)
   }
 
   if (HYPERVISOR_mmu_update(virt_updates, no_pages, NULL, DOMID_SELF) < 0) {
-    WARN(1, "Failed to set m2p mapping.");
+    printk(KERN_ERR "Failed to set m2p mapping.\n");
     goto err;
   }
 

@@ -212,7 +212,7 @@ int do_shdw_op(shdw_op op, shdw_hdl *shdw, int num_pages)
         }
         break;
       case SWAP:
-        if (num_pages) {
+        if (num_pages >= 0) {
           return shdw_switch_pages(*shdw, num_pages);
         } else {
           return shdw_switch(*shdw);

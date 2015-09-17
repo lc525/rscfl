@@ -67,10 +67,12 @@ int get_subsys(rscfl_subsys subsys_id,
 }
 
 /*
- * Returns 0 if we have entered a new subsystem, without errors.
- * Returns 1 if we are not in a new subsystem, or there is an error.
+ * returns:
+ * 0  if we have entered a new subsystem, without errors.
+ * -1 when the probe post-handler shouldn't execute (process not being probed,
+ *    or on errors)
  */
-void rscfl_subsys_entry(rscfl_subsys subsys_id)
+int rscfl_subsys_entry(rscfl_subsys subsys_id)
 {
   pid_acct *current_pid_acct;
   struct subsys_accounting *new_subsys_acct;
@@ -79,27 +81,32 @@ void rscfl_subsys_entry(rscfl_subsys subsys_id)
   struct subsys_accounting *curr_subsys_acct = NULL;
   int err;
 
+
+  preempt_disable();
+  current_pid_acct = CPU_VAR(current_acct);
+  // Don't continue if we're already running a probe or we may double-fault.
+  if ((current_pid_acct == NULL) || (current_pid_acct->executing_probe)) {
+    preempt_enable();
+    return -1;
+  }
+
   if (subsys_id == XENINTERRUPTS) {
     // Keep a count of how many event channel events we have fired.
     no_evtchn_events++;
     // No need to keep running - this is a common operation that isn't crossing
     // a subsystem boundary, so we don't want the overheads of all of the other
     // stuff.
-    return;
+    preempt_enable();
+    return -1;
   }
 
-  preempt_disable();
-  current_pid_acct = CPU_VAR(current_acct);
-  // Don't continue if we're already running a probe or we may double-fault.
-  if ((current_pid_acct == NULL) || (current_pid_acct->executing_probe)) {
-    return;
-  }
   current_pid_acct->executing_probe = 1;
 
   if (!should_acct()) {
     // Not accounting for this syscall, so exit, and don't set the return probe.
     current_pid_acct->executing_probe = 0;
-    return;
+    preempt_enable();
+    return -1;
   }
 
   err = get_subsys(subsys_id, &new_subsys_acct);
@@ -126,7 +133,7 @@ void rscfl_subsys_entry(rscfl_subsys subsys_id)
 
   preempt_enable();
   current_pid_acct->executing_probe = 0;
-  return;
+  return 0;
 
 error:
   // If we hit an error (eg ENOMEM, then stop accounting).
@@ -137,7 +144,7 @@ error:
   }
   clear_acct_next();
   preempt_enable();
-  return;
+  return -1;
 }
 
 void rscfl_subsys_exit(rscfl_subsys subsys_id)
@@ -148,23 +155,26 @@ void rscfl_subsys_exit(rscfl_subsys subsys_id)
 
   int err;
 
-  if (subsys_id == XENINTERRUPTS) {
-    // No need to keep running - this is a common operation that isn't crossing
-    // a subsystem boundary, so we don't want the overheads of all of the other
-    // stuff.
-    return;
-  }
-
   preempt_disable();
   current_pid_acct = CPU_VAR(current_acct);
 
   if ((current_pid_acct == NULL) || (current_pid_acct->executing_probe)) {
+    preempt_enable();
+    return;
+  }
+
+  if (subsys_id == XENINTERRUPTS) {
+    // No need to keep running - this is a common operation that isn't crossing
+    // a subsystem boundary, so we don't want the overheads of all of the other
+    // stuff.
+    preempt_enable();
     return;
   }
   current_pid_acct->executing_probe = 1;
 
   if (!should_acct()) {
     current_pid_acct->executing_probe = 0;
+    preempt_enable();
     return;
   }
 
@@ -201,4 +211,5 @@ error:
   clear_acct_next();
   current_pid_acct->executing_probe = 0;
   preempt_enable();
+  return;
 }

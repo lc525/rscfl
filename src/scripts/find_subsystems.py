@@ -90,9 +90,9 @@ static char {{ subsystem }}_INTERNAL_SYSCALL[] = {{ '{' }}
   0
 {{ '};' }}
 
-void rscfl_pre_handler_{{ subsystem }}(void)
+int rscfl_pre_handler_{{ subsystem }}(void)
 {{ '{' }}
-  rscfl_subsys_entry({{ subsystem }});
+  return rscfl_subsys_entry({{ subsystem }});
 {{ '}' }}
 
 void rscfl_rtn_handler_{{ subsystem }}(void)

@@ -7,7 +7,7 @@
 #include "rscfl/res_common.h"
 #include "rscfl/subsys_list.h"
 
-#define WRAPPER_SIZE 71
+#define WRAPPER_SIZE 76
 
 #define WORD_SIZE_IN_BYTES 8
 
@@ -26,6 +26,52 @@ static unsigned int no_probes = 0;
 
 static char *wrapper_start = NULL;
 static char *wrapper_end;
+
+static const char ins_save_reg[] = {
+  0x50,  // rax
+
+  0x53,  // rbx
+
+  0x57,  // rdi
+
+  0x56,  // rsi
+
+  0x52,  // rdx
+
+  0x51,  // rcx
+
+  0x41,  // r8
+  0x50,
+
+  0x41,  // r9
+  0x51,
+
+  0x41,  // r10
+  0x52,
+};
+
+static const char ins_restore_reg[] = {
+  0x41,  // r10
+  0x5a,
+
+  0x41,  // r9
+  0x59,
+
+  0x41,  // r8
+  0x58,
+
+  0x59,  // rcx
+
+  0x5a,  // rdx
+
+  0x5e,  // rsi
+
+  0x5f,  // rdi
+
+  0x5b,  // rbx
+
+  0x58,  // rax
+};
 
 static void add_to_probe_list(u8 *loc)
 {
@@ -118,10 +164,11 @@ static inline void emit_mov_r11_addr(char **wrapper_end, char *addr)
   emit_rel_address(wrapper_end, addr);
 }
 
-static inline void emit_mov_addr_rsp(char **wrapper_end, char *addr)
+static inline void emit_mov_addr_rsp(char **wrapper_end, char *addr, const char disp)
 {
-  // mov $addr %rsp
-  const char machine_code[] = {0x48, 0xc7, 0x04, 0x24};
+  // mov $addr disp(%rsp)
+  char machine_code[] = {0x48, 0xc7, 0x44, 0x24, 0x00};
+  machine_code[4] = disp;
   emit_multiple_ins(wrapper_end, machine_code, sizeof(machine_code));
   emit_abs_address(wrapper_end, addr);
 }
@@ -135,62 +182,30 @@ static inline void emit_push_addr(char **wrapper_end, char *addr)
 
 static inline void emit_save_registers(char **wrapper_end)
 {
-  const char insns[] = {0x50,  // rax
-
-                        0x53,  // rbx
-
-                        0x57,  // rdi
-
-                        0x56,  // rsi
-
-                        0x52,  // rdx
-
-                        0x51,  // rcx
-
-                        0x41,  // r8
-                        0x50,
-
-                        0x41,  // r9
-                        0x51,
-
-                        0x41,  // r10
-                        0x52,
-  };
   int i;
-  for (i = 0; i < sizeof(insns); i++) {
-    emit_ins(wrapper_end, insns[i]);
+  for (i = 0; i < sizeof(ins_save_reg); i++) {
+    emit_ins(wrapper_end, ins_save_reg[i]);
   }
 }
 
 static inline void emit_restore_registers(char **wrapper_end)
 {
-  const char insns[] = {
-      0x41,
-      0x5a,
-
-      0x41,  // r9
-      0x59,
-
-      0x41,  // r8
-      0x58,
-
-      0x59,  // rcx
-
-      0x5a,  // rdx
-
-      0x5e,  // rsi
-
-      0x5f,  // rdi
-
-      0x5b,  // rbx
-
-      0x58,  // rax
-  };
-
   int i;
-  for (i = 0; i < sizeof(insns); i++) {
-    emit_ins(wrapper_end, insns[i]);
+  for (i = 0; i < sizeof(ins_restore_reg); i++) {
+    emit_ins(wrapper_end, ins_restore_reg[i]);
   }
+}
+
+static inline void emit_short_cond_jmp(char **wrapper_end, char *cond,
+                                       char jmp_size){
+  int i;
+  for (i = 0; i < sizeof(cond); i++) {
+    emit_ins(wrapper_end, cond[i]);
+  }
+
+  // jnz jmp_size
+  emit_ins(wrapper_end, 0x75);
+  emit_ins(wrapper_end, jmp_size);
 }
 
 static inline int is_call_ins(u8 **addr)
@@ -252,8 +267,6 @@ int kamprobes_register(u8 **orig_addr, char sys_type, void (*pre_handler)(void),
     printk(KERN_ERR "Failed to set probe at %p\n", (void *)*orig_addr);
     return -EINVAL;
   }
-  // TODO(lc525) return to the code above [--- TESTING ---]
-  // if(!is_call_ins(orig_addr) || sys_type == ADDR_KERNEL_SYSCALL) return -EINVAL;
 
   // If *orig_addr is not a call instruction then we assume it is the start
   // of a sys_ function, so is called through magic pointers. We don't want to
@@ -298,12 +311,29 @@ int kamprobes_register(u8 **orig_addr, char sys_type, void (*pre_handler)(void),
   // Call into the pre-handler.
   emit_callq(&wrapper_end, (char *)pre_handler);
 
-  // Restore the register file from what we just pushed onto the stack.
-  emit_restore_registers(&wrapper_end);
+  // optimisation: if the pre_handler returned -1, skip the bottom
+  // half of the wrapper (the rtn-handler)
+  // cmp eax, 0
+  // jnz MOV_WIDTH [over emit_mov_addr_rsp]
+  const char cond[] = {0x83, 0xF8, 0x00};
+  const char jmp_size = MOV_WIDTH;
+  emit_short_cond_jmp(&wrapper_end, cond, jmp_size);
 
   // Change the top of the stack so it points at the bottom-half of the wrapper,
   // which is the bit that does the calling of the rtn-handler.
-  emit_mov_addr_rsp(&wrapper_end, wrapper_end + JMP_WIDTH + MOV_WIDTH);
+  //
+  // The displacement computation -72(%rsp):
+  // 0xb8 is the displacement for the number of entries currently on the stack
+  // before the return value. In our case, all the saved registers (9 of them)
+  // are on the stack:
+  // 9 registers * 8 bytes each = 72
+  // 72 = 0x48
+  // -72 = 0xb8
+  emit_mov_addr_rsp(&wrapper_end, wrapper_end + sizeof(ins_restore_reg) +
+                                  JMP_WIDTH + MOV_WIDTH, 0xb8);
+
+  // Restore the register file from what we just pushed onto the stack.
+  emit_restore_registers(&wrapper_end);
 
   if (is_call_ins(orig_addr)) {
     // Run the original function.

@@ -16,9 +16,9 @@ _(NETWORKINGDRIVERS)                \
 _(NETWORKINGIPV4IPV6)               \
 _(FILESYSTEMSVFSANDINFRASTRUCTURE)  \
 _(SECURITYSUBSYSTEM)                \
-_(XENHYPERVISORINTERFACE)           \
 _(XENINTERRUPTS)
 
+//_(XENHYPERVISORINTERFACE)           
 
 #define PROBES_AS_ADDRS(a) a##_ADDRS,
 #define PROBES_AS_SYSCALL_TYPE(a) a##_INTERNAL_SYSCALL,
@@ -33,7 +33,7 @@ int probes_init(void)
   int i, rc, failures = 0, probes = 0;
   unsigned long flags;
 
-  void (*probe_pre_handlers_temp[])(void) = {PROBE_LIST(PROBES_AS_PRE_HANDLE)};
+  int (*probe_pre_handlers_temp[])(void) = {PROBE_LIST(PROBES_AS_PRE_HANDLE)};
   void (*probe_post_handlers_temp[])(void) = {PROBE_LIST(PROBES_AS_RTN_HANDLE)};
 
   int num_subsys = sizeof(probe_pre_handlers_temp) / sizeof(u8*);

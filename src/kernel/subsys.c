@@ -85,8 +85,12 @@ int rscfl_subsys_entry(rscfl_subsys subsys_id)
   preempt_disable();
   current_pid_acct = CPU_VAR(current_acct);
   // Don't continue if we're already running a probe or we may double-fault.
-  if ((current_pid_acct == NULL) || (current_pid_acct->executing_probe)) {
-    preempt_enable();
+  if (current_pid_acct == NULL) {
+    //preempt_enable();
+    return -1;
+  }
+
+  if(current_pid_acct->executing_probe) {
     return -1;
   }
 
@@ -96,7 +100,7 @@ int rscfl_subsys_entry(rscfl_subsys subsys_id)
     // No need to keep running - this is a common operation that isn't crossing
     // a subsystem boundary, so we don't want the overheads of all of the other
     // stuff.
-    preempt_enable();
+    //preempt_enable();
     return -1;
   }
 
@@ -105,7 +109,7 @@ int rscfl_subsys_entry(rscfl_subsys subsys_id)
   if (!should_acct()) {
     // Not accounting for this syscall, so exit, and don't set the return probe.
     current_pid_acct->executing_probe = 0;
-    preempt_enable();
+    //preempt_enable();
     return -1;
   }
 
@@ -159,7 +163,7 @@ void rscfl_subsys_exit(rscfl_subsys subsys_id)
   current_pid_acct = CPU_VAR(current_acct);
 
   if ((current_pid_acct == NULL) || (current_pid_acct->executing_probe)) {
-    preempt_enable();
+    //preempt_enable();
     return;
   }
 
@@ -167,14 +171,14 @@ void rscfl_subsys_exit(rscfl_subsys subsys_id)
     // No need to keep running - this is a common operation that isn't crossing
     // a subsystem boundary, so we don't want the overheads of all of the other
     // stuff.
-    preempt_enable();
+    //preempt_enable();
     return;
   }
   current_pid_acct->executing_probe = 1;
 
   if (!should_acct()) {
     current_pid_acct->executing_probe = 0;
-    preempt_enable();
+    //preempt_enable();
     return;
   }
 

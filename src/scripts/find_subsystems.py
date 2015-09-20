@@ -111,7 +111,7 @@ static u8 **UNUSED(probe_addrs[]) = {{ '{'  }}
 {% endfor %}
 {{ '};' }}
 
-void (*rscfl_pre_handlers[]) (void) = {{ '{' }}
+int (*rscfl_pre_handlers[]) (void) = {{ '{' }}
 {% for subsys in subsystems %}
   rscfl_pre_handler_{{ subsys }},
 {% endfor %}

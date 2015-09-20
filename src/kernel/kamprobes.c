@@ -13,7 +13,7 @@
 
 #define CALL_WIDTH 5
 #define JMP_WIDTH 5
-#define MOV_WIDTH 8
+#define MOV_WIDTH 9
 
 struct orig_insn
 {
@@ -164,7 +164,8 @@ static inline void emit_mov_r11_addr(char **wrapper_end, char *addr)
   emit_rel_address(wrapper_end, addr);
 }
 
-static inline void emit_mov_addr_rsp(char **wrapper_end, char *addr, const char disp)
+static inline void emit_mov_addr_rsp(char **wrapper_end, char *addr,
+                                     const char disp)
 {
   // mov $addr disp(%rsp)
   char machine_code[] = {0x48, 0xc7, 0x44, 0x24, 0x00};
@@ -196,10 +197,10 @@ static inline void emit_restore_registers(char **wrapper_end)
   }
 }
 
-static inline void emit_short_cond_jmp(char **wrapper_end, char *cond,
-                                       char jmp_size){
+static inline void emit_short_cond_jmp(char **wrapper_end, const char *cond,
+                                       size_t cond_size, char jmp_size){
   int i;
-  for (i = 0; i < sizeof(cond); i++) {
+  for (i = 0; i < cond_size; i++) {
     emit_ins(wrapper_end, cond[i]);
   }
 
@@ -247,7 +248,7 @@ void kamprobes_free() {
   vfree(wrapper_start);
 }
 
-int kamprobes_register(u8 **orig_addr, char sys_type, void (*pre_handler)(void),
+int kamprobes_register(u8 **orig_addr, char sys_type, int (*pre_handler)(void),
                        void (*post_handler)(void))
 {
   char *wrapper_fp;
@@ -260,6 +261,8 @@ int kamprobes_register(u8 **orig_addr, char sys_type, void (*pre_handler)(void),
 
   const char callq_opcode = 0xe8;
   const char jmpq_opcode = 0xe9;
+  // test rax, rax
+  const char jmpnz_cond[3] = {0x48, 0x85, 0xC0};
 
   // Refuse to register probes on any addr which is not a callq or a noop
   if((!is_call_ins(orig_addr) && !is_noop(orig_addr)) ||
@@ -289,7 +292,7 @@ int kamprobes_register(u8 **orig_addr, char sys_type, void (*pre_handler)(void),
   // put it in a register that we can trash (eg r11), and then move that
   // register to the top of the wrapper frame.
   if (!is_call_ins(orig_addr)) {
-    debugk("sys at %p, firstb: %#0x\n", *orig_addr, **orig_addr);
+    debugk("sys at %p, firstb: %#0x, wrapper @ %p\n", *orig_addr, **orig_addr, wrapper_fp - 8);
     emit_mov_rsp_r11(&wrapper_end);
 
     // mov r11 wrapper_fp - 8
@@ -313,24 +316,21 @@ int kamprobes_register(u8 **orig_addr, char sys_type, void (*pre_handler)(void),
 
   // optimisation: if the pre_handler returned -1, skip the bottom
   // half of the wrapper (the rtn-handler)
-  // cmp eax, 0
+  // test rax, rax
   // jnz MOV_WIDTH [over emit_mov_addr_rsp]
-  const char cond[] = {0x83, 0xF8, 0x00};
-  const char jmp_size = MOV_WIDTH;
-  emit_short_cond_jmp(&wrapper_end, cond, jmp_size);
+  emit_short_cond_jmp(&wrapper_end, jmpnz_cond, sizeof(jmpnz_cond), MOV_WIDTH);
 
   // Change the top of the stack so it points at the bottom-half of the wrapper,
   // which is the bit that does the calling of the rtn-handler.
   //
-  // The displacement computation -72(%rsp):
-  // 0xb8 is the displacement for the number of entries currently on the stack
+  // The displacement computation +72(%rsp):
+  // 0x48 is the displacement for the number of entries currently on the stack
   // before the return value. In our case, all the saved registers (9 of them)
   // are on the stack:
   // 9 registers * 8 bytes each = 72
   // 72 = 0x48
-  // -72 = 0xb8
   emit_mov_addr_rsp(&wrapper_end, wrapper_end + sizeof(ins_restore_reg) +
-                                  JMP_WIDTH + MOV_WIDTH, 0xb8);
+                                  JMP_WIDTH + MOV_WIDTH, 0x48);
 
   // Restore the register file from what we just pushed onto the stack.
   emit_restore_registers(&wrapper_end);

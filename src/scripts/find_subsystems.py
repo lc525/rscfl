@@ -133,6 +133,7 @@ static char* UNUSED(syscall_type[]) = {{ '{'  }}
 #endif
 """
 
+
 def update_progress(delta, inc=True):
     """
     Args:
@@ -149,7 +150,9 @@ def update_progress(delta, inc=True):
         else:
             progress = delta
         sys.stderr.write("\r[{1:3.0f}%] [{0:25s}] subsys_gen: {2:<32}"
-                .format('#' * int(progress * 25), progress * 100, stage))
+                         .format('#' * int(progress * 25), progress * 100,
+                                 stage))
+
 
 def to_upper_alpha(str):
     """
@@ -160,6 +163,7 @@ def to_upper_alpha(str):
         uppercase.
     """
     return re.sub(r'\W+', '', str).upper()
+
 
 def get_subsys(addr, addr2line, linux, build_dir):
     """
@@ -217,10 +221,11 @@ def get_subsys(addr, addr2line, linux, build_dir):
         # mailing list.
         for i, line in enumerate(maintainers):
             if line.startswith("linux-kernel@vger.kernel.org"):
-                subsys = maintainers[i+1]
+                subsys = maintainers[i + 1]
                 break
         file_subsys_cache[file_name] = subsys
         return subsys
+
 
 def twiddle_endianness(word):
     """Transform words of the form abcdefgh into ghefcdab."""
@@ -260,7 +265,7 @@ def get_function_pointers(vmlinux_path):
         pleft = 1 - progress + 0.1
         pbase = progress
         for i in xrange(0, len(rodata.data()), 4):
-            word = binascii.hexlify(rodata.data()[i:i+4])
+            word = binascii.hexlify(rodata.data()[i:i + 4])
             # Fix endianness
             word = twiddle_endianness(word)
             if "0xffffffff%sL" % word in syms:
@@ -270,12 +275,13 @@ def get_function_pointers(vmlinux_path):
                     seen_once.add(word)
             if i > boundary:
                 boundary += 2000
-                p_val = i*pleft/length
+                p_val = i * pleft / length
                 update_progress(pbase + p_val, False)
     return fn_ptrs
 
+
 def add_address_to_subsys(boundary_fns, subsys, fn_addr, fn_name,
-        syscall_type, upd_progress=True):
+                          syscall_type, upd_progress=True):
     """Add an address to the list of addresses on a subsystem boundary.
 
     Check to see if the address is already in the subsystem, and if not then
@@ -376,7 +382,8 @@ def get_addresses_of_boundary_calls(linux, build_dir, vmlinux_path):
             if callee_name.strip() in fn_blacklist:
                 continue
 
-            callee_subsys = get_subsys(callee_addr, addr2line, linux, build_dir)
+            callee_subsys = get_subsys(callee_addr, addr2line, linux,
+                                       build_dir)
             if callee_subsys != caller_subsys and callee_subsys is not None:
                 syscall_type = ADDR_CALLQ
                 if "SyS_" in callee_name:
@@ -429,15 +436,16 @@ def append_to_json_file(json_fname, subsys_names):
     subsys_names.sort()
     for subsys in subsys_names:
         if to_upper_alpha(subsys) not in json_entries:
-            # Remove various bits of punctuation so we can index using the name.
+            # Remove various bits of punctuation so we can index using the
+            # name.
             clean_subsys_name = re.sub(r'\W+', '', subsys).upper()
             json_entries[clean_subsys_name] = {}
             json_entries[clean_subsys_name]['id'] = len(json_entries) - 1
-            # long_name is used for human output. Its value can be changed to be
-            # more human-friendly
+            # long_name is used for human output. Its value can be changed to
+            # be more human-friendly
             json_entries[clean_subsys_name]['long_name'] = subsys.capitalize()
-            # short_name is used as a key in enums. Its value can be modified to
-            # be more code-friendly.
+            # short_name is used as a key in enums. Its value can be modified
+            # to be more code-friendly.
             json_entries[clean_subsys_name]['short_name'] = clean_subsys_name
 
     json.dump(json_entries, json_file, indent=2)
@@ -475,6 +483,7 @@ def read_blacklist(blacklist_file):
     for fn_name in blacklist_file:
         fn_blacklist.add(fn_name.strip())
 
+
 def main():
     """
     Main.
@@ -497,7 +506,7 @@ def main():
                         cross the boundary of subsystems. These are exported
                         as a .h file of addresses.""")
     parser.add_argument('--no-fp', dest='no_fp', action='store_true',
-                        default = False,
+                        default=False,
                         help="""Don't scan kernel binary for function
                         pointers""")
     parser.add_argument('-J', dest='subsys_json_fname', help="""JSON file to
@@ -550,8 +559,8 @@ def main():
         targs['NUM_PROBES'] = sum(len(value) for (key, value) in
                                   subsys_entries.items())
         targs['subsys_list_header'] = os.path.basename(sharedh_fname)
-        targs['subsystems'] = dict((to_upper_alpha(key), value) for (key, value)
-                                  in subsys_entries.items())
+        targs['subsystems'] = dict((to_upper_alpha(key), value)
+                                   for (key, value) in subsys_entries.items())
         print template.render(targs)
 
     stage = "Done                               \n"

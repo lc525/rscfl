@@ -111,7 +111,7 @@ def run_experiment(no_vms, gold_img, memory, vcpus, workload_cmd, workload_cmd_f
         if x == from_vms:
             print("started!\n")
 
-        if x < no_vms:
+        if x <= no_vms:
           # Wait
           time.sleep(float(sleep_time))
           # Stop measuring

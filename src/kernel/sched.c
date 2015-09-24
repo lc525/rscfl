@@ -33,9 +33,11 @@ static void record_ctx_switch(pid_acct *p_acct,
     if (values_add) {
       rscfl_timespec_add(&subsys_acct->sched.wct_out_local, &ts);
       subsys_acct->sched.cycles_out_local += cycles;
+      subsys_acct->sched.run_delay += task->sched_info.run_delay;
     } else {
       rscfl_timespec_diff_comp(&subsys_acct->sched.wct_out_local, &ts);
       subsys_acct->sched.cycles_out_local -= cycles;
+      subsys_acct->sched.run_delay -= task->sched_into.run_delay;
     }
   }
 }
@@ -51,13 +53,13 @@ void on_ctx_switch(void *ignore,
   pid_t next_tid = next->pid;
   pid_acct *curr_acct = CPU_VAR(current_acct);
   if (curr_acct != NULL) {
-    record_ctx_switch(curr_acct, 0);
+    record_ctx_switch(curr_acct, prev, 0);
   }
 
   hash_for_each_possible(CPU_TBL(pid_acct_tbl), curr_acct, link, next_tid) {
     if(curr_acct->pid == next_tid){
       CPU_VAR(current_acct) = curr_acct;
-      record_ctx_switch(curr_acct, 1);
+      record_ctx_switch(curr_acct, next, 1);
 #if SHDW_ENABLED != 0
       // Switch shadow kernel if this process has a shadow kernel associated
       // with it.

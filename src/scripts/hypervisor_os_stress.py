@@ -9,7 +9,7 @@ import subprocess
 import time
 import sys
 
-TEMPLATE="""
+TEMPLATE = """
 name = "ubuntu-clone-{{ clone_no }}"
 memory = {{ memory }}
 vcpus = {{ vcpus }}
@@ -21,6 +21,7 @@ vif=[ 'mac=00:16:3f:00:00:{{ padded_clone_no }},bridge=xenbr0' ]
 target_vm = "so-22-50.dtg.cl.cam.ac.uk"
 
 current_no_vms = 0
+
 
 def prepare_config(clone_no, memory, vcpus):
     f = open('/tmp/ubuntu-%d' % clone_no, 'w')
@@ -57,6 +58,7 @@ def start_vm(gold_img, memory, vcpus):
     boot_clone(current_no_vms)
     return "128.232.22.%d" % (current_no_vms + 50)
 
+
 def destroy_existing_doms():
     subprocess.Popen("for x in $(sudo xl list | grep ubuntu-clone- |"
                      " sed 's/\s\+/ /g'| "
@@ -86,7 +88,7 @@ def run_experiment(no_vms, gold_img, memory, vcpus, workload_cmd, workload_cmd_f
     fabric.api.output["running"] = False
     # Initialise program under test (eg lighttpd)
     res = fabric.api.execute(run_test_prog, test_prog, hosts=[target_vm])
-    if res[target_vm] == None:
+    if res[target_vm] is None:
         print("Error executing test_prog")
         return
 
@@ -112,14 +114,14 @@ def run_experiment(no_vms, gold_img, memory, vcpus, workload_cmd, workload_cmd_f
             print("started!\n")
 
         if x < no_vms:
-          # Wait
-          time.sleep(float(sleep_time))
-          # Stop measuring
-          payload = {'mark': 'STOP'}
-          requests.post('http://so-22-50/mark', payload)
+            # Wait
+            time.sleep(float(sleep_time))
+            # Stop measuring
+            payload = {'mark': 'STOP'}
+            requests.post('http://so-22-50/mark', payload)
 
         if workload_cmd_freq[cmd_ix] == 0:
-         cmd_ix = cmd_ix + 1
+            cmd_ix = cmd_ix + 1
 
 
 def main():
@@ -150,8 +152,8 @@ def main():
                         " command in -c")
     args = parser.parse_args()
 
-    if args.workload_cmd_freq == None:
-	args.workload_cmd_freq = [args.no_vms]
+    if args.workload_cmd_freq is None:
+        args.workload_cmd_freq = [args.no_vms]
 
     run_experiment(args.no_vms, args.gold_img, args.memory, args.vcpus,
                    args.workload_cmd, args.workload_cmd_freq, args.test_prog,

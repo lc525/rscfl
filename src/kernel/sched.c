@@ -10,7 +10,7 @@
 #include "rscfl/res_common.h"
 #include "rscfl/kernel/subsys.h"
 
-static void record_ctx_switch(pid_acct *p_acct,
+static void record_ctx_switch(pid_acct *p_acct, struct task_struct *task,
                               int values_add)
 {
   struct accounting *acct;
@@ -37,7 +37,7 @@ static void record_ctx_switch(pid_acct *p_acct,
     } else {
       rscfl_timespec_diff_comp(&subsys_acct->sched.wct_out_local, &ts);
       subsys_acct->sched.cycles_out_local -= cycles;
-      subsys_acct->sched.run_delay -= task->sched_into.run_delay;
+      subsys_acct->sched.run_delay -= task->sched_info.run_delay;
     }
   }
 }

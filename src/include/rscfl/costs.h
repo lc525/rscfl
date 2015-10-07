@@ -84,6 +84,7 @@ struct acct_Sched
 {
   struct timespec wct_out_local;
   ru64 cycles_out_local;
+  ru64 run_delay;
 
   // Hypervisor
 

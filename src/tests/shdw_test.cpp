@@ -2,12 +2,13 @@
 
 #include <iostream>
 #include <fstream>
+#include <unistd.h>
 
 #include <rscfl/costs.h>
 #include <rscfl/user/res_api.h>
 
 #if SHDW_ENABLED != 0
-class ShdwTest : public testing::Test
+class ShdwTest : public testing::TestWithParam<int>
 {
  protected:
   void SetUp()
@@ -32,8 +33,7 @@ static struct timespec wct_test_get_time(void)
   return ts;
 }
 
-TEST_F (ShdwTest, CanCreateAShdwKernelWithoutCrashing)
-{
+TEST_F(ShdwTest, CanCreateAShdwKernelWithoutCrashing) {
   struct accounting acct;
   shdw_hdl shdw;
   ASSERT_EQ(0, rscfl_spawn_shdw(rhdl_, &shdw));
@@ -86,4 +86,22 @@ TEST_F(ShdwTest, RepeatedlySwitchShadowWithoutCrashing)
   }
   ofs.close();
 }
+
+/*
+ * Switch to a varying number of shadow kernel pages and sleep for one second
+ * to ensure that the VM does not crash with the after effects of the shadow
+ * kernel switch.
+ */
+TEST_P(ShdwTest, SwitchNShdwKernelPagesAndSleep) {
+  ASSERT_EQ(0, rscfl_use_shdw_pages(rhdl_, 1, GetParam()));
+  sleep(1);
+}
+
+INSTANTIATE_TEST_CASE_P(IncreasingPages, ShdwTest,
+                        ::testing::Values(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+                                          12, 13, 14, 15, 16, 50, 150, 250, 350,
+                                          450, 550, 650, 750, 850, 950, 1050,
+                                          1150, 1250, 1350, 1450, 1550, 1650,
+                                          1750, 1850));
+
 #endif

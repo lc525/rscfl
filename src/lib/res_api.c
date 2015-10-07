@@ -395,6 +395,7 @@ inline void rscfl_subsys_merge(struct subsys_accounting *e,
   rscfl_timespec_add(&e->sched.wct_out_local, &c->sched.wct_out_local);
   rscfl_timespec_add(&e->sched.xen_sched_wct, &c->sched.xen_sched_wct);
 
+  e->sched.run_delay               += c->sched.run_delay;
   e->sched.xen_schedules           += c->sched.xen_schedules;
   e->sched.xen_sched_cycles        += c->sched.xen_sched_cycles;
   e->sched.xen_blocks              += c->sched.xen_blocks;

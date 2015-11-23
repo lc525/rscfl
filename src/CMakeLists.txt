@@ -19,13 +19,13 @@ project(${PNAME} C CXX)
 # - all releases with the same major version need to be compatible API-wise
 # - set PROJECT_TAG_VERSION to "" if you want no tags (the variable is needed)
 set(PROJECT_MAJOR_VERSION 0)
-set(PROJECT_MINOR_VERSION 7)
-set(PROJECT_PATCH_VERSION 0)
+set(PROJECT_MINOR_VERSION 9)
+set(PROJECT_PATCH_VERSION 1)
 # data layout version. libraries and kernel modules with different data
 # layouts will not be able to communicate. this is not the same as MAJOR_VERSION
 # because you can modify the interface in non-backwards compatible ways but
 # still retain compatiblity with older rscfl kernel modules.
-set(PROJECT_DATA_LAYOUT_VERSION 3)
+set(PROJECT_DATA_LAYOUT_VERSION 4)
 # by default, set PROJECT_TAG_VERSION to the git revision
 execute_process(
   COMMAND git --git-dir ${${PNAME}_SOURCE_DIR}/../.git rev-parse --short HEAD
@@ -35,7 +35,11 @@ string(REPLACE "\n" "" GIT_REV ${GIT_REV})
 # set tag version to something like "beta", "dev", "rel" (or leave it empty)
 # on publishing a given rscfl version
 #set(PROJECT_TAG_VERSION "rel")
-set(PROJECT_TAG_VERSION ${GIT_REV})
+if(RSCFL_BENCH EQUAL 1)
+  set(PROJECT_TAG_VERSION "bench")
+else()
+  set(PROJECT_TAG_VERSION ${GIT_REV})
+endif()
 
 if(${PROJECT_TAG_VERSION} STREQUAL "")
   set(PVER ${PROJECT_MAJOR_VERSION}_${PROJECT_MINOR_VERSION}_${PROJECT_PATCH_VERSION})
@@ -82,6 +86,12 @@ include(InternalMacros)
 set(XEN_ENABLED 0)
 # enable this if you want shadow kernels [experimental feature]
 set(SHDW_ENABLED 0)
+
+if(RSCFL_BENCH EQUAL 1)
+  set(DEFINE_RSCFL_BENCH "\#define RSCFL_BENCH")
+else()
+  set(DEFINE_RSCFL_BENCH "//\#define RSCFL_BENCH")
+endif()
 
 if(XEN_ENABLED EQUAL 0)
   message("-- [OPTION] Building without XEN support")

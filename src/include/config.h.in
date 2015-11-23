@@ -13,6 +13,7 @@
 #define RSCFL_PROJECT_NAME "@CMAKE_PROJECT_NAME@"
 #define RSCFL_DESC "rscfl: application-centric kernel resource measurement"
 #define RSCFL_KVERSION "@VERSION@"
+@DEFINE_RSCFL_BENCH@
 
 typedef struct {
   unsigned int major;

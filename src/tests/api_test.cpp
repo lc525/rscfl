@@ -22,7 +22,7 @@ class APITest : public testing::Test
 
     rhdl_ = rscfl_init();
     ASSERT_NE(nullptr, rhdl_);
-    ASSERT_EQ(0, rscfl_acct_next(rhdl_));
+    ASSERT_EQ(0, rscfl_acct_next_fl(rhdl_, NULL, IST_DEFAULT));
 
     int sockfd_ = socket(PF_LOCAL, SOCK_RAW, 0);
     EXPECT_LE(0, sockfd_);

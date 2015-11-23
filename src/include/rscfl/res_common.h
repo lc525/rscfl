@@ -35,7 +35,7 @@
  *
  */
 #define STRUCT_ACCT_NUM 13
-#define ACCT_SUBSYS_RATIO 5   // assume one syscall touches ~ 5 subsystems
+#define ACCT_SUBSYS_RATIO 8   // assume one syscall touches ~ 5 subsystems
 #define NUM_READY_TOKENS 10   // Number of tokens that the kernel can prepare
                               // in advance.
 
@@ -67,8 +67,28 @@ struct rscfl_acct_layout_t
 {
   struct accounting acct[STRUCT_ACCT_NUM];
   struct subsys_accounting subsyses[ACCT_SUBSYS_NUM];
+  int subsys_exits;
 };
 typedef struct rscfl_acct_layout_t rscfl_acct_layout_t;
+
+/*
+ * Expressing interest in resources consumed by syscalls
+ */
+
+typedef enum {
+  IST_DEFAULT      = 0,
+  IST_START        = EBIT(0),     // TODO(lc525) Not implemented
+  IST_STOP         = EBIT(1),     // TODO(lc525) Not implemented
+
+  IST_CLEAR_ACCT   = EBIT(2),     // For benchmarking: compute but don't
+                                  // actually store accounting data.
+                                  // This automatically clears ("reads")
+                                  // the acct data structures.
+
+  IST_KNOP          = EBIT(3),    // For benchmarking calibration: run
+                                  // acct_next but don't actually express
+                                  // interest (no kernel-side effects)
+} interest_flags;
 
 struct syscall_interest_t
 {
@@ -76,6 +96,7 @@ struct syscall_interest_t
   int syscall_nr;
   int token;
   int tail_ix;
+  interest_flags flags;
   shdw_hdl use_shdw;
   int shdw_pages;
   _Bool start_measurement;

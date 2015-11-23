@@ -39,6 +39,10 @@ const char *rscfl_subsys_name[NUM_SUBSYSTEMS] = {
 
 __thread rscfl_handle handle = NULL;
 
+#ifdef RSCFL_BENCH
+syscall_interest_t dummy_interest;
+#endif
+
 rscfl_handle rscfl_init_api(rscfl_version_t rscfl_ver)
 {
   struct stat sb;
@@ -188,14 +192,21 @@ int rscfl_free_token(rscfl_handle rhdl, rscfl_token_t *token)
   return 0;
 }
 
-int rscfl_acct_next_token(rscfl_handle rhdl, rscfl_token_t *token)
+int _rscfl_acct_next(rscfl_handle rhdl, rscfl_token_t *token, interest_flags fl)
 {
   syscall_interest_t *to_acct;
   if (rhdl == NULL) {
     return -EINVAL;
   }
-
+#ifdef RSCFL_BENCH
+  if(likely((fl & IST_KNOP) == 0))
+    to_acct = &rhdl->ctrl->interest;
+  else
+    to_acct = &dummy_interest;
+#else
   to_acct = &rhdl->ctrl->interest;
+#endif
+  to_acct->flags = fl;
   to_acct->syscall_id = ++rhdl->lst_syscall.id;
   to_acct->syscall_nr = -1;
   rhdl->ctrl->num_new_tokens = NUM_READY_TOKENS - rhdl->ready_token_sp - 1;
@@ -259,6 +270,7 @@ int rscfl_read_acct(rscfl_handle rhdl, struct accounting *acct)
   }
   return -EINVAL;
 }
+
 
 subsys_idx_set* rscfl_get_subsys(rscfl_handle rhdl, struct accounting *acct)
 {
@@ -365,6 +377,14 @@ int rscfl_merge_acct_into(rscfl_handle rhdl, struct accounting *acct_from,
     }
   }
   return rc;
+}
+
+int rscfl_getreset_probe_exits(rscfl_handle rhdl) {
+  int exits;
+  rscfl_acct_layout_t *rscfl_data = (rscfl_acct_layout_t *)rhdl->buf;
+  exits = rscfl_data->subsys_exits;
+  rscfl_data->subsys_exits = 0;
+  return exits;
 }
 
 void free_subsys_idx_set(subsys_idx_set *subsys_set)

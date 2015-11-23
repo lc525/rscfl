@@ -1,5 +1,6 @@
 #include "rscfl/kernel/acct.h"
 
+#include <linux/compiler.h>
 #include <linux/hashtable.h>
 
 #include "rscfl/config.h"
@@ -12,8 +13,6 @@
 //TODO(oc243): make thread safe.
 static int num_tokens = 1;
 static _Bool init;
-
-static int num_tokens;
 
 static struct accounting *alloc_acct(pid_acct *current_pid_acct)
 {
@@ -127,10 +126,30 @@ int clear_acct_next(void)
 
   current_pid_acct = CPU_VAR(current_acct);
   interest = &current_pid_acct->ctrl->interest;
-  // Clear the cached pointer to the struct accounting.
-  current_pid_acct->probe_data->syscall_acct = NULL;
   // Reset the interest so we stop accounting.
   interest->syscall_id = 0;
+#ifdef RSCFL_BENCH
+  // clear the acct/subsys memory if the IST_CLEAR_FLAG was set
+  //
+  // For clearing things quickly dunring benchmark-ing, we make use of the
+  // fact that for a given call and under no concurrent measurements  we'll
+  // store the subsys data structures contiguously. This is deffinetely not true
+  // in the general case!
+  if((interest->flags & IST_CLEAR_ACCT) != 0) {
+    int i;
+    struct subsys_accounting *sa = current_pid_acct->shared_buf->subsyses;
+
+    for(i = 0; i < ACCT_SUBSYS_NUM; i++) {
+      if(likely(sa[i].in_use != 0))
+        sa[i].in_use = 0;
+      else
+        break;
+    }
+    current_pid_acct->probe_data->syscall_acct->in_use = 0;
+  }
+#endif
+  // Clear the cached pointer to the struct accounting.
+  current_pid_acct->probe_data->syscall_acct = NULL;
 
   preempt_enable();
   return 0;

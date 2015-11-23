@@ -163,46 +163,31 @@ void rscfl_subsys_exit(rscfl_subsys subsys_id)
     return;
   }
 
-  if (subsys_id == XENINTERRUPTS) {
-    // No need to keep running - this is a common operation that isn't crossing
-    // a subsystem boundary, so we don't want the overheads of all of the other
-    // stuff.
-    preempt_enable();
-    return;
-  }
   current_pid_acct->executing_probe = 1;
 
-  if (!should_acct()) {
-    current_pid_acct->executing_probe = 0;
-    preempt_enable();
-    return;
+  current_pid_acct->shared_buf->subsys_exits++;
+
+  // Now point at the frame of the subsystem being left.
+  *(current_pid_acct->subsys_ptr) = subsys_id;
+  current_pid_acct->subsys_ptr--;
+
+  err = get_subsys(subsys_id, &subsys_acct);
+  if (err) {
+    goto error;
   }
 
-  if ((current_pid_acct != NULL) &&
-      (current_pid_acct->probe_data->syscall_acct)) {
-    // This syscall is being accounted for.
-
-    // Now point at the frame of the subsystem being left.
-    *(current_pid_acct->subsys_ptr) = subsys_id;
-    current_pid_acct->subsys_ptr--;
-
-    err = get_subsys(subsys_id, &subsys_acct);
+  // Start counters again for the subsystem we're returning back to.
+  if (current_pid_acct->subsys_ptr > current_pid_acct->subsys_stack) {
+    err = get_subsys(current_pid_acct->subsys_ptr[-1], &prev_subsys_acct);
     if (err) {
       goto error;
     }
-
-    // Start counters again for the subsystem we're returning back to.
-    if (current_pid_acct->subsys_ptr > current_pid_acct->subsys_stack) {
-      err = get_subsys(current_pid_acct->subsys_ptr[-1], &prev_subsys_acct);
-      if (err) {
-        goto error;
-      }
-    } else {
-      clear_acct_next();
-    }
-    rscfl_counters_update_subsys_vals(subsys_acct, prev_subsys_acct);
-    // Update subsystem tracking data.
+  } else {
+    clear_acct_next();
   }
+  rscfl_counters_update_subsys_vals(subsys_acct, prev_subsys_acct);
+  // Update subsystem tracking data.
+
   current_pid_acct->executing_probe = 0;
   preempt_enable();
   return;

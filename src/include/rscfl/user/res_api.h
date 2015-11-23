@@ -177,8 +177,10 @@ int rscfl_get_token(rscfl_handle rhdl, rscfl_token_t **token);
  */
 int rscfl_free_token(rscfl_handle, rscfl_token_t *);
 
-#define rscfl_acct_next(rscfl_handle) rscfl_acct_next_token(rscfl_handle, NULL)
-int rscfl_acct_next_token(rscfl_handle, rscfl_token_t *token);
+#define rscfl_acct_next(rscfl_handle) _rscfl_acct_next(rscfl_handle, NULL, IST_DEFAULT)
+#define rscfl_acct_next_token(rscfl_handle, token) _rscfl_acct_next(rscfl_handle, token, IST_DEFAULT)
+#define rscfl_acct_next_fl(rscfl_handle, token, flags) _rscfl_acct_next(rscfl_handle, token, flags)
+int _rscfl_acct_next(rscfl_handle, rscfl_token_t *token, interest_flags fl);
 
 int rscfl_read_acct(rscfl_handle handle, struct accounting *acct);
 
@@ -251,6 +253,11 @@ subsys_idx_set* rscfl_get_new_aggregator(unsigned short no_subsystems);
 int rscfl_merge_acct_into(rscfl_handle rhdl, struct accounting *acct_from,
                           subsys_idx_set *aggregator_into);
 
+/*!
+ * \brief get the number of probes for which accounting took place and resets
+ *        the number to 0
+ */
+int rscfl_getreset_probe_exits(rscfl_handle rhdl);
 
 /*!
  * \brief free_subsys_idx_set: free memory once the user space is done using the

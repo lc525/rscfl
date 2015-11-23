@@ -292,7 +292,8 @@ int kamprobes_register(u8 **orig_addr, char sys_type, int (*pre_handler)(void),
   // put it in a register that we can trash (eg r11), and then move that
   // register to the top of the wrapper frame.
   if (!is_call_ins(orig_addr)) {
-    debugk("sys at %p, firstb: %#0x, wrapper @ %p\n", *orig_addr, **orig_addr, wrapper_fp - 8);
+    debugk("sys at %p, firstb: %#0x, wrapper @ %p\n", *orig_addr,
+           **orig_addr, wrapper_fp - 8);
     emit_mov_rsp_r11(&wrapper_end);
 
     // mov r11 wrapper_fp - 8

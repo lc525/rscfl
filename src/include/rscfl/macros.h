@@ -18,4 +18,12 @@
 
 #define NOT(x) 1-x
 
+#define EBIT(x) 1U << x
+#define ALL_EBITS(x) (1U << (x + 1)) - 1
+
+#ifndef __KERNEL__
+#define likely(x)       __builtin_expect(!!(x), 1)
+#define unlikely(x)     __builtin_expect(!!(x), 0)
 #endif
+
+#endif // _RSCFL_MACROS_H_

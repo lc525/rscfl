@@ -80,6 +80,8 @@ function(RSCFL_KBUILD MOD_NAME INCLUDES OUT_DIR SRC DEPS)
                               ${MODULE_OUTPUT_FILES}
                       COMMAND ${KBUILD_CMD}
                       COMMAND cp -f ${MODULE_BIN_FILE} ${PROJECT_BINARY_DIR}
+                      COMMAND find .. -path ../build -prune -o -name "*.o" -exec mv {} ${OUT_DIR} \;
+                      COMMAND find .. -path ../build -prune -o -name "*.cmd" -exec mv {} ${OUT_DIR} \;
                       DEPENDS ${_rscfl_srcf} ${DEPS}
                       COMMENT "Running kbuild for ${MODULE_BIN_FILE}"
                       VERBATIM )

@@ -6,6 +6,9 @@
 #ifndef _@PNAME@_CONFIG_H_
 #define _@PNAME@_CONFIG_H_
 
+#include <unistd.h>
+#include <sys/types.h>
+
 #ifndef NDEBUG
   @DEFINE_NDEBUG@
 #endif
@@ -28,6 +31,13 @@ static const char RSCFL_VERSION_TAG[] = "@TAG_VERSION@";
 static const char RSCFL_VERSION_STR[] = "@VERSION@";
 
 @DEFINE_VERSION_MISMATCH_POLICY@
+
+// resourceful configuration data structure
+struct rscfl_config {
+  pid_t monitored_pid; // pid of the process to monitor, set this to PID_SELF
+                       // for self-monitoring (the default)
+};
+typedef struct rscfl_config rscfl_config;
 
 // resourceful kernel module parameters:
 //

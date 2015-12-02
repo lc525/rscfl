@@ -13,6 +13,7 @@
 
 static struct cdev rscfl_data_cdev;
 static struct cdev rscfl_ctrl_cdev;
+static struct rscfl_config rscfl_current_config;
 
 struct device *rscfl_ctrl_device;
 
@@ -86,6 +87,11 @@ int _rscfl_dev_init(void)
 {
   int rc;
   struct device *dev;
+
+  // default rscfl configuration
+  rscfl_current_config.monitored_pid = RSCFL_PID_SELF;
+
+  // initialise devices
   debugk("Init data driver\n");
   rc = drv_init(RSCFL_DATA_MAJOR, RSCFL_DATA_MINOR, RSCFL_DATA_DRIVER, 0,
                 &data_fops, &rscfl_data_cdev, &data_class, &dev);
@@ -228,7 +234,12 @@ static int data_mmap(struct file *filp, struct vm_area_struct *vma)
     return rc;
   }
   pid_acct_node->subsys_ptr = pid_acct_node->subsys_stack;
-  pid_acct_node->pid = current->pid;
+  if(rscfl_current_config.monitored_pid == RSCFL_PID_SELF)
+    pid_acct_node->pid = current->pid;
+  else {
+    //TODO(lc525): check permissions!
+    pid_acct_node->pid = rscfl_current_config.monitored_pid;
+  }
   pid_acct_node->shared_buf = (rscfl_acct_layout_t *)shared_data_buf;
   pid_acct_node->shared_buf->subsys_exits = 0;
   pid_acct_node->probe_data = probe_data;
@@ -277,29 +288,36 @@ static int ctrl_mmap(struct file *filp, struct vm_area_struct *vma)
 
 static long rscfl_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
 {
-  rscfl_ioctl_t rscfl_arg;
-  copy_from_user(&rscfl_arg, (rscfl_ioctl_t *)arg, sizeof(rscfl_ioctl_t));
   switch (cmd) {
 #if SHDW_ENABLED != 0
-    case RSCFL_SHDW_CMD:
-      {
-        shdw_hdl shdw;
-        int rc;
-        shdw = rscfl_arg.swap_to_shdw;
-        rc = do_shdw_op(rscfl_arg.shdw_operation, &shdw, rscfl_arg.num_shdw_pages);
-        if (rc) {
-          return rc;
-        }
-        rscfl_arg.new_shdw_id = shdw;
-        copy_to_user((rscfl_ioctl_t *)arg, &rscfl_arg, sizeof(rscfl_ioctl_t));
-        return 0;
-        break;
+    case RSCFL_SHDW_CMD: {
+      rscfl_ioctl_t rscfl_arg;
+      copy_from_user(&rscfl_arg, (rscfl_ioctl_t *)arg, sizeof(rscfl_ioctl_t));
+      int rc;
+      shdw_hdl shdw;
+      shdw = rscfl_arg.swap_to_shdw;
+      rc = do_shdw_op(rscfl_arg.shdw_operation, &shdw, rscfl_arg.num_shdw_pages);
+      if (rc) {
+        return rc;
       }
+      rscfl_arg.new_shdw_id = shdw;
+      copy_to_user((rscfl_ioctl_t *)arg, &rscfl_arg, sizeof(rscfl_ioctl_t));
+      return 0;
+      break;
+    }
  #endif /* SHDW_ENABLED */
-    case RSCFL_SHUTDOWN_CMD:
+    case RSCFL_CONFIG_CMD: {
+      copy_from_user(&rscfl_current_config, (rscfl_config *)arg,
+                     sizeof(rscfl_config));
+      return 0;
+      break;
+    }
+
+    case RSCFL_SHUTDOWN_CMD: {
       do_module_shutdown();
       return 0;
       break;
+    }
   }
   return 0;
 }

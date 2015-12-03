@@ -237,7 +237,6 @@ static int data_mmap(struct file *filp, struct vm_area_struct *vma)
   if(rscfl_current_config.monitored_pid == RSCFL_PID_SELF)
     pid_acct_node->pid = current->pid;
   else {
-    //TODO(lc525): check permissions!
     pid_acct_node->pid = rscfl_current_config.monitored_pid;
   }
   pid_acct_node->shared_buf = (rscfl_acct_layout_t *)shared_data_buf;

@@ -6,7 +6,6 @@
 #ifndef _@PNAME@_CONFIG_H_
 #define _@PNAME@_CONFIG_H_
 
-#include <unistd.h>
 #include <sys/types.h>
 
 #ifndef NDEBUG

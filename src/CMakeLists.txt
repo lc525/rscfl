@@ -18,9 +18,10 @@ project(${PNAME} C CXX)
 # please use semantic versioning (semver.org)
 # - all releases with the same major version need to be compatible API-wise
 # - set PROJECT_TAG_VERSION to "" if you want no tags (the variable is needed)
-set(PROJECT_MAJOR_VERSION 0)
-set(PROJECT_MINOR_VERSION 9)
-set(PROJECT_PATCH_VERSION 1)
+set(PROJECT_MAJOR_VERSION 1)
+set(PROJECT_MINOR_VERSION 0)
+set(PROJECT_PATCH_VERSION 0)
+
 # data layout version. libraries and kernel modules with different data
 # layouts will not be able to communicate. this is not the same as MAJOR_VERSION
 # because you can modify the interface in non-backwards compatible ways but

@@ -43,7 +43,7 @@ __thread rscfl_handle handle = NULL;
 syscall_interest_t dummy_interest;
 #endif
 
-rscfl_handle rscfl_init_api(rscfl_version_t rscfl_ver)
+rscfl_handle rscfl_init_api(rscfl_version_t rscfl_ver, rscfl_config* config)
 {
   struct stat sb;
   void *ctrl, *buf;
@@ -77,6 +77,10 @@ rscfl_handle rscfl_init_api(rscfl_version_t rscfl_ver)
     goto error;
   }
   rhdl->fd_ctrl = fd_ctrl;
+
+  if(config != NULL) {
+    ioctl(rhdl->fd_ctrl, RSCFL_CONFIG_CMD, config);
+  }
 
   // mmap memory to store our struct accountings, and struct subsys_accountings
 
@@ -124,6 +128,7 @@ rscfl_handle rscfl_init_api(rscfl_version_t rscfl_ver)
     goto error;
   }
 
+  handle = rhdl;
   return rhdl;
 
 error:
@@ -192,7 +197,7 @@ int rscfl_free_token(rscfl_handle rhdl, rscfl_token_t *token)
   return 0;
 }
 
-int _rscfl_acct_next(rscfl_handle rhdl, rscfl_token_t *token, interest_flags fl)
+int rscfl_acct_next_api(rscfl_handle rhdl, rscfl_token_t *token, interest_flags fl)
 {
   syscall_interest_t *to_acct;
   if (rhdl == NULL) {
@@ -415,6 +420,7 @@ inline void rscfl_subsys_merge(struct subsys_accounting *e,
   rscfl_timespec_add(&e->sched.wct_out_local, &c->sched.wct_out_local);
   rscfl_timespec_add(&e->sched.xen_sched_wct, &c->sched.xen_sched_wct);
 
+  e->sched.run_delay               += c->sched.run_delay;
   e->sched.xen_schedules           += c->sched.xen_schedules;
   e->sched.xen_sched_cycles        += c->sched.xen_sched_cycles;
   e->sched.xen_blocks              += c->sched.xen_blocks;
@@ -464,6 +470,7 @@ int rscfl_spawn_shdw_for_pid(rscfl_handle rhdl)
 {
   rscfl_ioctl_t ioctl_arg = {0};
   ioctl_arg.shdw_operation = SPAWN_SWAP_ON_SCHED;
+  ioctl_arg.num_shdw_pages = -1;
   return ioctl(rhdl->fd_ctrl, RSCFL_SHDW_CMD, &ioctl_arg);
 }
 

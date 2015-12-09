@@ -153,11 +153,17 @@ typedef struct subsys_idx_set subsys_idx_set;
  */
 
 /*
- * rscfl_init is a macro so that we can do automatic API version checking.
- * the actual function being called is rscfl_init_api(...)
+ * rscfl_init is a macro so that we can do automatic API version checking, with
+ * default arguments. Depending on the number of arguments it receives,
+ * rscfl_init transforms into one of the rscfl_init_X functions (where X is the
+ * number of arguments).
+ *
+ * In each case, the actual function being called is rscfl_init_api(...).
  */
-#define rscfl_init() rscfl_init_api(RSCFL_VERSION)
-rscfl_handle rscfl_init_api(rscfl_version_t api_ver);
+#define rscfl_init(...) CONCAT(rscfl_init_, VARGS(__VA_ARGS__))(__VA_ARGS__)
+#define rscfl_init_0() rscfl_init_api(RSCFL_VERSION, NULL)
+#define rscfl_init_1(cfg) rscfl_init_api(RSCFL_VERSION, cfg)
+rscfl_handle rscfl_init_api(rscfl_version_t api_ver, rscfl_config* config);
 
 rscfl_handle rscfl_get_handle(void);
 
@@ -177,10 +183,11 @@ int rscfl_get_token(rscfl_handle rhdl, rscfl_token_t **token);
  */
 int rscfl_free_token(rscfl_handle, rscfl_token_t *);
 
-#define rscfl_acct_next(rscfl_handle) _rscfl_acct_next(rscfl_handle, NULL, IST_DEFAULT)
-#define rscfl_acct_next_token(rscfl_handle, token) _rscfl_acct_next(rscfl_handle, token, IST_DEFAULT)
-#define rscfl_acct_next_fl(rscfl_handle, token, flags) _rscfl_acct_next(rscfl_handle, token, flags)
-int _rscfl_acct_next(rscfl_handle, rscfl_token_t *token, interest_flags fl);
+#define rscfl_acct_next(...) CONCAT(rscfl_acct_next_, VARGS(__VA_ARGS__))(__VA_ARGS__)
+#define rscfl_acct_next_1(handle) rscfl_acct_next_api(handle, NULL, IST_DEFAULT)
+#define rscfl_acct_next_2(handle, token) rscfl_acct_next_api(handle, token, IST_DEFAULT)
+#define rscfl_acct_next_3(handle, token, fl) rscfl_acct_next_api(handle, token, fl)
+int rscfl_acct_next_api(rscfl_handle, rscfl_token_t *token, interest_flags fl);
 
 int rscfl_read_acct(rscfl_handle handle, struct accounting *acct);
 

@@ -6,7 +6,11 @@
 #ifndef _@PNAME@_CONFIG_H_
 #define _@PNAME@_CONFIG_H_
 
-#include <sys/types.h>
+#ifdef __KERNEL__
+  #include <linux/types.h>
+#else
+  #include <sys/types.h>
+#endif
 
 #ifndef NDEBUG
   @DEFINE_NDEBUG@
@@ -33,8 +37,21 @@ static const char RSCFL_VERSION_STR[] = "@VERSION@";
 
 // resourceful configuration data structure
 struct rscfl_config {
-  pid_t monitored_pid; // pid of the process to monitor, set this to PID_SELF
-                       // for self-monitoring (the default)
+  pid_t monitored_pid; // pid of the process to monitor, set this to
+                       // RSCFL_PID_SELF for self-monitoring (the default)
+
+  short kernel_agg;    // Set this to 1 to enable kernel-side aggregation
+                       // for all rscfl_acct_next calls with the same token.
+                       // this is normally useful in conjunction with the
+                       // IST_START and IST_STOP flags passed to
+                       // rscfl_acct_next, but can be used separately as well.
+                       //
+                       // When setting kernel_agg to 1, one shouldn't need
+                       // to perform a rscfl_acct_read after every
+                       // rscfl_acct_next. The default is 1 (enabled)
+
+  //TODO(lc525): enable probe configuration so that the application can add
+  //             their own probing points
 };
 typedef struct rscfl_config rscfl_config;
 

@@ -134,6 +134,8 @@ typedef struct rscfl_ioctl rscfl_ioctl_t;
 #ifdef __cplusplus
 extern "C" {
 #endif
+void rscfl_init_default_config(rscfl_config* default_cfg);
+
 ru64 rscfl_get_cycles(void);
 void rscfl_timespec_add(struct timespec *to, const struct timespec *from);
 void rscfl_timespec_add_ns(struct timespec *to, const ru64 from);

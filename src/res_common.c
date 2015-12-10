@@ -1,5 +1,10 @@
 #include "rscfl/res_common.h"
 
+void rscfl_init_default_config(rscfl_config* default_cfg){
+  default_cfg->monitored_pid = RSCFL_PID_SELF;
+  default_cfg->kernel_agg = 1;
+}
+
 ru64 rscfl_get_cycles(void)
 {
   unsigned int hi, lo;

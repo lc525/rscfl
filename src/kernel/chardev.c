@@ -89,7 +89,7 @@ int _rscfl_dev_init(void)
   struct device *dev;
 
   // default rscfl configuration
-  rscfl_current_config.monitored_pid = RSCFL_PID_SELF;
+  rscfl_init_default_config(&rscfl_current_config);
 
   // initialise devices
   debugk("Init data driver\n");

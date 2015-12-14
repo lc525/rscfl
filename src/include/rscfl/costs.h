@@ -30,20 +30,12 @@
 
 #define RSCFL_ACCT_USE_BIT 0
 
-/* The resource enum, together with the cost_bitmap structure, lets the end-user
- * quickly identify what kernel modules were touched when a syscall was made.
- * The corresponding acct_*** structures will be present in the accounting data
- * structure.
- *
- * A logical OR of resource members can also be explicitly passed by the user
- * when registering interest in system call resource accounting, as a filter.
+/*
+ *typedef struct
+ *{
+ *  unsigned long id;
+ *} rscfl_syscall_id_t;
  */
-
-typedef struct
-{
-  unsigned long id;
-  pid_t pid;
-} rscfl_syscall_id_t;
 
 /* acct_*** data structures.
  *
@@ -122,7 +114,8 @@ struct accounting
    * userspace.
    */
   volatile int rc;
-  rscfl_syscall_id_t syscall_id;
+  int token;
+  unsigned long syscall_id;
   // Indexes into offsets from the start of the subsys section of
   // rscfl_pid_page->buf.
   short acct_subsys[NUM_SUBSYSTEMS];

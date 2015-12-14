@@ -6,6 +6,7 @@
 #include "linux/time.h"
 #include "linux/workqueue.h"
 
+#include "rscfl/kernel/acct.h"
 #include "rscfl/kernel/cpu.h"
 #include "rscfl/kernel/perf.h"
 #include "rscfl/kernel/priv_kallsyms.h"
@@ -14,8 +15,6 @@
 #include "rscfl/kernel/xen.h"
 #include "rscfl/res_common.h"
 
-
-DEFINE_HASHTABLE(tokens, TOKENS_HASH_BUCKETS);
 
 /*
  * Some extra, useful counters
@@ -60,7 +59,6 @@ int rscfl_counters_update_subsys_vals(struct subsys_accounting *add_subsys,
   //struct timespec time = rscfl_get_timestamp();
   int subsys_err;
   syscall_interest_t *interest;
-  struct rscfl_kernel_token *tbl_token;
 
   preempt_disable();
   current_pid_acct = CPU_VAR(current_acct);
@@ -99,14 +97,8 @@ int rscfl_counters_update_subsys_vals(struct subsys_accounting *add_subsys,
     }
 
     // Update tail if we have a token.
-    hash_for_each_possible(tokens, tbl_token, link, interest->token)
-    {
-      if (interest->token != tbl_token->id) {
-        continue;
-      }
-      tl = tbl_token->val;
-      tbl_token->val = hd;
-    }
+    tl = current_pid_acct->active_token->val;
+    current_pid_acct->active_token->val = hd;
 
     for (; hd != tl; tl = (tl + 1) % CURRENT_XEN_NUM_EVENTS) {
       event_page = (sched_event_t *)rscfl_pages[tl / XEN_EVENTS_PER_PAGE];
@@ -119,6 +111,7 @@ int rscfl_counters_update_subsys_vals(struct subsys_accounting *add_subsys,
 
         // Check the number of credits for the VCPU, and update min/max as
         // required.
+        // TODO(lc525): min/max is useless, find different measures
         add_subsys->sched.xen_credits_min =
             min(add_subsys->sched.xen_credits_min, (int)event->credit);
         add_subsys->sched.xen_credits_max =

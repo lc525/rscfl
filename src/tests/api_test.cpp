@@ -177,8 +177,8 @@ TEST_F(APITest, MergeHypervisorMinCreditsGivesSmallestValue)
 
 TEST_F(APITest, SubsequentGetTokensHaveUniqueValues)
 {
-  rscfl_token_t *token_a;
-  rscfl_token_t *token_b;
+  rscfl_token *token_a;
+  rscfl_token *token_b;
   ASSERT_EQ(0, rscfl_get_token(rhdl_, &token_a));
   ASSERT_EQ(0, rscfl_get_token(rhdl_, &token_b));
 
@@ -189,7 +189,7 @@ TEST_F(APITest, SubsequentGetTokensHaveUniqueValues)
 TEST_F(APITest, MultipleGetTokensSucceedOrFailGracefully)
 {
   int rc;
-  rscfl_token_t *token;
+  rscfl_token *token;
   for (int i = 0; i < 20; i++) {
     rc = rscfl_get_token(rhdl_, &token);
     if ((rc != 0 ) && (rc != -EAGAIN)) {
@@ -207,7 +207,7 @@ TEST_F(APITest, MultipleGetTokensSucceedOrFailGracefully)
 TEST_F(APITest, TokenIDNotZero)
 {
   int rc;
-  rscfl_token_t *token;
+  rscfl_token *token;
   for (int i = 0; i < 20; i++) {
     rc = rscfl_get_token(rhdl_, &token);
     ASSERT_EQ(rc, 0);

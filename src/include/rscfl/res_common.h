@@ -36,8 +36,10 @@
  */
 #define STRUCT_ACCT_NUM 13
 #define ACCT_SUBSYS_RATIO 8   // assume one syscall touches ~ 5 subsystems
+#define MAX_TOKENS 64
 #define NUM_READY_TOKENS 10   // Number of tokens that the kernel can prepare
                               // in advance.
+#define NO_TOKEN -15
 
 #ifndef PAGE_SIZE
 #define PAGE_SIZE 4096
@@ -61,6 +63,7 @@
 #define RSCFL_SHDW_CMD _IOWR('R', 0x2F, struct rscfl_ioctl)
 #define RSCFL_CONFIG_CMD _IOW('R', 0x30, struct rscfl_config)
 #define RSCFL_SHUTDOWN_CMD _IO('R', 0x31)
+#define RSCFL_NEW_TOKENS_CMD _IO('R', 0x32)
 
 /*
  * Shadow kernels.
@@ -81,6 +84,12 @@ typedef struct rscfl_acct_layout_t rscfl_acct_layout_t;
  */
 
 typedef enum {
+  ID_RSCFL_IGNORE = -250,
+  ID_RSCFL_STOP  = -249,
+  ID_RSCFL_RESET = -1
+} syscall_special_id;
+
+typedef enum {
   IST_DEFAULT      = 0,
   IST_START        = EBIT(0),     // TODO(lc525) Not implemented
   IST_STOP         = EBIT(1),     // TODO(lc525) Not implemented
@@ -95,11 +104,12 @@ typedef enum {
                                   // interest (no kernel-side effects)
 } interest_flags;
 
+
+
 struct syscall_interest_t
 {
   unsigned long syscall_id;
-  int syscall_nr;
-  int token;
+  int token_id;
   int tail_ix;
   interest_flags flags;
   shdw_hdl use_shdw;
@@ -112,8 +122,10 @@ struct rscfl_ctrl_layout_t
 {
   unsigned int version;
   syscall_interest_t interest;
-  int new_tokens[NUM_READY_TOKENS];
-  int num_new_tokens;
+  rscfl_config config;
+
+  int avail_token_ids[NUM_READY_TOKENS];
+  int num_avail_token_ids;
 };
 typedef struct rscfl_ctrl_layout_t rscfl_ctrl_layout_t;
 

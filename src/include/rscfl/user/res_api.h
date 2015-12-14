@@ -66,7 +66,6 @@ extern "C" {
 /* array containing the user-friendly names of each subsystem */
 extern const char *rscfl_subsys_name[NUM_SUBSYSTEMS];
 
-
 /*
  * Resourceful tokens allow us to track the resources consumed by a request
  * when it is not in the kernel. This can be in userspace or in the hypervisor.
@@ -76,16 +75,17 @@ extern const char *rscfl_subsys_name[NUM_SUBSYSTEMS];
  */
 struct rscfl_token {
   int id;
-  _Bool reset_count;
+  _Bool first_acct;
 };
-typedef struct rscfl_token rscfl_token_t;
+typedef struct rscfl_token rscfl_token;
 
 
 struct rscfl_token_list {
-  rscfl_token_t *token;
+  rscfl_token *token;
   struct rscfl_token_list *next;
 };
-typedef struct rscfl_token_list rscfl_token_list_t;
+typedef struct rscfl_token_list rscfl_token_list;
+
 
 /*
  * rscfl_handle_t* (typedef-ed to rscfl_handle) represents the user-space
@@ -95,7 +95,7 @@ typedef struct rscfl_token_list rscfl_token_list_t;
  */
 struct rscfl_handle_t {
   char *buf;
-  rscfl_syscall_id_t lst_syscall;
+  unsigned long lst_syscall_id;
   rscfl_ctrl_layout_t *ctrl;
   /*
    * Rscfl generates a pool of tokens that can be used by userspace without
@@ -103,8 +103,8 @@ struct rscfl_handle_t {
    * This pool is replenished whenever there is a system call that finds a
    * reduction in the number of free tokens.
    */
-  rscfl_token_t *fresh_tokens[NUM_READY_TOKENS];
-  rscfl_token_list_t *reuseable_tokens;
+  //rscfl_token *fresh_tokens[NUM_READY_TOKENS];
+  rscfl_token_list *free_token_list;
   int ready_token_sp;
   int fd_ctrl;
 };
@@ -153,6 +153,8 @@ typedef struct subsys_idx_set subsys_idx_set;
  */
 
 /*
+ * \brief initialises the resourceful API. call once on every app thread.
+ *
  * rscfl_init is a macro so that we can do automatic API version checking, with
  * default arguments. Depending on the number of arguments it receives,
  * rscfl_init transforms into one of the rscfl_init_X functions (where X is the
@@ -163,6 +165,14 @@ typedef struct subsys_idx_set subsys_idx_set;
 #define rscfl_init(...) CONCAT(rscfl_init_, VARGS(__VA_ARGS__))(__VA_ARGS__)
 #define rscfl_init_0() rscfl_init_api(RSCFL_VERSION, NULL)
 #define rscfl_init_1(cfg) rscfl_init_api(RSCFL_VERSION, cfg)
+/*
+ * \brief do not call directly. use the rscfl_init(...) macro instead.
+ *
+ * \param api_ver the version of the API. automatically set by the rscfl_init
+ *                macro to RSCFL_VERSION
+ * \param cfg     rscfl configuration. use the same configuration for all
+ *                threads in one application
+ */
 rscfl_handle rscfl_init_api(rscfl_version_t api_ver, rscfl_config* config);
 
 rscfl_handle rscfl_get_handle(void);
@@ -175,19 +185,24 @@ rscfl_handle rscfl_get_handle(void);
  * by the system whilst it has been scheduled out by the scheduler or
  * hypervisor.
  */
-int rscfl_get_token(rscfl_handle rhdl, rscfl_token_t **token);
+int rscfl_get_token(rscfl_handle rhdl, rscfl_token **token);
+
+int rscfl_switch_token(rscfl_handle rhdl, rscfl_token *token_to);
 
 /*
  * Returns an int as we put the token on a reuse list. Allocation of
  * memory to put the element on the list may fail.
  */
-int rscfl_free_token(rscfl_handle, rscfl_token_t *);
+int rscfl_free_token(rscfl_handle, rscfl_token *);
 
+/*
+ *
+ */
 #define rscfl_acct_next(...) CONCAT(rscfl_acct_next_, VARGS(__VA_ARGS__))(__VA_ARGS__)
 #define rscfl_acct_next_1(handle) rscfl_acct_next_api(handle, NULL, IST_DEFAULT)
 #define rscfl_acct_next_2(handle, token) rscfl_acct_next_api(handle, token, IST_DEFAULT)
 #define rscfl_acct_next_3(handle, token, fl) rscfl_acct_next_api(handle, token, fl)
-int rscfl_acct_next_api(rscfl_handle, rscfl_token_t *token, interest_flags fl);
+int rscfl_acct_next_api(rscfl_handle, rscfl_token *token, interest_flags fl);
 
 int rscfl_read_acct(rscfl_handle handle, struct accounting *acct);
 

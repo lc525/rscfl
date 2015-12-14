@@ -10,10 +10,6 @@
 #include "rscfl/kernel/measurement.h"
 #include "rscfl/kernel/xen.h"
 
-//TODO(oc243): make thread safe.
-static int num_tokens = 1;
-static _Bool init;
-
 static struct accounting *alloc_acct(pid_acct *current_pid_acct)
 {
   rscfl_acct_layout_t *rscfl_shared_mem = current_pid_acct->shared_buf;
@@ -31,7 +27,7 @@ static struct accounting *alloc_acct(pid_acct *current_pid_acct)
   }
   acct_buf->in_use = 1;
   acct_buf->nr_subsystems = 0;
-  acct_buf->syscall_id.id = current_pid_acct->ctrl->interest.syscall_id;
+  acct_buf->syscall_id = current_pid_acct->ctrl->interest.syscall_id;
   // Initialise the subsys_accounting indices to -1, as they are used
   // to index an array, so 0 is valid.
   memset(acct_buf->acct_subsys, -1, sizeof(short) * NUM_SUBSYSTEMS);
@@ -43,8 +39,6 @@ int should_acct(void)
 {
   syscall_interest_t *interest;
   pid_acct *current_pid_acct;
-  int i;
-  struct rscfl_kernel_token *tbl_token;
 
   preempt_disable();
   current_pid_acct = CPU_VAR(current_acct);
@@ -74,49 +68,24 @@ int should_acct(void)
     return 1;
   }
 
-  if ((interest->token == 0) || (interest->start_measurement)) {
-    // Update buffer head.
-    hash_for_each_possible(tokens, tbl_token, link, interest->token) {
-      if (interest->token != tbl_token->id) {
-        continue;
-      }
-      tbl_token->val = xen_buffer_hd();
-    }
-  }
-
   current_pid_acct->probe_data->syscall_acct = alloc_acct(current_pid_acct);
 
-  if (!init) {
-    hash_init(tokens);
-    init = 1;
-  }
-
-  for (i = 0; i < current_pid_acct->ctrl->num_new_tokens; i++) {
-    struct rscfl_kernel_token *token =
-        kzalloc(GFP_KERNEL, sizeof(struct rscfl_kernel_token));
-    // If we can't allocate a token it isn't the end of the world - we don't
-    // promise to be able to. So keep going.
-    if (token == NULL) {
-      break;
+  if(interest->start_measurement) {
+    rscfl_kernel_token *tk;
+    if ((interest->token_id == NO_TOKEN)) {
+      tk = current_pid_acct->default_token;
+    } else {
+      tk = current_pid_acct->token_ix[interest->token_id];
     }
-    token->id = num_tokens++;
-    hash_add(tokens, &token->link, token->id);
-    current_pid_acct->ctrl->new_tokens[i] = token->id;
+    tk->val = xen_buffer_hd();
+    tk->account = current_pid_acct->probe_data->syscall_acct;
+    current_pid_acct->active_token = tk;
   }
-  current_pid_acct->ctrl->num_new_tokens = 0;
 
   preempt_enable();
   return 1;
 }
 
-/**
- * if syscall_nr==-1 then all resource consumption requests for the given pid
- * are cleared.
- *
- * if pid==-1 then syscall_nr will be cleared regardless of its associated pid
- *
- * if pid==-1 && syscall_nr==-1 then the resource consumption list is cleared
- **/
 int clear_acct_next(void)
 {
   pid_acct *current_pid_acct;
@@ -126,8 +95,6 @@ int clear_acct_next(void)
 
   current_pid_acct = CPU_VAR(current_acct);
   interest = &current_pid_acct->ctrl->interest;
-  // Reset the interest so we stop accounting.
-  interest->syscall_id = 0;
 #ifdef RSCFL_BENCH
   // clear the acct/subsys memory if the IST_CLEAR_FLAG was set
   //
@@ -148,8 +115,31 @@ int clear_acct_next(void)
     current_pid_acct->probe_data->syscall_acct->in_use = 0;
   }
 #endif
-  // Clear the cached pointer to the struct accounting.
-  current_pid_acct->probe_data->syscall_acct = NULL;
+  // If not a multi-syscall interest or if issued an explicit stop, reset the
+  // interest so we stop accounting.
+  if((interest->flags & IST_START) == 0 ||
+     (interest->flags & IST_STOP ) != 0) {
+    interest->syscall_id = 0;
+  }
+
+  // If we're not aggregating in kernel-space, clear the cached pointer to the
+  // struct accounting.
+  if(current_pid_acct->ctrl->config.kernel_agg != 1) {
+    current_pid_acct->probe_data->syscall_acct = NULL;
+    current_pid_acct->active_token->account = NULL;
+  }
+
+  // Consider token changes in user-space. If the user changes the token,
+  // this will be reflected kernel-side after any ongoing system calls
+  // have finished executing (and we have finished recording accounting data
+  // for them)
+  if(unlikely(current_pid_acct->active_token->id != interest->token_id)){
+    //swap tokens and the currently active syscall_acct
+    current_pid_acct->active_token =
+      current_pid_acct->token_ix[interest->token_id];
+    current_pid_acct->probe_data->syscall_acct =
+      current_pid_acct->token_ix[interest->token_id]->account;
+  }
 
   preempt_enable();
   return 0;

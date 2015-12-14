@@ -41,15 +41,8 @@
  *        //do stuff with pid_acct *it
  */
 
-//TODO(lc525): move kprobe_priv into one of the kprobe headers once jas250
-//merges the kprobe API
-//
 // kprobe_priv stores probe counter snapshots so that one can determine
 // the resource consumption between subsystem crossing boundaries.
-//
-// nest_level is incremented on probing nested functions. It is initially 0 and
-// the application request for measuring the resources consumed by a system call
-// is considered completed when nest_level returns to 0.
 struct probe_priv {
   struct accounting *syscall_acct;
   long cycles;
@@ -66,8 +59,11 @@ struct pid_acct {
   rscfl_subsys subsys_stack[SUBSYS_STACK_HEIGHT];
   rscfl_subsys *subsys_ptr;
   _Bool executing_probe;
-  struct hlist_node tokens;
+  struct rscfl_kernel_token *default_token;
+  struct rscfl_kernel_token *token_ix[MAX_TOKENS];
+  struct rscfl_kernel_token *active_token;
   unsigned short num_tokens;
+  unsigned short next_ctrl_token;
   int shdw_kernel;
   int shdw_pages;
 };

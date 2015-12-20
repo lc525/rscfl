@@ -279,6 +279,8 @@ static int ctrl_mmap(struct file *filp, struct vm_area_struct *vma)
   ctrl_layout = (rscfl_ctrl_layout_t *)shared_ctrl_buf;
   ctrl_layout->version = RSCFL_VERSION.data_layout;
   ctrl_layout->config = rscfl_user_config;
+  ctrl_layout->interest.token_id = NO_TOKEN;
+  ctrl_layout->interest.first_measurement = 1;
 
   // We need to store the address of the control page for the pid, so we
   // can see when an interest is raised.

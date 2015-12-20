@@ -24,7 +24,7 @@ class CyclesTest : public testing::Test
   {
     rhdl_ = rscfl_init();
     ASSERT_NE(nullptr, rhdl_);
-    ASSERT_EQ(0, rscfl_acct_next(rhdl_));
+    ASSERT_EQ(0, rscfl_acct(rhdl_));
 
     ru64 val_pre = test_get_cycles();
     sockfd_ = socket(AF_LOCAL, SOCK_RAW, 0);

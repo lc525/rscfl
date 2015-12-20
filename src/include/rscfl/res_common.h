@@ -34,12 +34,13 @@
  *    sizeof(struct subsys_accounting) = 72
  *
  */
-#define STRUCT_ACCT_NUM 13
+#define STRUCT_ACCT_NUM 30
 #define ACCT_SUBSYS_RATIO 8   // assume one syscall touches ~ 5 subsystems
 #define MAX_TOKENS 64
 #define NUM_READY_TOKENS 10   // Number of tokens that the kernel can prepare
                               // in advance.
 #define NO_TOKEN -15
+#define RSCFL_SYSCALL_ID_OFFSET 10
 
 #ifndef PAGE_SIZE
 #define PAGE_SIZE 4096
@@ -84,24 +85,30 @@ typedef struct rscfl_acct_layout_t rscfl_acct_layout_t;
  */
 
 typedef enum {
-  ID_RSCFL_IGNORE = -250,
-  ID_RSCFL_STOP  = -249,
-  ID_RSCFL_RESET = -1
+  ID_RSCFL_IGNORE = 1,
+  ID_NO_ACCT  = 2,
+  ID_RSCFL_RESET = 3,
 } syscall_special_id;
 
 typedef enum {
-  IST_DEFAULT      = 0,
-  IST_START        = EBIT(0),     // TODO(lc525) Not implemented
-  IST_STOP         = EBIT(1),     // TODO(lc525) Not implemented
+  IST_DEFAULT      = EBIT(0),     // by default, you get IST_NEXT behavior
+  IST_NEXT         = EBIT(0),     // one-shot; account for the next syscall
+  IST_START        = EBIT(1),     // start accounting
+  IST_STOP         = EBIT(2),     // stop accounting
 
-  IST_CLEAR_ACCT   = EBIT(2),     // For benchmarking: compute but don't
-                                  // actually store accounting data.
-                                  // This automatically clears ("reads")
-                                  // the acct data structures.
+  __BENCH_INTERNAL_CLR   = EBIT(3), // For benchmarking: compute but don't
+                                    // actually store accounting data.
+                                    // This automatically clears ("reads")
+                                    // the acct data structures.
 
-  IST_KNOP          = EBIT(3),    // For benchmarking calibration: run
+  IST_KNOP          = EBIT(4),    // For benchmarking calibration: run
                                   // acct_next but don't actually express
                                   // interest (no kernel-side effects)
+
+  IST_RESET         = EBIT(5),    // Reset the accounting that corresponds
+                                  // to the currently active token.
+                                  // Also clears the corresponding subsystem
+                                  // data.
 } interest_flags;
 
 
@@ -109,12 +116,13 @@ typedef enum {
 struct syscall_interest_t
 {
   unsigned long syscall_id;
-  int token_id;
+  short token_id;
   int tail_ix;
   interest_flags flags;
   shdw_hdl use_shdw;
   int shdw_pages;
-  _Bool start_measurement;
+  _Bool first_measurement;
+  _Bool token_swapped;
 };
 typedef struct syscall_interest_t syscall_interest_t;
 

@@ -117,6 +117,7 @@ rscfl_handle rscfl_init_api(rscfl_version_t rscfl_ver, rscfl_config* config)
     goto error;
   }
 
+  rhdl->lst_syscall_id = RSCFL_SYSCALL_ID_OFFSET;
   handle = rhdl;
   return rhdl;
 
@@ -133,10 +134,10 @@ error:
   return NULL;
 }
 
-rscfl_handle rscfl_get_handle(void)
+rscfl_handle rscfl_get_handle_api(rscfl_config *cfg)
 {
   if (handle == NULL) {
-    handle = rscfl_init();
+    handle = rscfl_init(cfg);
   }
   return handle;
 }
@@ -203,7 +204,20 @@ int rscfl_get_token(rscfl_handle rhdl, rscfl_token **token)
 }
 
 int rscfl_switch_token(rscfl_handle rhdl, rscfl_token *token_to){
-  rhdl->ctrl->interest.token_id = token_to->id;
+  unsigned short new_id;
+  if(token_to == NULL) {
+    new_id = NO_TOKEN;
+  } else {
+    new_id = token_to->id;
+  }
+  if(rhdl->ctrl->interest.token_id != new_id){
+    printf("RSCFL SWAP: old_tk_id:%d, new_tk_id:%d\n", rhdl->ctrl->interest.token_id, new_id);
+    rhdl->ctrl->interest.token_id = new_id;
+    rhdl->ctrl->interest.token_swapped = 1;
+    return 0;
+  } else {
+    return 1; // no switch necessary, token_to already active
+  }
 }
 
 int rscfl_free_token(rscfl_handle rhdl, rscfl_token *token)
@@ -212,6 +226,7 @@ int rscfl_free_token(rscfl_handle rhdl, rscfl_token *token)
   if ((rhdl == NULL) || (token == NULL)) {
     return -EINVAL;
   }
+  printf("FREE TK_id:%d\n", token->id);
   new_hd = (rscfl_token_list *)malloc(sizeof(rscfl_token_list));
   if (new_hd == NULL) {
     return -ENOMEM;
@@ -222,9 +237,11 @@ int rscfl_free_token(rscfl_handle rhdl, rscfl_token *token)
   return 0;
 }
 
-int rscfl_acct_next_api(rscfl_handle rhdl, rscfl_token *token, interest_flags fl)
+int rscfl_acct_api(rscfl_handle rhdl, rscfl_token *token, interest_flags fl)
 {
   syscall_interest_t *to_acct;
+  int old_token_id;
+  _Bool rst;
   if (rhdl == NULL) {
     return -EINVAL;
   }
@@ -237,38 +254,58 @@ int rscfl_acct_next_api(rscfl_handle rhdl, rscfl_token *token, interest_flags fl
   to_acct = &rhdl->ctrl->interest;
 #endif
   to_acct->flags = fl;
+  old_token_id = to_acct->token_id;
+  printf("RSCFL ACCT: old_tk_id:%d, new_tk_id:%d\n", old_token_id, token->id);
 
-  if(fl & IST_START != 0) {
+  if((fl & IST_START) != 0) {
     to_acct->syscall_id = ID_RSCFL_IGNORE;
   }
-  else if(fl & IST_STOP != 0) {
-    to_acct->syscall_id = ID_RSCFL_STOP;
+  else if((fl & IST_STOP) != 0) {
+    to_acct->syscall_id = 0;
+    return 0;
   } else {
     to_acct->syscall_id = ++rhdl->lst_syscall_id;
   }
+  rst = ((fl & IST_RESET) != 0);
+
   if (token != NULL) {
-    to_acct->start_measurement = token->first_acct;
+    to_acct->first_measurement = token->first_acct | rst;
     token->first_acct = 0;
     to_acct->token_id = token->id;
   } else {
-    to_acct->start_measurement = 1;
+    if((fl & IST_NEXT) != 0)
+      to_acct->first_measurement = 1;
+    else
+      to_acct->first_measurement = rst;
     to_acct->token_id = NO_TOKEN;
   }
+
+  if(old_token_id != to_acct->token_id) to_acct->token_swapped = 1;
   return 0;
 }
 
-int rscfl_read_acct(rscfl_handle rhdl, struct accounting *acct)
+int rscfl_read_acct_api(rscfl_handle rhdl, struct accounting *acct, rscfl_token *token)
 {
   int i = 0;
+  unsigned short tk_id;
   if (rhdl == NULL) {
     return -EINVAL;
   }
 
+  if(token == NULL) {
+    tk_id = rhdl->ctrl->interest.token_id;
+  }
+  else
+    tk_id = token->id;
+
   struct accounting *shared_acct = (struct accounting *)rhdl->buf;
+  printf("READ for: tk_id=%d\n", shared_acct->token_id);
   if (shared_acct != NULL) {
     while (i < STRUCT_ACCT_NUM) {
       if (shared_acct->in_use == 1) {
-        if (shared_acct->syscall_id == rhdl->lst_syscall_id) {
+        printf("\tid=%lu, tk_id=%d\n", shared_acct->syscall_id, shared_acct->token_id);
+        if ((shared_acct->syscall_id == rhdl->lst_syscall_id) ||
+            (shared_acct->syscall_id == ID_RSCFL_IGNORE && shared_acct->token_id == tk_id)) {
           memcpy(acct, shared_acct, sizeof(struct accounting));
           shared_acct->in_use = 0;
           return shared_acct->rc;

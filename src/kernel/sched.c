@@ -135,14 +135,15 @@ void on_task_exit(void *ignore, struct task_struct *p)
   for_each_present_cpu(cpu_id) {
     hash_for_each_possible(per_cpu(pid_acct_tbl, cpu_id), it, link, pid) {
       if(it->pid == pid) {
+        CPU_VAR(current_acct) = NULL;
+        hash_del(&it->link);
         // Freeing the probe_data prevents the rscfl_handle from being reused
         // on other threads. We should _at least_ reset it or provide an option
         // to clean it from the API.
-        //
         // However, right now we don't have support for handle reuse, so we'll
         // free it here (on thread exit)
-        // if(it->probe_data) kfree(it->probe_data);
-        hash_del(&it->link);
+        if(it->probe_data) kfree(it->probe_data);
+        kfree(it);
         break;
       }
     }

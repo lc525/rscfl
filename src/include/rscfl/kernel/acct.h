@@ -5,7 +5,7 @@
 
 struct rscfl_kernel_token
 {
-  int id;
+  short id;
   int val;
   struct accounting* account;
 };

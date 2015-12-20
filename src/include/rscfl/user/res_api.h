@@ -74,7 +74,7 @@ extern const char *rscfl_subsys_name[NUM_SUBSYSTEMS];
  * throughout the entire request.
  */
 struct rscfl_token {
-  int id;
+  unsigned short id;
   _Bool first_acct;
 };
 typedef struct rscfl_token rscfl_token;
@@ -105,7 +105,7 @@ struct rscfl_handle_t {
    */
   //rscfl_token *fresh_tokens[NUM_READY_TOKENS];
   rscfl_token_list *free_token_list;
-  int ready_token_sp;
+  //int ready_token_sp;
   int fd_ctrl;
 };
 typedef struct rscfl_handle_t *rscfl_handle;
@@ -175,7 +175,15 @@ typedef struct subsys_idx_set subsys_idx_set;
  */
 rscfl_handle rscfl_init_api(rscfl_version_t api_ver, rscfl_config* config);
 
-rscfl_handle rscfl_get_handle(void);
+#define rscfl_get_handle(...) CONCAT(rscfl_get_handle_, VARGS(__VA_ARGS__))(__VA_ARGS__)
+#define rscfl_get_handle_0() rscfl_get_handle_api(NULL)
+#define rscfl_get_handle_1(cfg) rscfl_get_handle_api(cfg)
+/* \brief Returns the rscfl handle for the current thread. If rscfl was not
+ * initialised on the thread, it will perform the initialisation with config
+ * cfg. If rscfl is already initialised, new configurations _WILL NOT_ be
+ * applied.
+ */
+rscfl_handle rscfl_get_handle_api(rscfl_config *cfg);
 
 /*
  * If successful returns 0, and sets the value of *token to be a new token.
@@ -198,13 +206,16 @@ int rscfl_free_token(rscfl_handle, rscfl_token *);
 /*
  *
  */
-#define rscfl_acct_next(...) CONCAT(rscfl_acct_next_, VARGS(__VA_ARGS__))(__VA_ARGS__)
-#define rscfl_acct_next_1(handle) rscfl_acct_next_api(handle, NULL, IST_DEFAULT)
-#define rscfl_acct_next_2(handle, token) rscfl_acct_next_api(handle, token, IST_DEFAULT)
-#define rscfl_acct_next_3(handle, token, fl) rscfl_acct_next_api(handle, token, fl)
-int rscfl_acct_next_api(rscfl_handle, rscfl_token *token, interest_flags fl);
+#define rscfl_acct(...) CONCAT(rscfl_acct_, VARGS(__VA_ARGS__))(__VA_ARGS__)
+#define rscfl_acct_1(handle) rscfl_acct_api(handle, NULL, IST_DEFAULT)
+#define rscfl_acct_2(handle, token) rscfl_acct_api(handle, token, IST_DEFAULT)
+#define rscfl_acct_3(handle, token, fl) rscfl_acct_api(handle, token, fl)
+int rscfl_acct_api(rscfl_handle, rscfl_token *token, interest_flags fl);
 
-int rscfl_read_acct(rscfl_handle handle, struct accounting *acct);
+#define rscfl_read_acct(...) CONCAT(rscfl_read_acct_, VARGS(__VA_ARGS__))(__VA_ARGS__)
+#define rscfl_read_acct_2(handle, acct) rscfl_read_acct_api(handle, acct, NULL)
+#define rscfl_read_acct_3(handle, acct, token) rscfl_read_acct_api(handle, acct, token)
+int rscfl_read_acct_api(rscfl_handle handle, struct accounting *acct, rscfl_token *token);
 
 /*
  * -- high level API functions --

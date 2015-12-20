@@ -114,7 +114,7 @@ struct accounting
    * userspace.
    */
   volatile int rc;
-  int token;
+  unsigned short token_id;
   unsigned long syscall_id;
   // Indexes into offsets from the start of the subsys section of
   // rscfl_pid_page->buf.

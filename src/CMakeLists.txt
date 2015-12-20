@@ -26,7 +26,7 @@ set(PROJECT_PATCH_VERSION 0)
 # layouts will not be able to communicate. this is not the same as MAJOR_VERSION
 # because you can modify the interface in non-backwards compatible ways but
 # still retain compatiblity with older rscfl kernel modules.
-set(PROJECT_DATA_LAYOUT_VERSION 4)
+set(PROJECT_DATA_LAYOUT_VERSION 5)
 # by default, set PROJECT_TAG_VERSION to the git revision
 execute_process(
   COMMAND git --git-dir ${${PNAME}_SOURCE_DIR}/../.git rev-parse --short HEAD

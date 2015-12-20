@@ -12,11 +12,15 @@ class StressTest : public testing::Test
  protected:
   virtual void SetUp()
   {
-    rhdl_ = rscfl_init();
+    cfg.monitored_pid = RSCFL_PID_SELF;
+    cfg.kernel_agg = 0;
+
+    rhdl_ = rscfl_init(&cfg);
     ASSERT_NE(nullptr, rhdl_);
   }
 
   rscfl_handle rhdl_;
+  rscfl_config cfg;
   struct accounting acct_;
 };
 
@@ -29,7 +33,7 @@ TEST_F(StressTest, TestAcctForAThousandSocketOpens)
   int sock_fd;
   for (int i = 0; i < 1000; i++) {
     // Account for opening a socket.
-    ASSERT_EQ(0, rscfl_acct_next(rhdl_));
+    ASSERT_EQ(0, rscfl_acct(rhdl_));
     sock_fd = socket(AF_LOCAL, SOCK_RAW, 0);
     ASSERT_GT(sock_fd, 0);
     // Ensure that we are able to read back the struct accounting.
@@ -38,7 +42,7 @@ TEST_F(StressTest, TestAcctForAThousandSocketOpens)
     rscfl_subsys_free(rhdl_, &acct_);
 
     // Account for closing the socket again.
-    ASSERT_EQ(0, rscfl_acct_next(rhdl_));
+    ASSERT_EQ(0, rscfl_acct(rhdl_));
     close(sock_fd);
     ASSERT_EQ(0, rscfl_read_acct(rhdl_, &acct_))
         << "Failed at closing socket at attempt " << i;

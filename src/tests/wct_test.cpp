@@ -38,7 +38,7 @@ static struct timespec wct_test_get_time(void)
  */
 TEST_F(WCTTest, WallClock_Kernel_LT_User)
 {
-  ASSERT_EQ(0, rscfl_acct_next(rhdl_));
+  ASSERT_EQ(0, rscfl_acct(rhdl_));
 
   struct timespec val_pre = wct_test_get_time();
   int sockfd = socket(AF_LOCAL, SOCK_RAW, 0);

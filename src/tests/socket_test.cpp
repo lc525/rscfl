@@ -12,11 +12,14 @@ class SocketTest : public testing::Test
  protected:
   virtual void SetUp()
   {
+    cfg.monitored_pid = RSCFL_PID_SELF;
+    cfg.kernel_agg = 0;
+
     // We must be able to initialise resourceful.
-    rhdl_ = rscfl_init();
+    rhdl_ = rscfl_init(&cfg);
     ASSERT_NE(nullptr, rhdl_);
     // We must be able to account next.
-    ASSERT_EQ(0, rscfl_acct_next(rhdl_));
+    ASSERT_EQ(0, rscfl_acct(rhdl_));
     sockfd_ = socket(AF_LOCAL, SOCK_RAW, 0);
     // If we can't initialise a socket, something has gone wrong.
     EXPECT_GT(sockfd_, 0);
@@ -31,6 +34,7 @@ class SocketTest : public testing::Test
   }
 
   rscfl_handle rhdl_;
+  rscfl_config cfg;
   struct accounting acct_;
   int sockfd_;
 };
@@ -183,7 +187,7 @@ TEST_F(SocketTest, RscflGivesDifferentResultsForRepeatedSocketOpens)
   ASSERT_NE(subsys_acct, nullptr);
   int cycles0 = subsys_acct->cpu.cycles;
 
-  ASSERT_EQ(0, rscfl_acct_next(rhdl_));
+  ASSERT_EQ(0, rscfl_acct(rhdl_));
   sockfd_ = socket(AF_LOCAL, SOCK_RAW, 0);
   // If we can't initialise a socket, something has gone wrong.
   EXPECT_GT(sockfd_, 0);
@@ -194,7 +198,7 @@ TEST_F(SocketTest, RscflGivesDifferentResultsForRepeatedSocketOpens)
   ASSERT_NE(subsys_acct, nullptr);
   int cycles1 = subsys_acct->cpu.cycles;
 
-  ASSERT_EQ(0, rscfl_acct_next(rhdl_));
+  ASSERT_EQ(0, rscfl_acct(rhdl_));
   sockfd_ = socket(AF_LOCAL, SOCK_RAW, 0);
   // If we can't initialise a socket, something has gone wrong.
   EXPECT_GT(sockfd_, 0);

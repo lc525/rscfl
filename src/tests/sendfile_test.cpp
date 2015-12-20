@@ -26,7 +26,7 @@ class SendFileTest : public testing::Test
     EXPECT_LT(-1, to_fd);
 
     // Account for the call to sendfile.
-    ASSERT_EQ(0, rscfl_acct_next(rhdl_));
+    ASSERT_EQ(0, rscfl_acct(rhdl_));
     EXPECT_LT(0, sendfile(to_fd, from_fd, NULL, kBufSize));
 
     // We must be able to read our struct accounting back from rscfl.

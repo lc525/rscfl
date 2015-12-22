@@ -13,12 +13,12 @@ TEMPLATE="""
 name = "ubuntu-clone-{{ clone_no }}"
 memory = {{ memory }}
 vcpus = {{ vcpus }}
-disk = ['phy:/dev/rscfl_vg/ubuntu-clone-{{ clone_no }},xvda,w']
+disk = ['phy:/dev/rscfl-vg/ubuntu-clone-{{ clone_no }},xvda,w']
 bootloader = "pygrub"
 vif=[ 'mac=00:16:3f:00:00:{{ padded_clone_no }},bridge=xenbr0' ]
 """
 
-target_vm = "so-22-50.dtg.cl.cam.ac.uk"
+target_vm = "so-22-100.dtg.cl.cam.ac.uk"
 
 current_no_vms = 0
 FLOG = open("hyp_stress.log", "w")
@@ -40,7 +40,7 @@ def prepare_config(clone_no, memory, vcpus):
 def prepare_disk(clone_no, gold_img):
     # Remove old disk.
     subprocess.call(['sudo', 'lvremove', '-f',
-                     '/dev/rscfl_vg/ubuntu-clone-%d' % clone_no], stdout=FLOG, stderr=subprocess.STDOUT)
+                     '/dev/rscfl-vg/ubuntu-clone-%d' % clone_no], stdout=FLOG, stderr=subprocess.STDOUT)
     # Create the new disk.
     subprocess.call(['sudo', 'lvcreate', '-L1G', '-s', '-n', 'ubuntu-clone-%d' %
                      clone_no, gold_img], stdout=FLOG, stderr=subprocess.STDOUT)
@@ -109,7 +109,7 @@ def run_experiment(no_vms, gold_img, memory, vcpus, workload_cmd, workload_cmd_f
 
         # Start measuring
         payload = {'mark': 'vms_%d_%s' % (x, mark[cmd_ix])}
-        requests.post('http://so-22-50/mark', payload)
+        requests.post('http://'+target_vm+'/mark', payload)
         if x == from_vms:
             print("$ESTART")
 
@@ -118,7 +118,7 @@ def run_experiment(no_vms, gold_img, memory, vcpus, workload_cmd, workload_cmd_f
           time.sleep(float(sleep_time))
           # Stop measuring
           payload = {'mark': 'STOP'}
-          requests.post('http://so-22-50/mark', payload)
+          requests.post('http://'+target_vm+'/mark', payload)
 
         if workload_cmd_freq[cmd_ix] == 0:
          cmd_ix = cmd_ix + 1

@@ -211,7 +211,6 @@ int rscfl_switch_token(rscfl_handle rhdl, rscfl_token *token_to){
     new_id = token_to->id;
   }
   if(rhdl->ctrl->interest.token_id != new_id){
-    printf("RSCFL SWAP: old_tk_id:%d, new_tk_id:%d\n", rhdl->ctrl->interest.token_id, new_id);
     rhdl->ctrl->interest.token_id = new_id;
     rhdl->ctrl->interest.token_swapped = 1;
     return 0;
@@ -226,7 +225,6 @@ int rscfl_free_token(rscfl_handle rhdl, rscfl_token *token)
   if ((rhdl == NULL) || (token == NULL)) {
     return -EINVAL;
   }
-  printf("FREE TK_id:%d\n", token->id);
   new_hd = (rscfl_token_list *)malloc(sizeof(rscfl_token_list));
   if (new_hd == NULL) {
     return -ENOMEM;
@@ -255,7 +253,6 @@ int rscfl_acct_api(rscfl_handle rhdl, rscfl_token *token, interest_flags fl)
 #endif
   to_acct->flags = fl;
   old_token_id = to_acct->token_id;
-  printf("RSCFL ACCT: old_tk_id:%d, new_tk_id:%d\n", old_token_id, token->id);
 
   if((fl & IST_START) != 0) {
     to_acct->syscall_id = ID_RSCFL_IGNORE;
@@ -299,11 +296,9 @@ int rscfl_read_acct_api(rscfl_handle rhdl, struct accounting *acct, rscfl_token 
     tk_id = token->id;
 
   struct accounting *shared_acct = (struct accounting *)rhdl->buf;
-  printf("READ for: tk_id=%d\n", shared_acct->token_id);
   if (shared_acct != NULL) {
     while (i < STRUCT_ACCT_NUM) {
       if (shared_acct->in_use == 1) {
-        printf("\tid=%lu, tk_id=%d\n", shared_acct->syscall_id, shared_acct->token_id);
         if ((shared_acct->syscall_id == rhdl->lst_syscall_id) ||
             (shared_acct->syscall_id == ID_RSCFL_IGNORE && shared_acct->token_id == tk_id)) {
           memcpy(acct, shared_acct, sizeof(struct accounting));

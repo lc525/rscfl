@@ -107,8 +107,10 @@ int should_acct(void)
     rscfl_kernel_token *tk = current_pid_acct->active_token;
     interest->first_measurement = 0;
     tk->val = xen_buffer_hd();
+    tk->val2 = 0;
     tk->account = current_pid_acct->probe_data->syscall_acct;
     tk->account->token_id = tk->id;
+    xen_clear_current_sched_out();
   }
 
   preempt_enable();
@@ -153,6 +155,9 @@ int clear_acct_next(void)
 
   // If we're not aggregating in kernel-space, clear the cached pointer to the
   // struct accounting.
+#ifdef XEN_ENABLED
+  current_pid_acct->active_token->val2 = -1 * xen_current_sched_out();
+#endif
   if(current_pid_acct->ctrl->config.kernel_agg != 1) {
     current_pid_acct->probe_data->syscall_acct = NULL;
     current_pid_acct->active_token->account = NULL;

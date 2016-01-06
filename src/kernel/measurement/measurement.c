@@ -91,9 +91,16 @@ int rscfl_counters_update_subsys_vals(struct subsys_accounting *add_subsys,
 
     if (add_subsys == NULL) {
       subsys_err = get_subsys(USERSPACE_XEN, &add_subsys);
+      add_subsys->sched.xen_sched_cycles2 = current_pid_acct->active_token->val2 + sched_info->sched_out;
       if (subsys_err != 0) {
         return subsys_err;
       }
+    } else {
+      add_subsys->sched.xen_sched_cycles2 += sched_info->sched_out;
+    }
+
+    if(minus_subsys != NULL) {
+      minus_subsys->sched.xen_sched_cycles2 -= sched_info->sched_out;
     }
 
     // Update tail if we have a token.

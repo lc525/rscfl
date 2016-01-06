@@ -36,6 +36,7 @@ typedef struct sched_event sched_event_t;
 
 struct shared_sched_info
 {
+  uint64_t sched_out;
   uint8_t sched_tl;
   uint8_t sched_hd;
   unsigned long rscfl_page_phys[NUM_XEN_PAGES];
@@ -49,5 +50,7 @@ _once char *rscfl_pages[NUM_XEN_PAGES];
 
 int xen_scheduler_init(void);
 int xen_buffer_hd(void);
+uint64_t xen_current_sched_out(void);
+void xen_clear_current_sched_out(void);
 
 #endif

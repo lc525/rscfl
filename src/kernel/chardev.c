@@ -295,6 +295,8 @@ static int ctrl_mmap(struct file *filp, struct vm_area_struct *vma)
       break;
     }
     token->id = current_pid_acct->num_tokens++;
+    token->val = 0;
+    token->val2 = 0;
     current_pid_acct->token_ix[i] = token;
   }
   current_pid_acct->default_token = kzalloc(GFP_KERNEL,

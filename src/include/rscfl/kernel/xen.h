@@ -12,9 +12,9 @@
 #define NUM_XEN_PAGES 10
 #define XEN_EVENTS_PER_PAGE 50
 
-// TODO(oc243): We currently only use 256 events rather than all of the
+// TODO(oc243): We currently only use 1000 events rather than all of the
 // available ones, due to Xen's setup.
-#define CURRENT_XEN_NUM_EVENTS 256
+#define CURRENT_XEN_NUM_EVENTS 500
 
 /*
  * Data structures shared by rscfl-enabled xen
@@ -23,14 +23,15 @@ struct sched_event
 {
   uint64_t cycles;
   uint8_t credit;
+  short guard;
 
-  _Bool is_yield;
+  char is_yield;
 
-  _Bool is_block;
-  _Bool is_unblock;
+  char is_block;
+  char is_unblock;
 
-  _Bool sched_in;
-  _Bool sched_out;
+  char sched_in;
+  char sched_out;
 };
 typedef struct sched_event sched_event_t;
 

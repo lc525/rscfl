@@ -84,7 +84,7 @@ include(InternalMacros)
 ###
 
 # enable this if running on top of an rscfl-enabled XEN hypervisor
-set(XEN_ENABLED 0)
+set(XEN_ENABLED 1)
 # enable this if you want shadow kernels [experimental feature]
 set(SHDW_ENABLED 0)
 

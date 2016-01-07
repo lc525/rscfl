@@ -50,6 +50,8 @@ int xen_scheduler_init(void)
   };
 
   struct page *pg;
+  printk(KERN_ERR "sched_info size: %lu\n", sizeof(struct shared_info));
+  printk(KERN_ERR "shared_sched_info size: %lu\n", sizeof(struct shared_sched_info));
 
   if (*KPRIV(HYPERVISOR_shared_info) == KPRIV(xen_dummy_shared_info) || disable_xen) {
     // Not running on Xen.
@@ -98,6 +100,7 @@ int xen_scheduler_init(void)
 
     // Now we have given the physical memory back to Xen, adjust our own PTEs
     // to point at the shared memory.
+    printk("rscfl_page_phys[i]: %lu\n", sched_info->rscfl_page_phys[i]);
     rc = ioremap_page_range((unsigned long)page_address(pg),
                             (unsigned long)page_address(pg) + PAGE_SIZE,
                             sched_info->rscfl_page_phys[i] << PAGE_SHIFT,

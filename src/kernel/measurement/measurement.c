@@ -106,11 +106,17 @@ int rscfl_counters_update_subsys_vals(struct subsys_accounting *add_subsys,
     // Update tail if we have a token.
     tl = current_pid_acct->active_token->val;
     current_pid_acct->active_token->val = hd;
+    if(hd != tl){
+      printk(KERN_ERR "hd: %d, tl: %d\n", hd, tl);
+    }
 
     for (; hd != tl; tl = (tl + 1) % CURRENT_XEN_NUM_EVENTS) {
       event_page = (sched_event_t *)rscfl_pages[tl / XEN_EVENTS_PER_PAGE];
       event = &event_page[tl % XEN_EVENTS_PER_PAGE];
+      printk(KERN_ERR "event->cycles: %llu\n", event->cycles);
       if (add_subsys != NULL) {
+        if(event->guard != 114) printk(KERN_ERR "XEN ERROR: hd: %d, tl: %d, page_ix: %d, ev_id: %d\n",
+            hd, tl, tl/XEN_EVENTS_PER_PAGE, tl % XEN_EVENTS_PER_PAGE);
         // Get timespec from the scheduling event->
         hypervisor_timestamp = 0;
         //memset(&time, 0, sizeof(struct timespec));

@@ -88,7 +88,7 @@ rscfl_handle rscfl_init_api(rscfl_version_t rscfl_ver, rscfl_config* config)
   // rscfl_data character device also does the initialisation of per-cpu
   // variables later used by rscfl_ctrl.
   buf = mmap(NULL, MMAP_BUF_SIZE, PROT_READ | PROT_WRITE,
-             MAP_PRIVATE | MAP_POPULATE, fd_data, 0);
+             MAP_SHARED, fd_data, 0);
   if (buf == MAP_FAILED) {
     fprintf(stderr,
 	    "rscfl: Unable to mmap shared memory with kernel module for data.\n");
@@ -98,7 +98,7 @@ rscfl_handle rscfl_init_api(rscfl_version_t rscfl_ver, rscfl_config* config)
 
   // mmap memory to store our interests.
   ctrl = mmap(NULL, MMAP_CTL_SIZE, PROT_READ | PROT_WRITE,
-              MAP_PRIVATE | MAP_POPULATE, fd_ctrl, 0);
+              MAP_SHARED, fd_ctrl, 0);
   if (ctrl == MAP_FAILED) {
     fprintf(stderr,
 	    "rscfl: Unable to mmap shared memory for storing interests\n");
@@ -211,8 +211,10 @@ int rscfl_switch_token(rscfl_handle rhdl, rscfl_token *token_to){
     new_id = token_to->id;
   }
   if(rhdl->ctrl->interest.token_id != new_id){
+    printf("token switch from: %d to %d\n", rhdl->ctrl->interest.token_id, new_id);
     rhdl->ctrl->interest.token_id = new_id;
-    rhdl->ctrl->interest.token_swapped = 1;
+    msync(rhdl->ctrl, PAGE_SIZE, MS_SYNC);
+    //rhdl->ctrl->interest.token_swapped = 1;
     return 0;
   } else {
     return 1; // no switch necessary, token_to already active
@@ -277,7 +279,8 @@ int rscfl_acct_api(rscfl_handle rhdl, rscfl_token *token, interest_flags fl)
     to_acct->token_id = NO_TOKEN;
   }
 
-  if(old_token_id != to_acct->token_id) to_acct->token_swapped = 1;
+  //if((old_token_id != to_acct->token_id) | rst) to_acct->token_swapped = 1;
+  //if(old_token_id != to_acct->token_id) to_acct->token_swapped = 1;
   return 0;
 }
 
@@ -295,6 +298,7 @@ int rscfl_read_acct_api(rscfl_handle rhdl, struct accounting *acct, rscfl_token 
   else
     tk_id = token->id;
 
+  printf("Read for token %d\n", token->id);
   struct accounting *shared_acct = (struct accounting *)rhdl->buf;
   if (shared_acct != NULL) {
     while (i < STRUCT_ACCT_NUM) {

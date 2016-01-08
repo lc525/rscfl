@@ -172,18 +172,22 @@ static int mmap_common(struct file *filp, struct vm_area_struct *vma,
   // do the actual mmap-ing of shared_buf (kernel memory) into the address space
   // of the calling process (user space)
   pos = (unsigned long)shared_buf;
+  vma->vm_page_prot = PAGE_SHARED;
+  vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
 
   while (size > 0) {
     page = virt_to_phys((void *)pos);
     if (remap_pfn_range(vma, start, page >> PAGE_SHIFT, req_length,
-                        PAGE_SHARED)) {
+                        vma->vm_page_prot)) {
       kfree(shared_buf);
+      printk(KERN_ERR "ERROR remap_pfn_range!\n");
       return -EAGAIN;
     }
     start += req_length;
     pos += req_length;
     size -= req_length;
   }
+  printk(KERN_ERR "rscfl-map successful\n");
 
   drv_data = kzalloc(sizeof(rscfl_vma_data), GFP_KERNEL);
   if (!drv_data) {

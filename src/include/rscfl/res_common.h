@@ -116,13 +116,13 @@ typedef enum {
 struct syscall_interest_t
 {
   unsigned long syscall_id;
-  short token_id;
-  int tail_ix;
+  volatile short token_id;
+  volatile int tail_ix;
   interest_flags flags;
   shdw_hdl use_shdw;
   int shdw_pages;
   _Bool first_measurement;
-  _Bool token_swapped;
+  //_Bool token_swapped;
 };
 typedef struct syscall_interest_t syscall_interest_t;
 

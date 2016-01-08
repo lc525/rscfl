@@ -9,12 +9,12 @@
   #define _once extern
 #endif
 
-#define NUM_XEN_PAGES 10
-#define XEN_EVENTS_PER_PAGE 50
+#define NUM_XEN_PAGES 8
+#define XEN_EVENTS_PER_PAGE 150
 
 // TODO(oc243): We currently only use 1000 events rather than all of the
 // available ones, due to Xen's setup.
-#define CURRENT_XEN_NUM_EVENTS 500
+#define CURRENT_XEN_NUM_EVENTS (NUM_XEN_PAGES * XEN_EVENTS_PER_PAGE)
 
 /*
  * Data structures shared by rscfl-enabled xen

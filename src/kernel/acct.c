@@ -69,8 +69,10 @@ int should_acct(void)
     // this will be reflected kernel-side after any ongoing system calls
     // have finished executing (and we have finished recording accounting data
     // for them)
-    if(unlikely(interest->token_swapped)) {
+    //printk(KERN_ERR "syscall_entry!\n");
+    if(current_pid_acct->active_token->id != interest->token_id) {
       //swap tokens and the currently active syscall_acct
+      printk(KERN_ERR "token swap from %d to %d\n", current_pid_acct->active_token->id, interest->token_id);
       if(interest->token_id != NO_TOKEN) {
         current_pid_acct->active_token =
           current_pid_acct->token_ix[interest->token_id];
@@ -81,14 +83,16 @@ int should_acct(void)
       // it makes no sense to update syscall_acct if it's the first measurement
       // as we're going to be setting it to NULL a couple of lines below
       if(!interest->first_measurement) {
+        printk(KERN_ERR "BINGO! \n");
         current_pid_acct->probe_data->syscall_acct =
           current_pid_acct->active_token->account;
       }
-      interest->token_swapped = 0;
+      //interest->token_swapped = 0;
     }
     // If we have received a IST_RESET, we need to record into a new
     // syscall_acct structure
     if(interest->first_measurement) {
+      //printk("first measurement! token=%d\n", current_pid_acct->active_token->id);
       current_pid_acct->probe_data->syscall_acct = NULL;
       current_pid_acct->active_token->account = NULL;
     }
@@ -110,6 +114,7 @@ int should_acct(void)
     tk->val2 = 0;
     tk->account = current_pid_acct->probe_data->syscall_acct;
     tk->account->token_id = tk->id;
+    printk(KERN_ERR "first measurement, tk:%d, hd:%d, acct:%p\n", tk->id, tk->val, tk->account);
     xen_clear_current_sched_out();
   }
 
@@ -123,6 +128,7 @@ int clear_acct_next(void)
   syscall_interest_t *interest;
 
   preempt_disable();
+  //printk("clear!\n");
 
   current_pid_acct = CPU_VAR(current_acct);
   interest = &current_pid_acct->ctrl->interest;
@@ -148,8 +154,8 @@ int clear_acct_next(void)
 #endif
   // If not a multi-syscall interest or if issued an explicit stop, reset the
   // interest so we stop accounting.
-  if((interest->flags & IST_START) == 0 ||
-     (interest->flags & IST_STOP ) != 0) {
+  if( ((interest->flags & IST_START) == 0) ||
+      ((interest->flags & IST_STOP ) != 0) ) {
     interest->syscall_id = 0;
   }
 
@@ -159,6 +165,7 @@ int clear_acct_next(void)
   current_pid_acct->active_token->val2 = -1 * xen_current_sched_out();
 #endif
   if(current_pid_acct->ctrl->config.kernel_agg != 1) {
+    printk("warn: not aggregating in kernel space!\n");
     current_pid_acct->probe_data->syscall_acct = NULL;
     current_pid_acct->active_token->account = NULL;
   }

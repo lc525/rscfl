@@ -42,7 +42,7 @@ static struct accounting *alloc_acct(pid_acct *current_pid_acct)
 
 int should_acct(void)
 {
-  syscall_interest_t *interest;
+  volatile syscall_interest_t *interest;
   pid_acct *current_pid_acct;
 
   preempt_disable();
@@ -64,32 +64,40 @@ int should_acct(void)
     return 0;
   }
 
-  if(current_pid_acct->subsys_ptr==current_pid_acct->subsys_stack) {
+  if(current_pid_acct->subsys_ptr == current_pid_acct->subsys_stack) {
     // Consider token changes in user-space. If the user changes the token,
     // this will be reflected kernel-side after any ongoing system calls
     // have finished executing (and we have finished recording accounting data
     // for them)
-    //printk(KERN_ERR "syscall_entry!\n");
+    /*
+     *if(!interest->first_measurement){
+     *  printk(KERN_ERR "active token: %d, interest_token: %d\n", current_pid_acct->active_token->id, interest->token_id);
+     *}
+     */
+    smp_read_barrier_depends();
     if(current_pid_acct->active_token->id != interest->token_id) {
       //swap tokens and the currently active syscall_acct
-      printk(KERN_ERR "token swap from %d to %d\n", current_pid_acct->active_token->id, interest->token_id);
-      if(interest->token_id != NO_TOKEN) {
+      //printk(KERN_ERR "token swap from %d to %d\n", current_pid_acct->active_token->id, interest->token_id);
+      if(IS_USER_TOKEN(interest->token_id)) {
         current_pid_acct->active_token =
           current_pid_acct->token_ix[interest->token_id];
-      } else {
+      } else if(interest->token_id == NULL_TOKEN) {
+        current_pid_acct->active_token = current_pid_acct->null_token;
+        return 0;
+      } else { // DEFAULT_TOKEN
         current_pid_acct->active_token = current_pid_acct->default_token;
       }
 
       // it makes no sense to update syscall_acct if it's the first measurement
       // as we're going to be setting it to NULL a couple of lines below
       if(!interest->first_measurement) {
-        printk(KERN_ERR "BINGO! \n");
+        //printk(KERN_ERR "BINGO! \n");
         current_pid_acct->probe_data->syscall_acct =
           current_pid_acct->active_token->account;
       }
       //interest->token_swapped = 0;
     }
-    // If we have received a IST_RESET, we need to record into a new
+    // If we have received a TK_RESET, we need to record into a new
     // syscall_acct structure
     if(interest->first_measurement) {
       //printk("first measurement! token=%d\n", current_pid_acct->active_token->id);
@@ -108,13 +116,13 @@ int should_acct(void)
   current_pid_acct->probe_data->syscall_acct = alloc_acct(current_pid_acct);
 
   if(interest->first_measurement) {
-    rscfl_kernel_token *tk = current_pid_acct->active_token;
+    volatile rscfl_kernel_token *tk = current_pid_acct->active_token;
     interest->first_measurement = 0;
     tk->val = xen_buffer_hd();
     tk->val2 = 0;
     tk->account = current_pid_acct->probe_data->syscall_acct;
     tk->account->token_id = tk->id;
-    printk(KERN_ERR "first measurement, tk:%d, hd:%d, acct:%p\n", tk->id, tk->val, tk->account);
+    //printk(KERN_ERR "first measurement, tk:%d, hd:%d, acct:%p\n", tk->id, tk->val, tk->account);
     xen_clear_current_sched_out();
   }
 
@@ -125,7 +133,7 @@ int should_acct(void)
 int clear_acct_next(void)
 {
   pid_acct *current_pid_acct;
-  syscall_interest_t *interest;
+  volatile syscall_interest_t *interest;
 
   preempt_disable();
   //printk("clear!\n");
@@ -165,7 +173,6 @@ int clear_acct_next(void)
   current_pid_acct->active_token->val2 = -1 * xen_current_sched_out();
 #endif
   if(current_pid_acct->ctrl->config.kernel_agg != 1) {
-    printk("warn: not aggregating in kernel space!\n");
     current_pid_acct->probe_data->syscall_acct = NULL;
     current_pid_acct->active_token->account = NULL;
   }

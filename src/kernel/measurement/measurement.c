@@ -58,7 +58,7 @@ int rscfl_counters_update_subsys_vals(struct subsys_accounting *add_subsys,
   u64 cycles = rscfl_get_cycles();
   //struct timespec time = rscfl_get_timestamp();
   int subsys_err;
-  syscall_interest_t *interest;
+  volatile syscall_interest_t *interest;
 
   preempt_disable();
   current_pid_acct = CPU_VAR(current_acct);

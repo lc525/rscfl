@@ -18,6 +18,7 @@
 #include "rscfl/costs.h"
 #include "rscfl/res_common.h"
 
+
 #define max(a,b)                                \
   ({ typeof (a) _a = (a);                       \
     typeof (b) _b = (b);                        \
@@ -64,8 +65,8 @@ rscfl_handle rscfl_init_api(rscfl_version_t rscfl_ver, rscfl_config* config)
     // initialize rscfl
   }
 
-  fd_data = open("/dev/" RSCFL_DATA_DRIVER, O_RDONLY);
-  fd_ctrl = open("/dev/" RSCFL_CTRL_DRIVER, O_RDWR);
+  fd_data = open("/dev/" RSCFL_DATA_DRIVER, O_RDWR | O_DSYNC);
+  fd_ctrl = open("/dev/" RSCFL_CTRL_DRIVER, O_RDWR | O_DSYNC);
   rscfl_handle rhdl = (rscfl_handle)calloc(1, sizeof(*rhdl));
   if (!rhdl) {
     fprintf(stderr, "Unable to allocate memory for rscfl handle\n");
@@ -88,7 +89,7 @@ rscfl_handle rscfl_init_api(rscfl_version_t rscfl_ver, rscfl_config* config)
   // rscfl_data character device also does the initialisation of per-cpu
   // variables later used by rscfl_ctrl.
   buf = mmap(NULL, MMAP_BUF_SIZE, PROT_READ | PROT_WRITE,
-             MAP_SHARED, fd_data, 0);
+             MAP_SHARED | MAP_POPULATE, fd_data, 0);
   if (buf == MAP_FAILED) {
     fprintf(stderr,
 	    "rscfl: Unable to mmap shared memory with kernel module for data.\n");
@@ -98,7 +99,7 @@ rscfl_handle rscfl_init_api(rscfl_version_t rscfl_ver, rscfl_config* config)
 
   // mmap memory to store our interests.
   ctrl = mmap(NULL, MMAP_CTL_SIZE, PROT_READ | PROT_WRITE,
-              MAP_SHARED, fd_ctrl, 0);
+              MAP_SHARED | MAP_POPULATE, fd_ctrl, 0);
   if (ctrl == MAP_FAILED) {
     fprintf(stderr,
 	    "rscfl: Unable to mmap shared memory for storing interests\n");
@@ -185,7 +186,7 @@ int rscfl_get_token(rscfl_handle rhdl, rscfl_token **token)
       rscfl_token *new_token = (rscfl_token *)malloc(sizeof(rscfl_token));
       new_token->id = rhdl->ctrl->avail_token_ids[i];
       new_token->first_acct = 1;
-      rhdl->ctrl->avail_token_ids[i] = NO_TOKEN;
+      rhdl->ctrl->avail_token_ids[i] = DEFAULT_TOKEN;
       if(i == 0) {
         *token = new_token;
       } else {
@@ -205,16 +206,24 @@ int rscfl_get_token(rscfl_handle rhdl, rscfl_token **token)
 
 int rscfl_switch_token(rscfl_handle rhdl, rscfl_token *token_to){
   unsigned short new_id;
+  volatile syscall_interest_t *interest;
+  //rscfl_debug dbg;
   if(token_to == NULL) {
-    new_id = NO_TOKEN;
+    new_id = DEFAULT_TOKEN;
   } else {
     new_id = token_to->id;
   }
-  if(rhdl->ctrl->interest.token_id != new_id){
-    printf("token switch from: %d to %d\n", rhdl->ctrl->interest.token_id, new_id);
-    rhdl->ctrl->interest.token_id = new_id;
-    msync(rhdl->ctrl, PAGE_SIZE, MS_SYNC);
-    //rhdl->ctrl->interest.token_swapped = 1;
+  interest = &rhdl->ctrl->interest;
+  if(interest->token_id != new_id){
+    interest->token_id = new_id;
+    /*
+     *printf("token switch from: %d to %d\n", interest->token_id, new_id);
+     *msync(rhdl->ctrl, PAGE_SIZE, MS_SYNC);
+     *strncpy(dbg.msg, "TKSW", 5);
+     *dbg.new_token_id = new_id;
+     *ioctl(rhdl->fd_ctrl, RSCFL_DEBUG_CMD, &dbg);
+     *rhdl->ctrl->interest.token_swapped = 1;
+     */
     return 0;
   } else {
     return 1; // no switch necessary, token_to already active
@@ -239,8 +248,9 @@ int rscfl_free_token(rscfl_handle rhdl, rscfl_token *token)
 
 int rscfl_acct_api(rscfl_handle rhdl, rscfl_token *token, interest_flags fl)
 {
-  syscall_interest_t *to_acct;
+  volatile syscall_interest_t *to_acct;
   int old_token_id;
+  //rscfl_debug dbg;
   _Bool rst;
   if (rhdl == NULL) {
     return -EINVAL;
@@ -253,32 +263,44 @@ int rscfl_acct_api(rscfl_handle rhdl, rscfl_token *token, interest_flags fl)
 #else
   to_acct = &rhdl->ctrl->interest;
 #endif
-  to_acct->flags = fl;
+  rst = ((fl & TK_RESET) != 0);
+  if(rst)
+    to_acct->flags = fl;
+  else
+    to_acct->flags |= fl;
   old_token_id = to_acct->token_id;
 
-  if((fl & IST_START) != 0) {
+  if((to_acct->flags & IST_START) != 0) {
     to_acct->syscall_id = ID_RSCFL_IGNORE;
   }
-  else if((fl & IST_STOP) != 0) {
+  else if((to_acct->flags & IST_STOP) != 0) {
     to_acct->syscall_id = 0;
+    to_acct->flags = IST_DEFAULT;
     return 0;
   } else {
     to_acct->syscall_id = ++rhdl->lst_syscall_id;
   }
-  rst = ((fl & IST_RESET) != 0);
 
-  if (token != NULL) {
-    to_acct->first_measurement = token->first_acct | rst;
-    token->first_acct = 0;
+  if((fl & TK_STOP) != 0) {
+    to_acct->token_id = NULL_TOKEN;
+  } else if (token != NULL) {
+    to_acct->first_measurement = rst;
+    //to_acct->first_measurement = token->first_acct | rst;
+    //token->first_acct = 0;
     to_acct->token_id = token->id;
   } else {
     if((fl & IST_NEXT) != 0)
       to_acct->first_measurement = 1;
     else
       to_acct->first_measurement = rst;
-    to_acct->token_id = NO_TOKEN;
+    to_acct->token_id = DEFAULT_TOKEN;
   }
 
+  /*
+   *strncpy(dbg.msg, "ACCT", 5);
+   *dbg.new_token_id = token->id;
+   *ioctl(rhdl->fd_ctrl, RSCFL_DEBUG_CMD, &dbg);
+   */
   //if((old_token_id != to_acct->token_id) | rst) to_acct->token_swapped = 1;
   //if(old_token_id != to_acct->token_id) to_acct->token_swapped = 1;
   return 0;
@@ -288,6 +310,7 @@ int rscfl_read_acct_api(rscfl_handle rhdl, struct accounting *acct, rscfl_token 
 {
   int i = 0;
   unsigned short tk_id;
+  //rscfl_debug dbg;
   if (rhdl == NULL) {
     return -EINVAL;
   }
@@ -298,14 +321,19 @@ int rscfl_read_acct_api(rscfl_handle rhdl, struct accounting *acct, rscfl_token 
   else
     tk_id = token->id;
 
-  printf("Read for token %d\n", token->id);
+  //printf("Read for token %d\n", token->id);
   struct accounting *shared_acct = (struct accounting *)rhdl->buf;
   if (shared_acct != NULL) {
     while (i < STRUCT_ACCT_NUM) {
       if (shared_acct->in_use == 1) {
         if ((shared_acct->syscall_id == rhdl->lst_syscall_id) ||
-            (shared_acct->syscall_id == ID_RSCFL_IGNORE && shared_acct->token_id == tk_id)) {
+            ((shared_acct->syscall_id == ID_RSCFL_IGNORE) && (shared_acct->token_id == tk_id))) {
           memcpy(acct, shared_acct, sizeof(struct accounting));
+          /*
+           *strncpy(dbg.msg, "READ", 5);
+           *dbg.new_token_id = tk_id;
+           *ioctl(rhdl->fd_ctrl, RSCFL_DEBUG_CMD, &dbg);
+           */
           shared_acct->in_use = 0;
           return shared_acct->rc;
         } else {

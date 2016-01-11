@@ -35,7 +35,7 @@
  *
  */
 #define STRUCT_ACCT_NUM 30
-#define ACCT_SUBSYS_RATIO 8   // assume one syscall touches ~ 5 subsystems
+#define ACCT_SUBSYS_RATIO 8   // assume one syscall touches ~ 8 subsystems
 #define MAX_TOKENS 64
 #define NUM_READY_TOKENS 10   // Number of tokens that the kernel can prepare
                               // in advance.
@@ -95,25 +95,29 @@ typedef enum {
   ID_RSCFL_RESET = 3,
 } syscall_special_id;
 
+/*
+ *
+ */
 typedef enum {
-  IST_DEFAULT      = EBIT(0),     // by default, you get IST_NEXT behavior
-  IST_NEXT         = EBIT(0),     // one-shot; account for the next syscall
-  IST_START        = EBIT(1),     // start accounting
-  IST_STOP         = EBIT(2),     // stop accounting (global, across tokens)
-  TK_STOP          = EBIT(3),     // stop accounting for given token
-  TK_RESET         = EBIT(4),     // Reset the accounting that corresponds
-                                  // to the currently active token.
-                                  // Also clears the corresponding subsystem
-                                  // data.
+  ACCT_DEFAULT      = EBIT(2),     // by default, you get ACCT_NEXT_FL behavior
+  ACCT_START        = EBIT(0),     // start accounting
+  ACCT_STOP         = EBIT(1),     // stop accounting (global, across tokens)
+  ACCT_NEXT_FL      = EBIT(2),     // one-shot; account for the next syscall
+  TK_STOP_FL        = EBIT(3),     // stop accounting for given token
+  TK_RESET_FL       = EBIT(4),     // Reset the accounting that corresponds
+                                   // to the currently active token.
+                                   // Also clears the corresponding subsystem
+                                   // data.
 
   __BENCH_INTERNAL_CLR   = EBIT(5), // For benchmarking: compute but don't
                                     // actually store accounting data.
                                     // This automatically clears ("reads")
                                     // the acct data structures.
 
-  IST_KNOP          = EBIT(6),    // For benchmarking calibration: run
+  ACCT_KNOP          = EBIT(6),   // For benchmarking calibration: run
                                   // acct_next but don't actually express
                                   // interest (no kernel-side effects)
+  __ACCT_FLAG_IS_PERSISTENT        = EBIT(0) | EBIT(1),
 
 } interest_flags;
 

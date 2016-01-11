@@ -256,32 +256,32 @@ int rscfl_acct_api(rscfl_handle rhdl, rscfl_token *token, interest_flags fl)
     return -EINVAL;
   }
 #ifdef RSCFL_BENCH
-  if(likely((fl & IST_KNOP) == 0))
+  if(likely((fl & ACCT_KNOP) == 0))
     to_acct = &rhdl->ctrl->interest;
   else
     to_acct = &dummy_interest;
 #else
   to_acct = &rhdl->ctrl->interest;
 #endif
-  rst = ((fl & TK_RESET) != 0);
+  rst = ((fl & TK_RESET_FL) != 0);
   if(rst)
-    to_acct->flags = fl;
+    to_acct->flags = (fl & __ACCT_FLAG_IS_PERSISTENT);
   else
-    to_acct->flags |= fl;
+    to_acct->flags |= (fl & __ACCT_FLAG_IS_PERSISTENT);
   old_token_id = to_acct->token_id;
 
-  if((to_acct->flags & IST_START) != 0) {
-    to_acct->syscall_id = ID_RSCFL_IGNORE;
-  }
-  else if((to_acct->flags & IST_STOP) != 0) {
+  if((to_acct->flags & ACCT_STOP) != 0) {
     to_acct->syscall_id = 0;
-    to_acct->flags = IST_DEFAULT;
+    to_acct->flags = ACCT_DEFAULT;
     return 0;
+  }
+  else if((to_acct->flags & ACCT_START) != 0) {
+    to_acct->syscall_id = ID_RSCFL_IGNORE;
   } else {
     to_acct->syscall_id = ++rhdl->lst_syscall_id;
   }
 
-  if((fl & TK_STOP) != 0) {
+  if((fl & TK_STOP_FL) != 0) {
     to_acct->token_id = NULL_TOKEN;
   } else if (token != NULL) {
     to_acct->first_measurement = rst;
@@ -289,7 +289,7 @@ int rscfl_acct_api(rscfl_handle rhdl, rscfl_token *token, interest_flags fl)
     //token->first_acct = 0;
     to_acct->token_id = token->id;
   } else {
-    if((fl & IST_NEXT) != 0)
+    if((fl & ACCT_NEXT_FL) != 0)
       to_acct->first_measurement = 1;
     else
       to_acct->first_measurement = rst;

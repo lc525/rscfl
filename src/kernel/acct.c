@@ -35,11 +35,6 @@ static struct accounting *alloc_acct(pid_acct *current_pid_acct)
   return acct_buf;
 }
 
-/*
- *inline void update_token (pid_acct *current_pid_acct, syscall_interest_t *interest) {
- *}
- */
-
 int should_acct(void)
 {
   volatile syscall_interest_t *interest;
@@ -141,7 +136,7 @@ int clear_acct_next(void)
   current_pid_acct = CPU_VAR(current_acct);
   interest = &current_pid_acct->ctrl->interest;
 #ifdef RSCFL_BENCH
-  // clear the acct/subsys memory if the IST_CLEAR_FLAG was set
+  // clear the acct/subsys memory if the ACCT_STOP was set
   //
   // For clearing things quickly dunring benchmark-ing, we make use of the
   // fact that for a given call and under no concurrent measurements  we'll
@@ -162,8 +157,8 @@ int clear_acct_next(void)
 #endif
   // If not a multi-syscall interest or if issued an explicit stop, reset the
   // interest so we stop accounting.
-  if( ((interest->flags & IST_START) == 0) ||
-      ((interest->flags & IST_STOP ) != 0) ) {
+  if( ((interest->flags & ACCT_START) == 0) ||
+      ((interest->flags & ACCT_STOP ) != 0) ) {
     interest->syscall_id = 0;
   }
 

@@ -100,7 +100,7 @@ int xen_scheduler_init(void)
 
     // Now we have given the physical memory back to Xen, adjust our own PTEs
     // to point at the shared memory.
-    printk("rscfl_page_phys[i]: %lu\n", sched_info->rscfl_page_phys[i]);
+    // printk("rscfl_page_phys[i]: %lu\n", sched_info->rscfl_page_phys[i]);
     rc = ioremap_page_range((unsigned long)page_address(pg),
                             (unsigned long)page_address(pg) + PAGE_SIZE,
                             sched_info->rscfl_page_phys[i] << PAGE_SHIFT,
@@ -114,6 +114,8 @@ int xen_scheduler_init(void)
     }
     rscfl_pages[i] = page_address(pg);
   }
+  //printk("xen domain sched_out: %ul\n", sched_info->sched_out);
+  //sched_info->sched_out = 0;
   return 0;
 }
 

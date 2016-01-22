@@ -38,8 +38,8 @@ typedef struct sched_event sched_event_t;
 struct shared_sched_info
 {
   uint64_t sched_out;
-  uint8_t sched_tl;
-  uint8_t sched_hd;
+  uint16_t sched_tl;
+  uint16_t sched_hd;
   unsigned long rscfl_page_phys[NUM_XEN_PAGES];
 };
 

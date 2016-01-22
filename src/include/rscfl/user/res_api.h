@@ -76,6 +76,8 @@ extern const char *rscfl_subsys_name[NUM_SUBSYSTEMS];
 struct rscfl_token {
   unsigned short id;
   _Bool first_acct;
+  _Bool data_read;
+  _Bool in_use; //prevents double-free situations
 };
 typedef struct rscfl_token rscfl_token;
 
@@ -207,8 +209,8 @@ int rscfl_free_token(rscfl_handle, rscfl_token *);
  *
  */
 #define rscfl_acct(...) CONCAT(rscfl_acct_, VARGS(__VA_ARGS__))(__VA_ARGS__)
-#define rscfl_acct_1(handle) rscfl_acct_api(handle, NULL, IST_DEFAULT)
-#define rscfl_acct_2(handle, token) rscfl_acct_api(handle, token, IST_DEFAULT)
+#define rscfl_acct_1(handle) rscfl_acct_api(handle, NULL, ACCT_DEFAULT)
+#define rscfl_acct_2(handle, token) rscfl_acct_api(handle, token, ACCT_DEFAULT)
 #define rscfl_acct_3(handle, token, fl) rscfl_acct_api(handle, token, fl)
 int rscfl_acct_api(rscfl_handle, rscfl_token *token, interest_flags fl);
 

@@ -34,10 +34,10 @@
  *    sizeof(struct subsys_accounting) = 72
  *
  */
-#define STRUCT_ACCT_NUM 30
-#define ACCT_SUBSYS_RATIO 8   // assume one syscall touches ~ 8 subsystems
-#define MAX_TOKENS 64
-#define NUM_READY_TOKENS 10   // Number of tokens that the kernel can prepare
+#define STRUCT_ACCT_NUM 15
+#define ACCT_SUBSYS_RATIO 6   // assume one syscall touches ~ 8 subsystems
+#define MAX_TOKENS 32
+#define NUM_READY_TOKENS 12   // Number of tokens that the kernel can prepare
                               // in advance.
 // special tokens
 #define DEFAULT_TOKEN -15
@@ -117,7 +117,8 @@ typedef enum {
   ACCT_KNOP          = EBIT(6),   // For benchmarking calibration: run
                                   // acct_next but don't actually express
                                   // interest (no kernel-side effects)
-  __ACCT_FLAG_IS_PERSISTENT        = EBIT(0) | EBIT(1),
+  __ACCT_ERR         = EBIT(7),
+  __ACCT_FLAG_IS_PERSISTENT        = (EBIT(0) | EBIT(1) | EBIT(7)),
 
 } interest_flags;
 

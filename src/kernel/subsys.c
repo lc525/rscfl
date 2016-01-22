@@ -50,6 +50,8 @@ int get_subsys(rscfl_subsys subsys_id,
       // this subsystem.
       printk(KERN_ERR
              "rscfl: Unable to allocate memory for syscall accounting\n");
+      current_pid_acct->ctrl->interest.flags |= __ACCT_ERR;
+      current_pid_acct->ctrl->interest.syscall_id = 0;
       return -ENOMEM;
     }
     // Now need to initialise the subsystem's resources to be 0.

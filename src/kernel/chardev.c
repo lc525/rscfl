@@ -188,7 +188,6 @@ static int mmap_common(struct file *filp, struct vm_area_struct *vma,
     pos += req_length;
     size -= req_length;
   }
-  printk(KERN_ERR "rscfl-map successful\n");
 
   drv_data = kzalloc(sizeof(rscfl_vma_data), GFP_KERNEL);
   if (!drv_data) {
@@ -308,9 +307,11 @@ static int ctrl_mmap(struct file *filp, struct vm_area_struct *vma)
                                             sizeof(struct rscfl_kernel_token));
   current_pid_acct->default_token->id = DEFAULT_TOKEN;
   current_pid_acct->active_token = current_pid_acct->default_token;
-  current_pid_acct->null_token = kzalloc(GFP_KERNEL,
-                                         sizeof(struct rscfl_kernel_token));
-  current_pid_acct->null_token->id = NULL_TOKEN;
+  /*
+   *current_pid_acct->null_token = kzalloc(GFP_KERNEL,
+   *                                       sizeof(struct rscfl_kernel_token));
+   *current_pid_acct->null_token->id = NULL_TOKEN;
+   */
 
   drv_data = (rscfl_vma_data*) vma->vm_private_data;
   drv_data->pid_acct_node = current_pid_acct;
@@ -355,8 +356,11 @@ static long rscfl_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
 
       current_pid_acct = CPU_VAR(current_acct);
       interest = &current_pid_acct->ctrl->interest;
-      printk("IOCTL_CMD: %s, usp_token: %d, active_ktok:%d, ist_ktok:%d, syscall_id:%lu\n", dbg.msg, dbg.new_token_id,
-          current_pid_acct->active_token->id, interest->token_id, interest->syscall_id);
+      if((interest->flags & __ACCT_ERR) == 0)
+        printk("IOCTL_CMD: %s, usp_token: %d, active_ktok:%d, ist_ktok:%d, syscall_id:%lu\n",
+            dbg.msg, dbg.new_token_id,
+            current_pid_acct->active_token->id, interest->token_id,
+            interest->syscall_id);
       return 0;
       break;
     }

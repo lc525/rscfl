@@ -9,7 +9,7 @@ struct rscfl_kernel_token
   // holds current head of xen schedule out events list
   int val;
   // holds snapshot of xen sched_out value
-  int val2;
+  uint64_t val2;
   struct accounting* account;
 };
 typedef struct rscfl_kernel_token rscfl_kernel_token;

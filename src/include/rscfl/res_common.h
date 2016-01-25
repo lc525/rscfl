@@ -109,11 +109,6 @@ typedef enum {
                                    // Also clears the corresponding subsystem
                                    // data.
 
-  __BENCH_INTERNAL_CLR   = EBIT(5), // For benchmarking: compute but don't
-                                    // actually store accounting data.
-                                    // This automatically clears ("reads")
-                                    // the acct data structures.
-
   ACCT_KNOP          = EBIT(6),   // For benchmarking calibration: run
                                   // acct_next but don't actually express
                                   // interest (no kernel-side effects)

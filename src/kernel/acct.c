@@ -176,26 +176,6 @@ int clear_acct_next(void)
 
   current_pid_acct = CPU_VAR(current_acct);
   interest = &current_pid_acct->ctrl->interest;
-#ifdef RSCFL_BENCH
-  // clear the acct/subsys memory if the ACCT_STOP was set
-  //
-  // For clearing things quickly dunring benchmark-ing, we make use of the
-  // fact that for a given call and under no concurrent measurements  we'll
-  // store the subsys data structures contiguously. This is deffinetely not true
-  // in the general case!
-  if((interest->flags & __BENCH_INTERNAL_CLR) != 0) {
-    int i;
-    struct subsys_accounting *sa = current_pid_acct->shared_buf->subsyses;
-
-    for(i = 0; i < ACCT_SUBSYS_NUM; i++) {
-      if(likely(sa[i].in_use != 0))
-        sa[i].in_use = 0;
-      else
-        break;
-    }
-    current_pid_acct->probe_data->syscall_acct->in_use = 0;
-  }
-#endif
   // If not a multi-syscall interest or if issued an explicit stop, reset the
   // interest so we stop accounting.
   if( ((interest->flags & ACCT_START) == 0) ||

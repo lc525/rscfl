@@ -110,12 +110,17 @@ def run_experiment(no_vms, gold_img, memory, vcpus, workload_cmd, workload_cmd_f
         # Start measuring
         payload = {'mark': 'vms_%d_%s' % (x, mark[cmd_ix])}
         requests.post('http://'+target_vm+'/mark', payload)
+
         if x == from_vms:
-            print("$ESTART")
+            print("$ESTART:%d" % x)
+        if (x > from_vms) and (x < no_vms):
+            print("$VMS:%d" % x)
+        if x == no_vms:
+            print("$VML:%d" % x)
 
         if x < no_vms:
           # Wait
-          time.sleep(float(sleep_time))
+          fabric.operations.prompt('$WAIT_CONT', default='Y')
           # Stop measuring
           payload = {'mark': 'STOP'}
           requests.post('http://'+target_vm+'/mark', payload)

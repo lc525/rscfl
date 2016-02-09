@@ -240,6 +240,9 @@ static int data_mmap(struct file *filp, struct vm_area_struct *vma)
     return rc;
   }
   pid_acct_node->subsys_ptr = pid_acct_node->subsys_stack;
+  *(pid_acct_node->subsys_ptr) = USERSPACE_LOCAL
+  pid_acct_node->subsys_ptr++;
+
   if(rscfl_user_config.monitored_pid == RSCFL_PID_SELF) {
     pid_acct_node->pid = current->pid;
   }

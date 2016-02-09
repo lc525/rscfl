@@ -21,7 +21,7 @@ static void record_ctx_switch(pid_acct *p_acct,
     ru64 cycles;
     int err;
 
-    err = get_subsys(*p_acct->subsys_ptr, &subsys_acct);
+    err = get_subsys(*p_acct->subsys_ptr[-1], &subsys_acct);
     if (err < 0) {
       return;
     }

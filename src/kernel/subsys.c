@@ -117,7 +117,7 @@ int rscfl_subsys_entry(rscfl_subsys subsys_id)
   }
   BUG_ON(current_pid_acct == NULL);  // As get_subsys != 0.
 
-  if (current_pid_acct->subsys_ptr != current_pid_acct->subsys_stack) {
+  if (current_pid_acct->subsys_ptr != current_pid_acct->subsys_stack + 1) {
     // This is not the first subsystem of the syscall, so we want to update
     // the values in the previous subsystem.
 
@@ -179,7 +179,7 @@ void rscfl_subsys_exit(rscfl_subsys subsys_id)
   }
 
   // Start counters again for the subsystem we're returning back to.
-  if (current_pid_acct->subsys_ptr > current_pid_acct->subsys_stack) {
+  if (current_pid_acct->subsys_ptr > current_pid_acct->subsys_stack + 1) {
     err = get_subsys(current_pid_acct->subsys_ptr[-1], &prev_subsys_acct);
     if (err) {
       goto error;

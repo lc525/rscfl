@@ -67,7 +67,7 @@ int should_acct(void)
     return 0;
   }
 
-  if(current_pid_acct->subsys_ptr == current_pid_acct->subsys_stack) {
+  if(current_pid_acct->subsys_ptr == current_pid_acct->subsys_stack + 1) {
     //printk(KERN_ERR "syscall!!\n");
     if(current_pid_acct->active_token->id != interest->token_id) {
       // we're swapping tokens to interest->token_id
@@ -92,46 +92,6 @@ int should_acct(void)
       current_pid_acct->active_token->account;
 
   }
-
-/*
- *  if(current_pid_acct->subsys_ptr == current_pid_acct->subsys_stack) {
- *    // Consider token changes in user-space. If the user changes the token,
- *    // this will be reflected kernel-side after any ongoing system calls
- *    // have finished executing (and we have finished recording accounting data
- *    // for them)
- *    if(current_pid_acct->active_token->id != interest->token_id) {
- *      //swap tokens and the currently active syscall_acct
- *      printk(KERN_ERR "token swap from %d to %d\n", current_pid_acct->active_token->id, interest->token_id);
- *      if(IS_USER_TOKEN(interest->token_id)) {
- *        current_pid_acct->active_token =
- *          current_pid_acct->token_ix[interest->token_id];
- *      } else if(interest->token_id == NULL_TOKEN) {
- *        current_pid_acct->active_token = current_pid_acct->null_token;
- *        return 0;
- *      } else { // DEFAULT_TOKEN
- *        current_pid_acct->active_token = current_pid_acct->default_token;
- *      }
- *
- *      current_pid_acct->probe_data->syscall_acct =
- *        current_pid_acct->active_token->account;
- *    }
- *
- *    if(current_pid_acct->active_token == current_pid_acct->null_token)
- *      return 0;
- *
- *    // If we have received a TK_RESET, we need to record into a new
- *    // syscall_acct structure
- *    if(interest->first_measurement) {
- *      printk(KERN_ERR "first measurment!\n");
- *      current_pid_acct->probe_data->syscall_acct = NULL;
- *      if(current_pid_acct->active_token->account != NULL && current_pid_acct->active_token->account->in_use == 1) {
- *        printk(KERN_ERR "token %d should have been read!\n", current_pid_acct->active_token->id);
- *        current_pid_acct->active_token->account->in_use = 0;
- *      }
- *      current_pid_acct->active_token->account = NULL;
- *    }
- *  }
- */
 
   // We are now going to return 1, but need to find a struct accounting to
   // store the accounting data in.

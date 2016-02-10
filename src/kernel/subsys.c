@@ -46,7 +46,6 @@ int get_subsys(rscfl_subsys subsys_id,
       }
     }
     if (subsys_offset == -1) {
-      int i;
       // We haven't found anywhere in the shared page where we can store
       // this subsystem.
       printk(KERN_ERR

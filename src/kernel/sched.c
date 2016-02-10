@@ -21,7 +21,7 @@ static void record_ctx_switch(pid_acct *p_acct,
     ru64 cycles;
     int err;
 
-    err = get_subsys(*p_acct->subsys_ptr[-1], &subsys_acct);
+    err = get_subsys(*(p_acct->subsys_ptr-1), &subsys_acct);
     if (err < 0) {
       return;
     }
@@ -50,14 +50,15 @@ void on_ctx_switch(void *ignore,
 {
   pid_t next_tid = next->pid;
   pid_acct *curr_acct = CPU_VAR(current_acct);
-  if (curr_acct != NULL) {
+  if (curr_acct != NULL && curr_acct->ctrl->interest.token_id != NULL_TOKEN) {
     record_ctx_switch(curr_acct, 0);
   }
 
   hash_for_each_possible(CPU_TBL(pid_acct_tbl), curr_acct, link, next_tid) {
     if(curr_acct->pid == next_tid){
       CPU_VAR(current_acct) = curr_acct;
-      record_ctx_switch(curr_acct, 1);
+      if(curr_acct->ctrl->interest.token_id != NULL_TOKEN)
+        record_ctx_switch(curr_acct, 1);
 #if SHDW_ENABLED != 0
       // Switch shadow kernel if this process has a shadow kernel associated
       // with it.

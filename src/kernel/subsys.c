@@ -46,10 +46,11 @@ int get_subsys(rscfl_subsys subsys_id,
       }
     }
     if (subsys_offset == -1) {
+      int i;
       // We haven't found anywhere in the shared page where we can store
       // this subsystem.
       printk(KERN_ERR
-             "rscfl: Unable to allocate memory for syscall accounting\n");
+             "rscfl: Unable to allocate memory for subsystem accounting\n");
       current_pid_acct->ctrl->interest.flags |= __ACCT_ERR;
       current_pid_acct->ctrl->interest.syscall_id = 0;
       return -ENOMEM;
@@ -117,7 +118,7 @@ int rscfl_subsys_entry(rscfl_subsys subsys_id)
   }
   BUG_ON(current_pid_acct == NULL);  // As get_subsys != 0.
 
-  if (current_pid_acct->subsys_ptr != current_pid_acct->subsys_stack + 1) {
+  if (current_pid_acct->subsys_ptr > current_pid_acct->subsys_stack + 1) {
     // This is not the first subsystem of the syscall, so we want to update
     // the values in the previous subsystem.
 
@@ -170,7 +171,7 @@ void rscfl_subsys_exit(rscfl_subsys subsys_id)
   current_pid_acct->shared_buf->subsys_exits++;
 
   // Now point at the frame of the subsystem being left.
-  *(current_pid_acct->subsys_ptr) = subsys_id;
+  //*(current_pid_acct->subsys_ptr) = subsys_id;
   current_pid_acct->subsys_ptr--;
 
   err = get_subsys(subsys_id, &subsys_acct);

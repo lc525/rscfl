@@ -329,6 +329,8 @@ int rscfl_acct_api(rscfl_handle rhdl, rscfl_token *token, interest_flags fl)
 
   if((to_acct->flags & ACCT_STOP) != 0) {
     to_acct->syscall_id = 0;
+    to_acct->token_id = NULL_TOKEN; // need this to signal the scheduler
+                                    // interposition not to record further data
     to_acct->flags = ACCT_DEFAULT;
     return 0;
   } else if((to_acct->flags & ACCT_START) != 0) {

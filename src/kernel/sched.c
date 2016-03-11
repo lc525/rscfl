@@ -3,6 +3,7 @@
 #include "linux/time.h"
 
 #include "rscfl/costs.h"
+#include "rscfl/kernel/acct.h"
 #include "rscfl/kernel/cpu.h"
 #include "rscfl/kernel/hasht.h"
 #include "rscfl/kernel/probes.h"
@@ -51,6 +52,7 @@ void on_ctx_switch(void *ignore,
   pid_t next_tid = next->pid;
   pid_acct *curr_acct = CPU_VAR(current_acct);
   if (curr_acct != NULL && curr_acct->ctrl->interest.token_id != NULL_TOKEN) {
+    update_acct();
     record_ctx_switch(curr_acct, 0);
   }
 

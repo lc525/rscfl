@@ -211,18 +211,45 @@ int rscfl_get_token(rscfl_handle rhdl, rscfl_token **token)
   return 0;
 }
 
-int rscfl_switch_token(rscfl_handle rhdl, rscfl_token *token_to){
+int rscfl_switch_token_api(rscfl_handle rhdl, rscfl_token *token_to, token_switch_flags flags){
   unsigned short new_id;
   volatile syscall_interest_t *interest;
   //rscfl_debug dbg;
+  if (rhdl == NULL) {
+    return -EINVAL;
+  }
   if(token_to == NULL) {
-    new_id = DEFAULT_TOKEN;
+    if((flags & SW_TK_NULL) != 0)
+      new_id = NULL_TOKEN;
+    else
+      new_id = DEFAULT_TOKEN;
   } else {
     new_id = token_to->id;
   }
   interest = &rhdl->ctrl->interest;
+
+  // no syscalls were executed for the previous token
+  if(interest->first_measurement && rhdl->current_token != NULL) {
+    rhdl->current_token->first_acct = 1;
+  }
+
+  // on setting first_measurement, the kernel side will clear any allocated
+  // memory for the given token, but will not free subsystem data.
+  // therefore, if rscfl_get_subsys was not called, you will leak subsystem
+  // memory
+  if((flags & SW_TK_RESET) != 0)
+    interest->first_measurement = 1;
+  else if (token_to != NULL) {
+    interest->first_measurement = token_to->first_acct;
+    token_to->first_acct = 0;
+  }
+
+  if(new_id == DEFAULT_TOKEN)
+    interest->first_measurement = 0;
+
   if(interest->token_id != new_id){
     interest->token_id = new_id;
+    rhdl->current_token = token_to;
     /*
      *printf("token switch from: %d to %d\n", interest->token_id, new_id);
      *msync(rhdl->ctrl, PAGE_SIZE, MS_SYNC);
@@ -316,15 +343,16 @@ int rscfl_acct_api(rscfl_handle rhdl, rscfl_token *token, interest_flags fl)
   }
 
   // deal with tokens
+  if (token != NULL) {
+    to_acct->token_id = token->id;
+    token->first_acct = 0;
+  } else {
+    to_acct->token_id = DEFAULT_TOKEN;
+  }
   if((fl & ACCT_NEXT_FL) != 0) {
     to_acct->first_measurement = 1;
   } else {
     to_acct->first_measurement = rst;
-  }
-  if (token != NULL) {
-    to_acct->token_id = token->id;
-  } else {
-    to_acct->token_id = DEFAULT_TOKEN;
   }
 
   if((to_acct->flags & ACCT_STOP) != 0) {
@@ -338,6 +366,7 @@ int rscfl_acct_api(rscfl_handle rhdl, rscfl_token *token, interest_flags fl)
   } else {
     to_acct->syscall_id = ++rhdl->lst_syscall_id;
   }
+  rhdl->current_token = token;
 
   /*
    *strncpy(dbg.msg, "ACCT", 5);
@@ -493,6 +522,37 @@ subsys_idx_set* rscfl_get_new_aggregator(unsigned short no_subsystems)
   }
 
   return ret_subsys_idx;
+}
+
+int rscfl_merge_idx_set_into(subsys_idx_set *current, subsys_idx_set *aggregator_into) {
+  int agg_set_ix, i, rc = 0;
+
+  agg_set_ix = aggregator_into->set_size;
+
+  for(i=0; i<current->set_size; i++) {
+    // fold set[i] into aggregator_info
+    // index of current subsystem ix = current->ids[i]
+    int ix = current->ids[i];
+    if(aggregator_into->idx[ix] == -1) {
+      // subsys ix not in aggregator_into, add if sufficient space
+      if (agg_set_ix < aggregator_into->max_set_size) {
+        aggregator_into->idx[ix] = agg_set_ix;
+        aggregator_into->set[agg_set_ix] = current->set[i];
+        aggregator_into->ids[agg_set_ix] = ix;
+        agg_set_ix++;
+        aggregator_into->set_size++;
+      } else {
+        // not enough space in aggregator_into, set error but continue
+        // (the values that could be aggregated remain correct)
+        rc++;
+      }
+    } else {
+      // subsys ix exists, merge values
+      rscfl_subsys_merge(&aggregator_into->set[aggregator_into->idx[ix]],
+                         &current->set[i]);
+    }
+  }
+  return rc;
 }
 
 int rscfl_merge_acct_into(rscfl_handle rhdl, struct accounting *acct_from,

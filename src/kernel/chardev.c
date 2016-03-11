@@ -376,7 +376,10 @@ static long rscfl_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
 
         next = current_pid_acct->next_ctrl_token;
         n = current_pid_acct->num_tokens;
-        if(n >= MAX_TOKENS) return -EINVAL;
+        if(n >= MAX_TOKENS) {
+          printk("rscfl: max number of tokens exceeded\n");
+          return -EINVAL;
+        }
 
         current_pid_acct->ctrl->num_avail_token_ids = n - next;
         if(n - next == 0) {
@@ -404,6 +407,7 @@ static long rscfl_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
         current_pid_acct->ctrl->num_avail_token_ids = n - next;
         current_pid_acct->next_ctrl_token = n;
       } else {
+        printk("rscfl: pid not registered for requesting tokens\n");
         return -EINVAL;
       }
 

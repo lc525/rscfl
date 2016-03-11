@@ -42,70 +42,51 @@ static struct accounting *alloc_acct(pid_acct *current_pid_acct)
   return acct_buf;
 }
 
-int should_acct(void)
+int update_acct(void)
 {
   volatile syscall_interest_t *interest;
   pid_acct *current_pid_acct;
-  //int diff;
 
-  preempt_disable();
   current_pid_acct = CPU_VAR(current_acct);
-
-  // Need to test for ctrl == NULL as we first initialise current_pid_acct, on
-  // the first mmap in rscfl_init, and then initialise the ctrl page in a second
-  // mmap. If the second mmap hasn't happened yet, do nothing.
-  if ((current_pid_acct == NULL) || (current_pid_acct->ctrl == NULL)) {
-    // This pid has not (fully) initialised resourceful.
-    preempt_enable();
-    return 0;
-  }
-
   interest = &current_pid_acct->ctrl->interest;
-  if (!interest->syscall_id || interest->token_id == NULL_TOKEN) {
-    // There are no interests registered for this pid.
-    preempt_enable();
+
+  // update the active token
+  if(current_pid_acct->active_token->id != interest->token_id) {
+    // we're swapping tokens to interest->token_id
+    // printk(KERN_ERR "token swap from %d to %d\n", current_pid_acct->active_token->id, interest->token_id);
+    if(IS_USER_TOKEN(interest->token_id)) {
+      current_pid_acct->active_token =
+        current_pid_acct->token_ix[interest->token_id];
+    } else { // DEFAULT_TOKEN
+      current_pid_acct->active_token = current_pid_acct->default_token;
+    }
+  }
+
+  if(interest->first_measurement && current_pid_acct->active_token != current_pid_acct->default_token) {
+    volatile rscfl_kernel_token *tk = current_pid_acct->active_token;
+    if(tk->account != NULL && tk->account->token_id == tk->id ) {
+      tk->account->in_use = 0;
+    }
+   tk->account = NULL;
+  }
+
+  current_pid_acct->probe_data->syscall_acct =
+    current_pid_acct->active_token->account;
+
+  // existing struct accounting, aggregate into it
+  if (current_pid_acct->probe_data->syscall_acct) {
     return 0;
   }
 
-  if(current_pid_acct->subsys_ptr == current_pid_acct->subsys_stack + 1) {
-    //printk(KERN_ERR "syscall!!\n");
-    if(current_pid_acct->active_token->id != interest->token_id) {
-      // we're swapping tokens to interest->token_id
-      // printk(KERN_ERR "token swap from %d to %d\n", current_pid_acct->active_token->id, interest->token_id);
-      if(IS_USER_TOKEN(interest->token_id)) {
-        current_pid_acct->active_token =
-          current_pid_acct->token_ix[interest->token_id];
-      } else { // DEFAULT_TOKEN
-        current_pid_acct->active_token = current_pid_acct->default_token;
-      }
-    }
-
-    if(interest->first_measurement) {
-      volatile rscfl_kernel_token *tk = current_pid_acct->active_token;
-      if(tk->account != NULL && tk->account->token_id == tk->id ) {
-        tk->account->in_use = 0;
-      }
-     tk->account = NULL;
-    }
-
-    current_pid_acct->probe_data->syscall_acct =
-      current_pid_acct->active_token->account;
-
+  // Find a struct accounting to store the accounting data in.
+  if(current_pid_acct->active_token == current_pid_acct->default_token){
+    printk("alloc for default token, first:%d\n", interest->first_measurement);
   }
-
-  // We are now going to return 1, but need to find a struct accounting to
-  // store the accounting data in.
-  if (current_pid_acct->probe_data->syscall_acct) {
-    preempt_enable();
-    return 1;
-  }
-
   current_pid_acct->probe_data->syscall_acct = alloc_acct(current_pid_acct);
   if(current_pid_acct->probe_data->syscall_acct == NULL) {
     interest->syscall_id = 0;
     interest->flags |= __ACCT_ERR;
-    preempt_enable();
-    return 0;
+    return 1;
   }
 
   // diff = current_pid_acct->probe_data->syscall_acct - current_pid_acct->shared_buf->acct
@@ -122,8 +103,7 @@ int should_acct(void)
     printk(KERN_ERR "Alloc but not first!");
   }
 
-  preempt_enable();
-  return 1;
+  return 0;
 }
 
 int clear_acct_next(void)

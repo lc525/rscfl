@@ -81,13 +81,14 @@ int rscfl_subsys_entry(rscfl_subsys subsys_id)
   // Needs to be initialised to NULL so that if there is no current subsys,
   // we pass NULL to rscfl_perf_update_subsys_vals, which is well-handled.
   struct subsys_accounting *curr_subsys_acct = NULL;
+  volatile syscall_interest_t *interest;
   int err;
 
 
   preempt_disable();
   current_pid_acct = CPU_VAR(current_acct);
-  // Don't continue if we're already running a probe or we may double-fault.
-  if (current_pid_acct == NULL || current_pid_acct->executing_probe) {
+  // Don't continue if we're not in the correct process or already running a probe
+  if ((current_pid_acct == NULL) || current_pid_acct->executing_probe || (current_pid_acct->ctrl == NULL)) {
     preempt_enable();
     return -1;
   }
@@ -102,13 +103,23 @@ int rscfl_subsys_entry(rscfl_subsys subsys_id)
     return -1;
   }
 
-  current_pid_acct->executing_probe = 1;
-
-  if (!should_acct()) {
-    // Not accounting for this syscall, so exit, and don't set the return probe.
-    current_pid_acct->executing_probe = 0;
+  interest = &current_pid_acct->ctrl->interest;
+  if (!interest->syscall_id || interest->token_id == NULL_TOKEN) {
+    // There are no interests registered for this pid.
     preempt_enable();
     return -1;
+  }
+
+  current_pid_acct->executing_probe = 1;
+
+  if(current_pid_acct->subsys_ptr == current_pid_acct->subsys_stack + 1) {
+    int u_err;
+    u_err = update_acct();
+    if(u_err) {
+      current_pid_acct->executing_probe = 0;
+      preempt_enable();
+      return -1;
+    }
   }
 
   err = get_subsys(subsys_id, &new_subsys_acct);

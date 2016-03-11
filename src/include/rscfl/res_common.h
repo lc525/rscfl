@@ -34,7 +34,7 @@
  *    sizeof(struct subsys_accounting) = 72
  *
  */
-#define STRUCT_ACCT_NUM 15
+#define STRUCT_ACCT_NUM 20
 #define ACCT_SUBSYS_RATIO 7   // assume one syscall touches ~ ACCT_SUBSYS_RATIO subsystems
 #define MAX_TOKENS 32
 #define NUM_READY_TOKENS 12   // Number of tokens that the kernel can prepare

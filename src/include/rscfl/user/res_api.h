@@ -66,6 +66,12 @@ extern "C" {
 /* array containing the user-friendly names of each subsystem */
 extern const char *rscfl_subsys_name[NUM_SUBSYSTEMS];
 
+typedef enum {
+  SW_TK_DEFAULT  = EBIT(0),
+  SW_TK_RESET    = EBIT(1),
+  SW_TK_NULL     = EBIT(2),
+} token_switch_flags;
+
 /*
  * Resourceful tokens allow us to track the resources consumed by a request
  * when it is not in the kernel. This can be in userspace or in the hypervisor.
@@ -107,6 +113,7 @@ struct rscfl_handle_t {
    */
   //rscfl_token *fresh_tokens[NUM_READY_TOKENS];
   rscfl_token_list *free_token_list;
+  rscfl_token *current_token;
   //int ready_token_sp;
   int fd_ctrl;
 };
@@ -164,7 +171,7 @@ typedef struct subsys_idx_set subsys_idx_set;
  *
  * In each case, the actual function being called is rscfl_init_api(...).
  */
-#define rscfl_init(...) CONCAT(rscfl_init_, VARGS(__VA_ARGS__))(__VA_ARGS__)
+#define rscfl_init(...) CONCAT(rscfl_init_, VARGS_NR(__VA_ARGS__))(__VA_ARGS__)
 #define rscfl_init_0() rscfl_init_api(RSCFL_VERSION, NULL)
 #define rscfl_init_1(cfg) rscfl_init_api(RSCFL_VERSION, cfg)
 /*
@@ -177,7 +184,7 @@ typedef struct subsys_idx_set subsys_idx_set;
  */
 rscfl_handle rscfl_init_api(rscfl_version_t api_ver, rscfl_config* config);
 
-#define rscfl_get_handle(...) CONCAT(rscfl_get_handle_, VARGS(__VA_ARGS__))(__VA_ARGS__)
+#define rscfl_get_handle(...) CONCAT(rscfl_get_handle_, VARGS_NR(__VA_ARGS__))(__VA_ARGS__)
 #define rscfl_get_handle_0() rscfl_get_handle_api(NULL)
 #define rscfl_get_handle_1(cfg) rscfl_get_handle_api(cfg)
 /* \brief Returns the rscfl handle for the current thread. If rscfl was not
@@ -197,7 +204,10 @@ rscfl_handle rscfl_get_handle_api(rscfl_config *cfg);
  */
 int rscfl_get_token(rscfl_handle rhdl, rscfl_token **token);
 
-int rscfl_switch_token(rscfl_handle rhdl, rscfl_token *token_to);
+#define rscfl_switch_token(...) CONCAT(rscfl_switch_token_, VARGS_NR(__VA_ARGS__))(__VA_ARGS__)
+#define rscfl_switch_token_2(handle, token) rscfl_switch_token_api(handle, token, SW_TK_DEFAULT)
+#define rscfl_switch_token_3(handle, token, fl) rscfl_switch_token_api(handle, token, fl)
+int rscfl_switch_token_api(rscfl_handle rhdl, rscfl_token *token_to, token_switch_flags fl);
 
 /*
  * Returns an int as we put the token on a reuse list. Allocation of
@@ -208,13 +218,13 @@ int rscfl_free_token(rscfl_handle, rscfl_token *);
 /*
  *
  */
-#define rscfl_acct(...) CONCAT(rscfl_acct_, VARGS(__VA_ARGS__))(__VA_ARGS__)
+#define rscfl_acct(...) CONCAT(rscfl_acct_, VARGS_NR(__VA_ARGS__))(__VA_ARGS__)
 #define rscfl_acct_1(handle) rscfl_acct_api(handle, NULL, ACCT_DEFAULT)
 #define rscfl_acct_2(handle, token) rscfl_acct_api(handle, token, ACCT_DEFAULT)
 #define rscfl_acct_3(handle, token, fl) rscfl_acct_api(handle, token, fl)
 int rscfl_acct_api(rscfl_handle, rscfl_token *token, interest_flags fl);
 
-#define rscfl_read_acct(...) CONCAT(rscfl_read_acct_, VARGS(__VA_ARGS__))(__VA_ARGS__)
+#define rscfl_read_acct(...) CONCAT(rscfl_read_acct_, VARGS_NR(__VA_ARGS__))(__VA_ARGS__)
 #define rscfl_read_acct_2(handle, acct) rscfl_read_acct_api(handle, acct, NULL)
 #define rscfl_read_acct_3(handle, acct, token) rscfl_read_acct_api(handle, acct, token)
 int rscfl_read_acct_api(rscfl_handle handle, struct accounting *acct, rscfl_token *token);
@@ -260,7 +270,14 @@ subsys_idx_set* rscfl_get_subsys(rscfl_handle rhdl, struct accounting *acct);
  */
 subsys_idx_set* rscfl_get_new_aggregator(unsigned short no_subsystems);
 
+
 /*!
+ * \brief merge one subsys_idx_set into another (efficiently)
+ */
+int rscfl_merge_idx_set_into(subsys_idx_set *current, subsys_idx_set *aggregator_into);
+
+
+ /*!
  * \brief rscfl_merge_acct_into allows fast aggregation of subsys accounting
  *        data in user space
  *

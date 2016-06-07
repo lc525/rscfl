@@ -9,7 +9,7 @@ void kamprobes_free(void);
 
 void kamprobes_unregister_all(void);
 
-int kamprobes_register(u8 **orig_addr, char sys_type, void (*pre_handler)(void),
+int kamprobes_register(u8 **orig_addr, char sys_type, int (*pre_handler)(void),
                        void (*post_handler)(void));
 #endif
 

@@ -33,7 +33,7 @@ int probes_init(void)
   int i, rc, failures = 0, probes = 0;
   unsigned long flags;
 
-  void (*probe_pre_handlers_temp[])(void) = {PROBE_LIST(PROBES_AS_PRE_HANDLE)};
+  int (*probe_pre_handlers_temp[])(void) = {PROBE_LIST(PROBES_AS_PRE_HANDLE)};
   void (*probe_post_handlers_temp[])(void) = {PROBE_LIST(PROBES_AS_RTN_HANDLE)};
 
   int num_subsys = sizeof(probe_pre_handlers_temp) / sizeof(u8*);

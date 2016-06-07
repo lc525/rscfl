@@ -3,7 +3,7 @@
 
 #include "rscfl/costs.h"
 
-void rscfl_subsys_entry(rscfl_subsys);
+int rscfl_subsys_entry(rscfl_subsys);
 
 void rscfl_subsys_exit(rscfl_subsys);
 

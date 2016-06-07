@@ -6,6 +6,7 @@
 #include "linux/time.h"
 #include "linux/workqueue.h"
 
+#include "rscfl/kernel/acct.h"
 #include "rscfl/kernel/cpu.h"
 #include "rscfl/kernel/perf.h"
 #include "rscfl/kernel/priv_kallsyms.h"
@@ -15,17 +16,17 @@
 #include "rscfl/res_common.h"
 
 
-DEFINE_HASHTABLE(tokens, TOKENS_HASH_BUCKETS);
-
 /*
  * Some extra, useful counters
  */
-static struct timespec rscfl_get_timestamp(void)
-{
-  struct timespec ts;
-  getrawmonotonic(&ts);
-  return ts;
-}
+/*
+ *static struct timespec rscfl_get_timestamp(void)
+ *{
+ *  struct timespec ts;
+ *  getrawmonotonic(&ts);
+ *  return ts;
+ *}
+ */
 
 int rscfl_counters_init(void)
 {
@@ -39,6 +40,7 @@ void rscfl_counters_stop(void)
 int rscfl_counters_update_subsys_vals(struct subsys_accounting *add_subsys,
                                       struct subsys_accounting *minus_subsys)
 {
+#ifdef XEN_ENABLED
   struct shared_sched_info *sched_info = (void *)(
       // Start of the shared page
       (unsigned long)*KPRIV(HYPERVISOR_shared_info) +
@@ -49,16 +51,14 @@ int rscfl_counters_update_subsys_vals(struct subsys_accounting *add_subsys,
       // Linux doesn't use the last 18 bytes of the struct, so we need to offset
       // by this amount.
       0x18);
+#endif
 
   pid_acct *current_pid_acct;
 
-  uint64_t hypervisor_timestamp;
-
   u64 cycles = rscfl_get_cycles();
-  struct timespec time = rscfl_get_timestamp();
+  //struct timespec time = rscfl_get_timestamp();
   int subsys_err;
   syscall_interest_t *interest;
-  struct rscfl_kernel_token *tbl_token;
 
   preempt_disable();
   current_pid_acct = CPU_VAR(current_acct);
@@ -70,19 +70,20 @@ int rscfl_counters_update_subsys_vals(struct subsys_accounting *add_subsys,
   if (add_subsys != NULL) {
     add_subsys->subsys_entries++;
     add_subsys->cpu.cycles += cycles;
-    rscfl_timespec_add(&add_subsys->cpu.wall_clock_time, &time);
+    //rscfl_timespec_add(&add_subsys->cpu.wall_clock_time, &time);
   }
 
   if (minus_subsys != NULL) {
     minus_subsys->subsys_exits++;
     minus_subsys->cpu.cycles -= cycles;
-    rscfl_timespec_diff_comp(&minus_subsys->cpu.wall_clock_time, &time);
+    //rscfl_timespec_diff_comp(&minus_subsys->cpu.wall_clock_time, &time);
   }
 
+#ifdef XEN_ENABLED
   // HYPERVISOR
   if (*KPRIV(HYPERVISOR_shared_info) != KPRIV(xen_dummy_shared_info) && !disable_xen) {
     // We are running in a Xen VM.
-
+    uint64_t hypervisor_timestamp;
     int hd = sched_info->sched_hd;
     int tl = 0;
     sched_event_t *event;
@@ -90,20 +91,21 @@ int rscfl_counters_update_subsys_vals(struct subsys_accounting *add_subsys,
 
     if (add_subsys == NULL) {
       subsys_err = get_subsys(USERSPACE_XEN, &add_subsys);
+      add_subsys->sched.xen_sched_cycles2 = current_pid_acct->active_token->val2 + sched_info->sched_out;
       if (subsys_err != 0) {
         return subsys_err;
       }
+    } else {
+      add_subsys->sched.xen_sched_cycles2 += sched_info->sched_out;
+    }
+
+    if(minus_subsys != NULL) {
+      minus_subsys->sched.xen_sched_cycles2 -= sched_info->sched_out;
     }
 
     // Update tail if we have a token.
-    hash_for_each_possible(tokens, tbl_token, link, interest->token)
-    {
-      if (interest->token != tbl_token->id) {
-        continue;
-      }
-      tl = tbl_token->val;
-      tbl_token->val = hd;
-    }
+    tl = current_pid_acct->active_token->val;
+    current_pid_acct->active_token->val = hd;
 
     for (; hd != tl; tl = (tl + 1) % CURRENT_XEN_NUM_EVENTS) {
       event_page = (sched_event_t *)rscfl_pages[tl / XEN_EVENTS_PER_PAGE];
@@ -111,11 +113,12 @@ int rscfl_counters_update_subsys_vals(struct subsys_accounting *add_subsys,
       if (add_subsys != NULL) {
         // Get timespec from the scheduling event->
         hypervisor_timestamp = 0;
-        memset(&time, 0, sizeof(struct timespec));
-        rscfl_timespec_add_ns(&time, hypervisor_timestamp);
+        //memset(&time, 0, sizeof(struct timespec));
+        //rscfl_timespec_add_ns(&time, hypervisor_timestamp);
 
         // Check the number of credits for the VCPU, and update min/max as
         // required.
+        // TODO(lc525): min/max is useless, find different measures
         add_subsys->sched.xen_credits_min =
             min(add_subsys->sched.xen_credits_min, (int)event->credit);
         add_subsys->sched.xen_credits_max =
@@ -125,7 +128,7 @@ int rscfl_counters_update_subsys_vals(struct subsys_accounting *add_subsys,
           // Update count of scheduling events.
           add_subsys->sched.xen_schedules++;
 
-          rscfl_timespec_add(&add_subsys->sched.xen_sched_wct, &time);
+          //rscfl_timespec_add(&add_subsys->sched.xen_sched_wct, &time);
           add_subsys->sched.xen_sched_cycles += event->cycles;
           add_subsys->sched.xen_evtchn_pending_size += no_evtchn_events;
 
@@ -133,8 +136,8 @@ int rscfl_counters_update_subsys_vals(struct subsys_accounting *add_subsys,
           // Update count of scheduling events.
           add_subsys->sched.xen_schedules++;
 
-          rscfl_timespec_diff_comp(&time, &add_subsys->sched.xen_sched_wct);
-          add_subsys->sched.xen_sched_wct = time;
+          //rscfl_timespec_diff_comp(&time, &add_subsys->sched.xen_sched_wct);
+          //add_subsys->sched.xen_sched_wct = time;
           add_subsys->sched.xen_sched_cycles -= event->cycles;
           add_subsys->sched.xen_evtchn_pending_size -= no_evtchn_events;
         }
@@ -148,6 +151,7 @@ int rscfl_counters_update_subsys_vals(struct subsys_accounting *add_subsys,
       }
     }
   }
+#endif
 
   // Here we'd snapshot the Perf counters, but since they're unused at the
   // moment, we simply return.

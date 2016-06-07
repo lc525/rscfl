@@ -34,10 +34,13 @@
  *    sizeof(struct subsys_accounting) = 72
  *
  */
-#define STRUCT_ACCT_NUM 13
-#define ACCT_SUBSYS_RATIO 5   // assume one syscall touches ~ 5 subsystems
+#define STRUCT_ACCT_NUM 30
+#define ACCT_SUBSYS_RATIO 8   // assume one syscall touches ~ 5 subsystems
+#define MAX_TOKENS 64
 #define NUM_READY_TOKENS 10   // Number of tokens that the kernel can prepare
                               // in advance.
+#define NO_TOKEN -15
+#define RSCFL_SYSCALL_ID_OFFSET 10
 
 #ifndef PAGE_SIZE
 #define PAGE_SIZE 4096
@@ -54,8 +57,14 @@
                            - STRUCT_ACCT_NUM * sizeof(struct accounting)       \
                           ) / sizeof(struct subsys_accounting) )
 
-#define RSCFL_SHDW_CMD _IOR('R', 0x2F, struct rscfl_ioctl)
-#define RSCFL_SHUTDOWN_CMD _IO('R', 0x30)
+/* Configuration and IOCTLS
+ */
+#define RSCFL_PID_SELF -1
+
+#define RSCFL_SHDW_CMD _IOWR('R', 0x2F, struct rscfl_ioctl)
+#define RSCFL_CONFIG_CMD _IOW('R', 0x30, struct rscfl_config)
+#define RSCFL_SHUTDOWN_CMD _IO('R', 0x31)
+#define RSCFL_NEW_TOKENS_CMD _IO('R', 0x32)
 
 /*
  * Shadow kernels.
@@ -67,18 +76,53 @@ struct rscfl_acct_layout_t
 {
   struct accounting acct[STRUCT_ACCT_NUM];
   struct subsys_accounting subsyses[ACCT_SUBSYS_NUM];
+  int subsys_exits;
 };
 typedef struct rscfl_acct_layout_t rscfl_acct_layout_t;
+
+/*
+ * Expressing interest in resources consumed by syscalls
+ */
+
+typedef enum {
+  ID_RSCFL_IGNORE = 1,
+  ID_NO_ACCT  = 2,
+  ID_RSCFL_RESET = 3,
+} syscall_special_id;
+
+typedef enum {
+  IST_DEFAULT      = EBIT(0),     // by default, you get IST_NEXT behavior
+  IST_NEXT         = EBIT(0),     // one-shot; account for the next syscall
+  IST_START        = EBIT(1),     // start accounting
+  IST_STOP         = EBIT(2),     // stop accounting
+
+  __BENCH_INTERNAL_CLR   = EBIT(3), // For benchmarking: compute but don't
+                                    // actually store accounting data.
+                                    // This automatically clears ("reads")
+                                    // the acct data structures.
+
+  IST_KNOP          = EBIT(4),    // For benchmarking calibration: run
+                                  // acct_next but don't actually express
+                                  // interest (no kernel-side effects)
+
+  IST_RESET         = EBIT(5),    // Reset the accounting that corresponds
+                                  // to the currently active token.
+                                  // Also clears the corresponding subsystem
+                                  // data.
+} interest_flags;
+
+
 
 struct syscall_interest_t
 {
   unsigned long syscall_id;
-  int syscall_nr;
-  int token;
+  short token_id;
   int tail_ix;
+  interest_flags flags;
   shdw_hdl use_shdw;
   int shdw_pages;
-  _Bool start_measurement;
+  _Bool first_measurement;
+  _Bool token_swapped;
 };
 typedef struct syscall_interest_t syscall_interest_t;
 
@@ -86,8 +130,10 @@ struct rscfl_ctrl_layout_t
 {
   unsigned int version;
   syscall_interest_t interest;
-  int new_tokens[NUM_READY_TOKENS];
-  int num_new_tokens;
+  rscfl_config config;
+
+  int avail_token_ids[NUM_READY_TOKENS];
+  int num_avail_token_ids;
 };
 typedef struct rscfl_ctrl_layout_t rscfl_ctrl_layout_t;
 
@@ -108,6 +154,8 @@ typedef struct rscfl_ioctl rscfl_ioctl_t;
 #ifdef __cplusplus
 extern "C" {
 #endif
+void rscfl_init_default_config(rscfl_config* default_cfg);
+
 ru64 rscfl_get_cycles(void);
 void rscfl_timespec_add(struct timespec *to, const struct timespec *from);
 void rscfl_timespec_add_ns(struct timespec *to, const ru64 from);

@@ -14,6 +14,9 @@
 static struct cdev rscfl_data_cdev;
 static struct cdev rscfl_ctrl_cdev;
 
+//TODO(lc525): make this safe for concurrency
+static struct rscfl_config rscfl_user_config;
+
 struct device *rscfl_ctrl_device;
 
 static struct class *data_class, *ctrl_class;
@@ -86,6 +89,11 @@ int _rscfl_dev_init(void)
 {
   int rc;
   struct device *dev;
+
+  // default rscfl configuration
+  rscfl_init_default_config(&rscfl_user_config);
+
+  // initialise devices
   debugk("Init data driver\n");
   rc = drv_init(RSCFL_DATA_MAJOR, RSCFL_DATA_MINOR, RSCFL_DATA_DRIVER, 0,
                 &data_fops, &rscfl_data_cdev, &data_class, &dev);
@@ -228,9 +236,18 @@ static int data_mmap(struct file *filp, struct vm_area_struct *vma)
     return rc;
   }
   pid_acct_node->subsys_ptr = pid_acct_node->subsys_stack;
-  pid_acct_node->pid = current->pid;
+  if(rscfl_user_config.monitored_pid == RSCFL_PID_SELF) {
+    pid_acct_node->pid = current->pid;
+  }
+  else {
+    pid_acct_node->pid = rscfl_user_config.monitored_pid;
+  }
   pid_acct_node->shared_buf = (rscfl_acct_layout_t *)shared_data_buf;
+  pid_acct_node->shared_buf->subsys_exits = 0;
   pid_acct_node->probe_data = probe_data;
+  pid_acct_node->next_ctrl_token = 0;
+  pid_acct_node->num_tokens = 0;
+
   drv_data = (rscfl_vma_data*) vma->vm_private_data;
   drv_data->pid_acct_node = pid_acct_node;
   preempt_disable();
@@ -247,7 +264,7 @@ static int data_mmap(struct file *filp, struct vm_area_struct *vma)
  */
 static int ctrl_mmap(struct file *filp, struct vm_area_struct *vma)
 {
-  int rc;
+  int rc, i;
   char *shared_ctrl_buf;
   struct rscfl_vma_data *drv_data;
   rscfl_ctrl_layout_t *ctrl_layout;
@@ -261,11 +278,31 @@ static int ctrl_mmap(struct file *filp, struct vm_area_struct *vma)
 
   ctrl_layout = (rscfl_ctrl_layout_t *)shared_ctrl_buf;
   ctrl_layout->version = RSCFL_VERSION.data_layout;
+  ctrl_layout->config = rscfl_user_config;
+  ctrl_layout->interest.token_id = NO_TOKEN;
+  ctrl_layout->interest.first_measurement = 1;
 
   // We need to store the address of the control page for the pid, so we
   // can see when an interest is raised.
   current_pid_acct = CPU_VAR(current_acct);
   current_pid_acct->ctrl = ctrl_layout;
+
+  // Initialise kernel-side tokens
+  for(i=0; i<NUM_READY_TOKENS; i++) {
+    rscfl_kernel_token *token =
+            kzalloc(GFP_KERNEL, sizeof(struct rscfl_kernel_token));
+    if (token == NULL) {
+      break;
+    }
+    token->id = current_pid_acct->num_tokens++;
+    token->val = 0;
+    token->val2 = 0;
+    current_pid_acct->token_ix[i] = token;
+  }
+  current_pid_acct->default_token = kzalloc(GFP_KERNEL,
+                                            sizeof(struct rscfl_kernel_token));
+  current_pid_acct->default_token->id = NO_TOKEN;
+  current_pid_acct->active_token = current_pid_acct->default_token;
 
   drv_data = (rscfl_vma_data*) vma->vm_private_data;
   drv_data->pid_acct_node = current_pid_acct;
@@ -276,11 +313,11 @@ static int ctrl_mmap(struct file *filp, struct vm_area_struct *vma)
 
 static long rscfl_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
 {
-  rscfl_ioctl_t rscfl_arg;
-  copy_from_user(&rscfl_arg, (rscfl_ioctl_t *)arg, sizeof(rscfl_ioctl_t));
   switch (cmd) {
 #if SHDW_ENABLED != 0
-    case RSCFL_SHDW_CMD:{
+    case RSCFL_SHDW_CMD: {
+      rscfl_ioctl_t rscfl_arg;
+      copy_from_user(&rscfl_arg, (rscfl_ioctl_t *)arg, sizeof(rscfl_ioctl_t));
       int rc;
       shdw_hdl shdw;
       shdw = rscfl_arg.swap_to_shdw;
@@ -294,10 +331,63 @@ static long rscfl_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
       break;
     }
  #endif /* SHDW_ENABLED */
-    case RSCFL_SHUTDOWN_CMD:
+    case RSCFL_CONFIG_CMD: {
+      // This is not safe for multiple applications doing rscfl_init()
+      // at the same time.
+      copy_from_user(&rscfl_user_config, (rscfl_config *)arg,
+                     sizeof(rscfl_config));
+      return 0;
+      break;
+    }
+    case RSCFL_NEW_TOKENS_CMD : {
+      int i, j, next, n, ngen;
+      pid_acct *current_pid_acct;
+      current_pid_acct = CPU_VAR(current_acct);
+      if(current_pid_acct != NULL) {
+        if(current_pid_acct->ctrl->num_avail_token_ids > 0) return 0;
+
+        next = current_pid_acct->next_ctrl_token;
+        n = current_pid_acct->num_tokens;
+        if(n >= MAX_TOKENS) return -EINVAL;
+
+        current_pid_acct->ctrl->num_avail_token_ids = n - next;
+        if(n - next == 0) {
+          // we'll need to generate some new tokens, up to MAX_TOKENS in total
+          if(n + NUM_READY_TOKENS < MAX_TOKENS) ngen = NUM_READY_TOKENS;
+          else ngen = MAX_TOKENS - n;
+          for(i = n; i < n + ngen ; i++) {
+            rscfl_kernel_token *token =
+              kzalloc(GFP_KERNEL, sizeof(struct rscfl_kernel_token));
+            if (token == NULL) {
+              break;
+            }
+            token->id = current_pid_acct->num_tokens++;
+            current_pid_acct->token_ix[i] = token;
+          }
+          n += ngen;
+        }
+
+        // move existing kernel tokens into user-space
+        for(i = next, j = 0; i < n; i++) {
+          // copy to ctrl
+          current_pid_acct->ctrl->avail_token_ids[j++] =
+            current_pid_acct->token_ix[i]->id;
+        }
+        current_pid_acct->ctrl->num_avail_token_ids = n - next;
+        current_pid_acct->next_ctrl_token = n;
+      } else {
+        return -EINVAL;
+      }
+
+      return 0;
+      break;
+    }
+
+    case RSCFL_SHUTDOWN_CMD: {
       do_module_shutdown();
       return 0;
       break;
+    }
   }
   return 0;
 }

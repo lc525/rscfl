@@ -6,6 +6,7 @@ JOPT=4
 INSTALL=""
 TARGETS=""
 SUBSYS_ARG=""
+RSCFL_BENCH=0
 
 
 # Set LINUX_ROOT here or set a RSCFL_LINUX_ROOT environment variable pointing
@@ -62,6 +63,7 @@ function print_usage {
   echo "./.build [OPTIONS]"
   echo "OPTIONS:"
   echo "  -r : build release version"
+  echo "  -b : enable rscfl benchmarking features"
   echo "  -d : build debug version"
   echo "  -c : clean before build"
   echo "  -v : verbose build"
@@ -72,7 +74,7 @@ function print_usage {
   echo "  -h : prints this help message"
 }
 
-while getopts ":hrdcvpit:j:" opt; do
+while getopts ":hrdcbvpit:j:" opt; do
   case $opt in
     h)
       print_usage
@@ -95,6 +97,9 @@ while getopts ":hrdcvpit:j:" opt; do
       ;;
     i)
       INSTALL="install"
+      ;;
+    b)
+      RSCFL_BENCH=1
       ;;
     t)
       TARGETS=$OPTARG
@@ -124,6 +129,7 @@ cmake -DCMAKE_BUILD_TYPE=$TYPE        \
       -DLINUX_ROOT=$LINUX_ROOT        \
       -DLINUX_BUILD=$LINUX_BUILD      \
       -DSUBSYS_OPT_ARG=$SUBSYS_ARG    \
+      -DRSCFL_BENCH=$RSCFL_BENCH      \
       -DLINUX_VMLINUX=$LINUX_VMLINUX ..
 
 if [ $VBOSE -eq 1 ]

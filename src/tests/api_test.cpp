@@ -20,9 +20,12 @@ class APITest : public testing::Test
     one_acct_ = NULL;
     subsys_agg_ = NULL;
 
-    rhdl_ = rscfl_init();
+    cfg.monitored_pid = RSCFL_PID_SELF;
+    cfg.kernel_agg = 0;
+
+    rhdl_ = rscfl_init(&cfg);
     ASSERT_NE(nullptr, rhdl_);
-    ASSERT_EQ(0, rscfl_acct_next(rhdl_));
+    ASSERT_EQ(0, rscfl_acct(rhdl_, NULL, IST_DEFAULT));
 
     int sockfd_ = socket(PF_LOCAL, SOCK_RAW, 0);
     EXPECT_LE(0, sockfd_);
@@ -33,7 +36,7 @@ class APITest : public testing::Test
     unlink(local_addr.sun_path);
     int len = strlen(local_addr.sun_path) +  sizeof(local_addr.sun_family);
 
-    ASSERT_EQ(0, rscfl_acct_next(rhdl_));
+    ASSERT_EQ(0, rscfl_acct(rhdl_));
     bind_err = bind(sockfd_, (sockaddr *) &local_addr, len);
     EXPECT_LE(0, bind_err);
 
@@ -56,6 +59,7 @@ class APITest : public testing::Test
 
   rscfl_handle rhdl_;
   int sockfd_;
+  rscfl_config cfg;
   sockaddr_un local_addr;
   struct accounting acct_;
   struct accounting acct2_;
@@ -177,8 +181,8 @@ TEST_F(APITest, MergeHypervisorMinCreditsGivesSmallestValue)
 
 TEST_F(APITest, SubsequentGetTokensHaveUniqueValues)
 {
-  rscfl_token_t *token_a;
-  rscfl_token_t *token_b;
+  rscfl_token *token_a;
+  rscfl_token *token_b;
   ASSERT_EQ(0, rscfl_get_token(rhdl_, &token_a));
   ASSERT_EQ(0, rscfl_get_token(rhdl_, &token_b));
 
@@ -189,7 +193,7 @@ TEST_F(APITest, SubsequentGetTokensHaveUniqueValues)
 TEST_F(APITest, MultipleGetTokensSucceedOrFailGracefully)
 {
   int rc;
-  rscfl_token_t *token;
+  rscfl_token *token;
   for (int i = 0; i < 20; i++) {
     rc = rscfl_get_token(rhdl_, &token);
     if ((rc != 0 ) && (rc != -EAGAIN)) {
@@ -207,7 +211,7 @@ TEST_F(APITest, MultipleGetTokensSucceedOrFailGracefully)
 TEST_F(APITest, TokenIDNotZero)
 {
   int rc;
-  rscfl_token_t *token;
+  rscfl_token *token;
   for (int i = 0; i < 20; i++) {
     rc = rscfl_get_token(rhdl_, &token);
     ASSERT_EQ(rc, 0);

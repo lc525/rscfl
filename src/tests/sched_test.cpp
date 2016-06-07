@@ -24,7 +24,7 @@ class SchedTest : public testing::Test
     clock_gettime(CLOCK_MONOTONIC_RAW, &start_time);
     run_cycles_ -= rscfl_get_cycles();
 
-    ASSERT_EQ(0, rscfl_acct_next(rhdl_));
+    ASSERT_EQ(0, rscfl_acct(rhdl_));
     sockfd_ = socket(AF_LOCAL, SOCK_RAW, 0);
 
     // If we can't initialise a socket, something has gone wrong.

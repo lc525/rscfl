@@ -13,15 +13,15 @@ TEMPLATE = """
 name = "ubuntu-clone-{{ clone_no }}"
 memory = {{ memory }}
 vcpus = {{ vcpus }}
-disk = ['phy:/dev/rscfl_vg/ubuntu-clone-{{ clone_no }},xvda,w']
+disk = ['phy:/dev/rscfl-vg/ubuntu-clone-{{ clone_no }},xvda,w']
 bootloader = "pygrub"
 vif=[ 'mac=00:16:3f:00:00:{{ padded_clone_no }},bridge=xenbr0' ]
 """
 
-target_vm = "so-22-50.dtg.cl.cam.ac.uk"
+target_vm = "so-22-100.dtg.cl.cam.ac.uk"
 
 current_no_vms = 0
-
+FLOG = open("hyp_stress.log", "w")
 
 def prepare_config(clone_no, memory, vcpus):
     f = open('/tmp/ubuntu-%d' % clone_no, 'w')
@@ -40,10 +40,10 @@ def prepare_config(clone_no, memory, vcpus):
 def prepare_disk(clone_no, gold_img):
     # Remove old disk.
     subprocess.call(['sudo', 'lvremove', '-f',
-                     '/dev/rscfl_vg/ubuntu-clone-%d' % clone_no])
+                     '/dev/rscfl-vg/ubuntu-clone-%d' % clone_no], stdout=FLOG, stderr=subprocess.STDOUT)
     # Create the new disk.
     subprocess.call(['sudo', 'lvcreate', '-L1G', '-s', '-n', 'ubuntu-clone-%d' %
-                     clone_no, gold_img])
+                     clone_no, gold_img], stdout=FLOG, stderr=subprocess.STDOUT)
 
 
 def boot_clone(clone_no):
@@ -57,7 +57,6 @@ def start_vm(gold_img, memory, vcpus):
     prepare_disk(current_no_vms, gold_img)
     boot_clone(current_no_vms)
     return "128.232.22.%d" % (current_no_vms + 50)
-
 
 def destroy_existing_doms():
     subprocess.Popen("for x in $(sudo xl list | grep ubuntu-clone- |"
@@ -84,11 +83,12 @@ def run_test_prog(test_prog):
 def run_experiment(no_vms, gold_img, memory, vcpus, workload_cmd, workload_cmd_freq,
                    test_prog, sleep_time, mark, from_vms):
     destroy_existing_doms()
-    fabric.api.output["stdout"] = False
+    fabric.api.output["stdout"] = True
     fabric.api.output["running"] = False
+#    fabric.api.output["stderr"] = False
     # Initialise program under test (eg lighttpd)
     res = fabric.api.execute(run_test_prog, test_prog, hosts=[target_vm])
-    if res[target_vm] is None:
+    if res[target_vm] == None:
         print("Error executing test_prog")
         return
 
@@ -103,22 +103,27 @@ def run_experiment(no_vms, gold_img, memory, vcpus, workload_cmd, workload_cmd_f
         if x < from_vms:
             continue
         if x == from_vms:
-            sys.stdout.write("Experiment starts in 5 sec....")
-            sys.stdout.flush()
+            print("$EWILLSTART 5")
+            #sys.stdout.flush()
             time.sleep(5.0)
 
         # Start measuring
         payload = {'mark': 'vms_%d_%s' % (x, mark[cmd_ix])}
-        requests.post('http://so-22-50/mark', payload)
-        if x == from_vms:
-            print("started!\n")
+        requests.post('http://'+target_vm+'/mark', payload)
 
-        if x <= no_vms:
-            # Wait
-            time.sleep(float(sleep_time))
-            # Stop measuring
-            payload = {'mark': 'STOP'}
-            requests.post('http://so-22-50/mark', payload)
+        if x == from_vms:
+            print("$ESTART:%d" % x)
+        if (x > from_vms) and (x < no_vms):
+            print("$VMS:%d" % x)
+        if x == no_vms:
+            print("$VML:%d" % x)
+
+        if x < no_vms:
+          # Wait
+          fabric.operations.prompt('$WAIT_CONT', default='Y')
+          # Stop measuring
+          payload = {'mark': 'STOP'}
+          requests.post('http://'+target_vm+'/mark', payload)
 
         if workload_cmd_freq[cmd_ix] == 0:
             cmd_ix = cmd_ix + 1
@@ -152,8 +157,8 @@ def main():
                         " command in -c")
     args = parser.parse_args()
 
-    if args.workload_cmd_freq is None:
-        args.workload_cmd_freq = [args.no_vms]
+    if args.workload_cmd_freq == None:
+		args.workload_cmd_freq = [args.no_vms]
 
     run_experiment(args.no_vms, args.gold_img, args.memory, args.vcpus,
                    args.workload_cmd, args.workload_cmd_freq, args.test_prog,

@@ -90,9 +90,9 @@ static char {{ subsystem }}_INTERNAL_SYSCALL[] = {{ '{' }}
   0
 {{ '};' }}
 
-void rscfl_pre_handler_{{ subsystem }}(void)
+int rscfl_pre_handler_{{ subsystem }}(void)
 {{ '{' }}
-  rscfl_subsys_entry({{ subsystem }});
+  return rscfl_subsys_entry({{ subsystem }});
 {{ '}' }}
 
 void rscfl_rtn_handler_{{ subsystem }}(void)
@@ -111,7 +111,7 @@ static u8 **UNUSED(probe_addrs[]) = {{ '{'  }}
 {% endfor %}
 {{ '};' }}
 
-void (*rscfl_pre_handlers[]) (void) = {{ '{' }}
+int (*rscfl_pre_handlers[]) (void) = {{ '{' }}
 {% for subsys in subsystems %}
   rscfl_pre_handler_{{ subsys }},
 {% endfor %}

@@ -137,3 +137,44 @@ int xen_buffer_hd(void)
     return 0;
   }
 }
+
+uint64_t xen_current_sched_out(void)
+{
+  struct shared_sched_info *sched_info = (void *)(
+      // Start of the shared page
+      (unsigned long)*KPRIV(HYPERVISOR_shared_info) +
+
+      // The amount of the page that Linux uses
+      sizeof(struct shared_info) +
+
+      // Linux doesn't use the last 18 bytes of the struct, so we need to offset
+      // by this amount.
+      0x18);
+
+  if (*KPRIV(HYPERVISOR_shared_info) != KPRIV(xen_dummy_shared_info) && !disable_xen) {
+    // We are running in a Xen VM.
+    return sched_info->sched_out;
+  } else {
+    return 0;
+  }
+
+}
+
+void xen_clear_current_sched_out(void)
+{
+  struct shared_sched_info *sched_info = (void *)(
+      // Start of the shared page
+      (unsigned long)*KPRIV(HYPERVISOR_shared_info) +
+
+      // The amount of the page that Linux uses
+      sizeof(struct shared_info) +
+
+      // Linux doesn't use the last 18 bytes of the struct, so we need to offset
+      // by this amount.
+      0x18);
+
+  if (*KPRIV(HYPERVISOR_shared_info) != KPRIV(xen_dummy_shared_info) && !disable_xen) {
+    // We are running in a Xen VM.
+    sched_info->sched_out = 0;
+  }
+}

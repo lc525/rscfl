@@ -49,7 +49,9 @@ int get_subsys(rscfl_subsys subsys_id,
       // We haven't found anywhere in the shared page where we can store
       // this subsystem.
       printk(KERN_ERR
-             "rscfl: Unable to allocate memory for syscall accounting\n");
+             "rscfl: Unable to allocate memory for subsystem accounting\n");
+      current_pid_acct->ctrl->interest.flags |= __ACCT_ERR;
+      current_pid_acct->ctrl->interest.syscall_id = 0;
       return -ENOMEM;
     }
     // Now need to initialise the subsystem's resources to be 0.
@@ -79,13 +81,14 @@ int rscfl_subsys_entry(rscfl_subsys subsys_id)
   // Needs to be initialised to NULL so that if there is no current subsys,
   // we pass NULL to rscfl_perf_update_subsys_vals, which is well-handled.
   struct subsys_accounting *curr_subsys_acct = NULL;
+  volatile syscall_interest_t *interest;
   int err;
 
 
   preempt_disable();
   current_pid_acct = CPU_VAR(current_acct);
-  // Don't continue if we're already running a probe or we may double-fault.
-  if (current_pid_acct == NULL || current_pid_acct->executing_probe) {
+  // Don't continue if we're not in the correct process or already running a probe
+  if ((current_pid_acct == NULL) || current_pid_acct->executing_probe || (current_pid_acct->ctrl == NULL)) {
     preempt_enable();
     return -1;
   }
@@ -100,13 +103,23 @@ int rscfl_subsys_entry(rscfl_subsys subsys_id)
     return -1;
   }
 
-  current_pid_acct->executing_probe = 1;
-
-  if (!should_acct()) {
-    // Not accounting for this syscall, so exit, and don't set the return probe.
-    current_pid_acct->executing_probe = 0;
+  interest = &current_pid_acct->ctrl->interest;
+  if (!interest->syscall_id || interest->token_id == NULL_TOKEN) {
+    // There are no interests registered for this pid.
     preempt_enable();
     return -1;
+  }
+
+  current_pid_acct->executing_probe = 1;
+
+  if(current_pid_acct->subsys_ptr == current_pid_acct->subsys_stack + 1) {
+    int u_err;
+    u_err = update_acct();
+    if(u_err) {
+      current_pid_acct->executing_probe = 0;
+      preempt_enable();
+      return -1;
+    }
   }
 
   err = get_subsys(subsys_id, &new_subsys_acct);
@@ -115,7 +128,7 @@ int rscfl_subsys_entry(rscfl_subsys subsys_id)
   }
   BUG_ON(current_pid_acct == NULL);  // As get_subsys != 0.
 
-  if (current_pid_acct->subsys_ptr != current_pid_acct->subsys_stack) {
+  if (current_pid_acct->subsys_ptr > current_pid_acct->subsys_stack + 1) {
     // This is not the first subsystem of the syscall, so we want to update
     // the values in the previous subsystem.
 
@@ -168,7 +181,7 @@ void rscfl_subsys_exit(rscfl_subsys subsys_id)
   current_pid_acct->shared_buf->subsys_exits++;
 
   // Now point at the frame of the subsystem being left.
-  *(current_pid_acct->subsys_ptr) = subsys_id;
+  //*(current_pid_acct->subsys_ptr) = subsys_id;
   current_pid_acct->subsys_ptr--;
 
   err = get_subsys(subsys_id, &subsys_acct);
@@ -177,7 +190,7 @@ void rscfl_subsys_exit(rscfl_subsys subsys_id)
   }
 
   // Start counters again for the subsystem we're returning back to.
-  if (current_pid_acct->subsys_ptr > current_pid_acct->subsys_stack) {
+  if (current_pid_acct->subsys_ptr > current_pid_acct->subsys_stack + 1) {
     err = get_subsys(current_pid_acct->subsys_ptr[-1], &prev_subsys_acct);
     if (err) {
       goto error;

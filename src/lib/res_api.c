@@ -18,6 +18,7 @@
 #include "rscfl/costs.h"
 #include "rscfl/res_common.h"
 
+
 #define max(a,b)                                \
   ({ typeof (a) _a = (a);                       \
     typeof (b) _b = (b);                        \
@@ -64,8 +65,8 @@ rscfl_handle rscfl_init_api(rscfl_version_t rscfl_ver, rscfl_config* config)
     // initialize rscfl
   }
 
-  fd_data = open("/dev/" RSCFL_DATA_DRIVER, O_RDONLY);
-  fd_ctrl = open("/dev/" RSCFL_CTRL_DRIVER, O_RDWR);
+  fd_data = open("/dev/" RSCFL_DATA_DRIVER, O_RDWR | O_DSYNC);
+  fd_ctrl = open("/dev/" RSCFL_CTRL_DRIVER, O_RDWR | O_DSYNC);
   rscfl_handle rhdl = (rscfl_handle)calloc(1, sizeof(*rhdl));
   if (!rhdl) {
     fprintf(stderr, "Unable to allocate memory for rscfl handle\n");
@@ -88,7 +89,7 @@ rscfl_handle rscfl_init_api(rscfl_version_t rscfl_ver, rscfl_config* config)
   // rscfl_data character device also does the initialisation of per-cpu
   // variables later used by rscfl_ctrl.
   buf = mmap(NULL, MMAP_BUF_SIZE, PROT_READ | PROT_WRITE,
-             MAP_PRIVATE | MAP_POPULATE, fd_data, 0);
+             MAP_SHARED | MAP_POPULATE, fd_data, 0);
   if (buf == MAP_FAILED) {
     fprintf(stderr,
 	    "rscfl: Unable to mmap shared memory with kernel module for data.\n");
@@ -98,7 +99,7 @@ rscfl_handle rscfl_init_api(rscfl_version_t rscfl_ver, rscfl_config* config)
 
   // mmap memory to store our interests.
   ctrl = mmap(NULL, MMAP_CTL_SIZE, PROT_READ | PROT_WRITE,
-              MAP_PRIVATE | MAP_POPULATE, fd_ctrl, 0);
+              MAP_SHARED | MAP_POPULATE, fd_ctrl, 0);
   if (ctrl == MAP_FAILED) {
     fprintf(stderr,
 	    "rscfl: Unable to mmap shared memory for storing interests\n");
@@ -145,7 +146,7 @@ rscfl_handle rscfl_get_handle_api(rscfl_config *cfg)
 int rscfl_get_token(rscfl_handle rhdl, rscfl_token **token)
 {
   _Bool consume_ctrl = 0;
-  rscfl_token_list *token_list_hd;
+  rscfl_token_list *token_list_hd, *start;
   if ((rhdl == NULL) || (token == NULL)) {
     return -EINVAL;
   }
@@ -154,8 +155,11 @@ int rscfl_get_token(rscfl_handle rhdl, rscfl_token **token)
     token_list_hd = rhdl->free_token_list;
     *token = token_list_hd->token;
     (*token)->first_acct = 1;
+    (*token)->in_use = 1;
+    (*token)->data_read = 0;
     rhdl->free_token_list = token_list_hd->next;
     free(token_list_hd);
+    //printf("Get token %d\n", (*token)->id);
     return 0;
   } else if(rhdl->ctrl->num_avail_token_ids > 0){
     // consume tokens registered by the kernel with the rscfl_ctrl device
@@ -181,14 +185,18 @@ int rscfl_get_token(rscfl_handle rhdl, rscfl_token **token)
   // instead, return it as the out-argument of this function (**token)
   if(consume_ctrl && rhdl->ctrl->num_avail_token_ids > 0) {
     int i;
-    for(i=0; i<rhdl->ctrl->num_avail_token_ids; i++) {
+    for(i = 0; i<rhdl->ctrl->num_avail_token_ids; i++) {
       rscfl_token *new_token = (rscfl_token *)malloc(sizeof(rscfl_token));
       new_token->id = rhdl->ctrl->avail_token_ids[i];
       new_token->first_acct = 1;
-      rhdl->ctrl->avail_token_ids[i] = NO_TOKEN;
+      rhdl->ctrl->avail_token_ids[i] = DEFAULT_TOKEN;
       if(i == 0) {
         *token = new_token;
+        (*token)->in_use = 1;
+        (*token)->data_read = 0;
+        //printf("Get token %d\n", (*token)->id);
       } else {
+        new_token->in_use = 0;
         rscfl_token_list *new_free_token = (rscfl_token_list *)malloc(sizeof(rscfl_token_list));
         new_free_token->token = new_token;
         new_free_token->next = rhdl->free_token_list;
@@ -203,16 +211,53 @@ int rscfl_get_token(rscfl_handle rhdl, rscfl_token **token)
   return 0;
 }
 
-int rscfl_switch_token(rscfl_handle rhdl, rscfl_token *token_to){
+int rscfl_switch_token_api(rscfl_handle rhdl, rscfl_token *token_to, token_switch_flags flags){
   unsigned short new_id;
+  volatile syscall_interest_t *interest;
+  //rscfl_debug dbg;
+  if (rhdl == NULL) {
+    return -EINVAL;
+  }
   if(token_to == NULL) {
-    new_id = NO_TOKEN;
+    if((flags & SW_TK_NULL) != 0)
+      new_id = NULL_TOKEN;
+    else
+      new_id = DEFAULT_TOKEN;
   } else {
     new_id = token_to->id;
   }
-  if(rhdl->ctrl->interest.token_id != new_id){
-    rhdl->ctrl->interest.token_id = new_id;
-    rhdl->ctrl->interest.token_swapped = 1;
+  interest = &rhdl->ctrl->interest;
+
+  // no syscalls were executed for the previous token
+  if(interest->first_measurement && rhdl->current_token != NULL) {
+    rhdl->current_token->first_acct = 1;
+  }
+
+  // on setting first_measurement, the kernel side will clear any allocated
+  // memory for the given token, but will not free subsystem data.
+  // therefore, if rscfl_get_subsys was not called, you will leak subsystem
+  // memory
+  if((flags & SW_TK_RESET) != 0)
+    interest->first_measurement = 1;
+  else if (token_to != NULL) {
+    interest->first_measurement = token_to->first_acct;
+    token_to->first_acct = 0;
+  }
+
+  if(new_id == DEFAULT_TOKEN)
+    interest->first_measurement = 0;
+
+  if(interest->token_id != new_id){
+    interest->token_id = new_id;
+    rhdl->current_token = token_to;
+    /*
+     *printf("token switch from: %d to %d\n", interest->token_id, new_id);
+     *msync(rhdl->ctrl, PAGE_SIZE, MS_SYNC);
+     *strncpy(dbg.msg, "TKSW", 5);
+     *dbg.new_token_id = new_id;
+     *ioctl(rhdl->fd_ctrl, RSCFL_DEBUG_CMD, &dbg);
+     *rhdl->ctrl->interest.token_swapped = 1;
+     */
     return 0;
   } else {
     return 1; // no switch necessary, token_to already active
@@ -221,63 +266,113 @@ int rscfl_switch_token(rscfl_handle rhdl, rscfl_token *token_to){
 
 int rscfl_free_token(rscfl_handle rhdl, rscfl_token *token)
 {
-  rscfl_token_list *new_hd;
-  if ((rhdl == NULL) || (token == NULL)) {
-    return -EINVAL;
+  //rscfl_debug dbg;
+  //printf("Free for token %d, in_read: %d\n", token->id, token->in_use);
+  if(token->in_use) {
+    rscfl_token_list *new_hd;
+    if ((rhdl == NULL) || (token == NULL)) {
+      return -EINVAL;
+    }
+    if (!token->data_read) {
+      struct accounting tmp_acct;
+      if(rscfl_read_acct(rhdl, &tmp_acct, token) == 0) {
+        rscfl_subsys_free(rhdl, &tmp_acct);
+      }
+    }
+    new_hd = (rscfl_token_list *)malloc(sizeof(rscfl_token_list));
+    if (new_hd == NULL) {
+      return -ENOMEM;
+    }
+    new_hd->next = rhdl->free_token_list;
+    new_hd->token = token;
+    token->first_acct = 1;
+    token->in_use = 0;
+    rhdl->free_token_list = new_hd;
+
+    /*
+     *strncpy(dbg.msg, "FREE", 5);
+     *dbg.new_token_id = token->id;
+     *ioctl(rhdl->fd_ctrl, RSCFL_DEBUG_CMD, &dbg);
+     */
+    return 0;
   }
-  new_hd = (rscfl_token_list *)malloc(sizeof(rscfl_token_list));
-  if (new_hd == NULL) {
-    return -ENOMEM;
-  }
-  new_hd->next = rhdl->free_token_list;
-  new_hd->token = token;
-  rhdl->free_token_list = new_hd;
   return 0;
 }
 
 int rscfl_acct_api(rscfl_handle rhdl, rscfl_token *token, interest_flags fl)
 {
-  syscall_interest_t *to_acct;
-  int old_token_id;
+  volatile syscall_interest_t *to_acct;
+  //int old_token_id;
+  //rscfl_debug dbg;
   _Bool rst;
   if (rhdl == NULL) {
     return -EINVAL;
   }
 #ifdef RSCFL_BENCH
-  if(likely((fl & IST_KNOP) == 0))
+  if(likely((fl & ACCT_KNOP) == 0))
     to_acct = &rhdl->ctrl->interest;
   else
     to_acct = &dummy_interest;
 #else
   to_acct = &rhdl->ctrl->interest;
 #endif
-  to_acct->flags = fl;
-  old_token_id = to_acct->token_id;
+  //old_token_id = to_acct->token_id;
 
-  if((fl & IST_START) != 0) {
-    to_acct->syscall_id = ID_RSCFL_IGNORE;
-  }
-  else if((fl & IST_STOP) != 0) {
+  // Test if this should reset current persistent flags and make tokens behave as if
+  // it's the first measurement. Maintain __ACCT_ERR if this has been set
+  // kernel-side
+  rst = ((fl & TK_RESET_FL) != 0);
+  if(rst)
+    to_acct->flags = (to_acct->flags & __ACCT_ERR) | (fl & __ACCT_FLAG_IS_PERSISTENT);
+  else
+    to_acct->flags |= (fl & __ACCT_FLAG_IS_PERSISTENT);
+
+  // stop on kernel-side error
+  if((to_acct->flags & __ACCT_ERR) != 0) {
     to_acct->syscall_id = 0;
+    return -ENODATA;
+  }
+
+  // if passed TK_STOP_FL, switch to the null TOKEN. TK_STOP_FL only makes sense
+  // in combination with start/stop and kernel-side aggregation.
+  if((fl & TK_STOP_FL) != 0) {
+    to_acct->token_id = NULL_TOKEN;
+    to_acct->first_measurement = rst;
+    to_acct->syscall_id = ID_RSCFL_IGNORE;
     return 0;
+  }
+
+  // deal with tokens
+  if (token != NULL) {
+    to_acct->token_id = token->id;
+    token->first_acct = 0;
+  } else {
+    to_acct->token_id = DEFAULT_TOKEN;
+  }
+  if((fl & ACCT_NEXT_FL) != 0) {
+    to_acct->first_measurement = 1;
+  } else {
+    to_acct->first_measurement = rst;
+  }
+
+  if((to_acct->flags & ACCT_STOP) != 0) {
+    to_acct->syscall_id = 0;
+    to_acct->token_id = NULL_TOKEN; // need this to signal the scheduler
+                                    // interposition not to record further data
+    to_acct->flags = ACCT_DEFAULT;
+    return 0;
+  } else if((to_acct->flags & ACCT_START) != 0) {
+    to_acct->syscall_id = ID_RSCFL_IGNORE;
   } else {
     to_acct->syscall_id = ++rhdl->lst_syscall_id;
   }
-  rst = ((fl & IST_RESET) != 0);
+  rhdl->current_token = token;
 
-  if (token != NULL) {
-    to_acct->first_measurement = token->first_acct | rst;
-    token->first_acct = 0;
-    to_acct->token_id = token->id;
-  } else {
-    if((fl & IST_NEXT) != 0)
-      to_acct->first_measurement = 1;
-    else
-      to_acct->first_measurement = rst;
-    to_acct->token_id = NO_TOKEN;
-  }
-
-  if(old_token_id != to_acct->token_id) to_acct->token_swapped = 1;
+  /*
+   *strncpy(dbg.msg, "ACCT", 5);
+   *dbg.new_token_id = token->id;
+   *ioctl(rhdl->fd_ctrl, RSCFL_DEBUG_CMD, &dbg);
+   */
   return 0;
 }
 
@@ -285,24 +380,38 @@ int rscfl_read_acct_api(rscfl_handle rhdl, struct accounting *acct, rscfl_token 
 {
   int i = 0;
   unsigned short tk_id;
-  if (rhdl == NULL) {
+  rscfl_token_list *start;
+  //rscfl_debug dbg;
+  if (rhdl == NULL || (rhdl->ctrl->interest.flags & __ACCT_ERR) != 0) {
     return -EINVAL;
   }
 
   if(token == NULL) {
     tk_id = rhdl->ctrl->interest.token_id;
   }
-  else
+  else {
     tk_id = token->id;
+    token->data_read = 1;
+  }
 
+  //printf("Read for token %d\n", token->id);
   struct accounting *shared_acct = (struct accounting *)rhdl->buf;
   if (shared_acct != NULL) {
     while (i < STRUCT_ACCT_NUM) {
+      /*
+       *printf("** acct use:%d, syscall:%lu, tk_id:%d, subsys_nr:%d\n",
+       *       shared_acct->in_use, shared_acct->syscall_id, shared_acct->token_id, shared_acct->nr_subsystems);
+       */
       if (shared_acct->in_use == 1) {
         if ((shared_acct->syscall_id == rhdl->lst_syscall_id) ||
-            (shared_acct->syscall_id == ID_RSCFL_IGNORE && shared_acct->token_id == tk_id)) {
+            ((shared_acct->syscall_id == ID_RSCFL_IGNORE) && (shared_acct->token_id == tk_id))) {
           memcpy(acct, shared_acct, sizeof(struct accounting));
           shared_acct->in_use = 0;
+          /*
+           *strncpy(dbg.msg, "READ", 5);
+           *dbg.new_token_id = tk_id;
+           *ioctl(rhdl->fd_ctrl, RSCFL_DEBUG_CMD, &dbg);
+           */
           return shared_acct->rc;
         } else {
           shared_acct++;
@@ -316,6 +425,32 @@ int rscfl_read_acct_api(rscfl_handle rhdl, struct accounting *acct, rscfl_token 
   } else {
     return -EINVAL;
   }
+
+#ifndef NDEBUG
+  // We have failed in finding the correct kernel-side struct accounting
+  // loop again for debug purposes:
+  shared_acct = (struct accounting *)rhdl->buf;
+  i = 0;
+  printf("Was looking for token: %d\n", tk_id);
+  /*
+   *strncpy(dbg.msg, "RERR", 5);
+   *dbg.new_token_id = tk_id;
+   *ioctl(rhdl->fd_ctrl, RSCFL_DEBUG_CMD, &dbg);
+   */
+  while (i < STRUCT_ACCT_NUM) {
+    printf("acct use:%d, syscall:%lu, tk_id:%d, subsys_nr:%d\n",
+        shared_acct->in_use, shared_acct->syscall_id, shared_acct->token_id, shared_acct->nr_subsystems);
+    shared_acct++;
+    i++;
+  }
+  printf("Free token list:");
+  start = rhdl->free_token_list;
+  while(start != NULL) {
+    printf("%d, ", start->token->id);
+    start = start->next;
+  }
+  printf("\n");
+#endif
   return -EINVAL;
 }
 
@@ -387,6 +522,37 @@ subsys_idx_set* rscfl_get_new_aggregator(unsigned short no_subsystems)
   }
 
   return ret_subsys_idx;
+}
+
+int rscfl_merge_idx_set_into(subsys_idx_set *current, subsys_idx_set *aggregator_into) {
+  int agg_set_ix, i, rc = 0;
+
+  agg_set_ix = aggregator_into->set_size;
+
+  for(i=0; i<current->set_size; i++) {
+    // fold set[i] into aggregator_info
+    // index of current subsystem ix = current->ids[i]
+    int ix = current->ids[i];
+    if(aggregator_into->idx[ix] == -1) {
+      // subsys ix not in aggregator_into, add if sufficient space
+      if (agg_set_ix < aggregator_into->max_set_size) {
+        aggregator_into->idx[ix] = agg_set_ix;
+        aggregator_into->set[agg_set_ix] = current->set[i];
+        aggregator_into->ids[agg_set_ix] = ix;
+        agg_set_ix++;
+        aggregator_into->set_size++;
+      } else {
+        // not enough space in aggregator_into, set error but continue
+        // (the values that could be aggregated remain correct)
+        rc++;
+      }
+    } else {
+      // subsys ix exists, merge values
+      rscfl_subsys_merge(&aggregator_into->set[aggregator_into->idx[ix]],
+                         &current->set[i]);
+    }
+  }
+  return rc;
 }
 
 int rscfl_merge_acct_into(rscfl_handle rhdl, struct accounting *acct_from,

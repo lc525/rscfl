@@ -55,6 +55,9 @@ int xen_scheduler_init(void)
     // Not running on Xen.
     return 0;
   }
+  printk(KERN_INFO "Xen domain measurements enabled\n");
+  debugk(KERN_ERR "sched_info size: %lu\n", sizeof(struct shared_info));
+  debugk(KERN_ERR "shared_sched_info size: %lu\n", sizeof(struct shared_sched_info));
 
   for (i = 0; i < NUM_XEN_PAGES; i++) {
     unsigned long pfn;
@@ -98,6 +101,7 @@ int xen_scheduler_init(void)
 
     // Now we have given the physical memory back to Xen, adjust our own PTEs
     // to point at the shared memory.
+    // printk("rscfl_page_phys[i]: %lu\n", sched_info->rscfl_page_phys[i]);
     rc = ioremap_page_range((unsigned long)page_address(pg),
                             (unsigned long)page_address(pg) + PAGE_SIZE,
                             sched_info->rscfl_page_phys[i] << PAGE_SHIFT,
@@ -111,6 +115,8 @@ int xen_scheduler_init(void)
     }
     rscfl_pages[i] = page_address(pg);
   }
+  //printk("xen domain sched_out: %ul\n", sched_info->sched_out);
+  //sched_info->sched_out = 0;
   return 0;
 }
 

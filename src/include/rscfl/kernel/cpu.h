@@ -60,8 +60,9 @@ struct pid_acct {
   rscfl_subsys *subsys_ptr;
   _Bool executing_probe;
   struct rscfl_kernel_token *default_token;
+//  struct rscfl_kernel_token *null_token;
   struct rscfl_kernel_token *token_ix[MAX_TOKENS];
-  struct rscfl_kernel_token *active_token;
+  volatile struct rscfl_kernel_token *active_token;
   unsigned short num_tokens;
   unsigned short next_ctrl_token;
   int shdw_kernel;

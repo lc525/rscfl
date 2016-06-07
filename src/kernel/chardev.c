@@ -164,6 +164,7 @@ static int mmap_common(struct file *filp, struct vm_area_struct *vma,
   if (size > req_length) return -EINVAL;
 
   shared_buf = kzalloc(req_length, GFP_KERNEL);
+  //shared_buf = dma_zalloc_coherent(dev, req_length, GFP_KERNEL);
   if (!shared_buf) {
     return -ENOMEM;
   }
@@ -172,12 +173,15 @@ static int mmap_common(struct file *filp, struct vm_area_struct *vma,
   // do the actual mmap-ing of shared_buf (kernel memory) into the address space
   // of the calling process (user space)
   pos = (unsigned long)shared_buf;
+  //vma->vm_page_prot = PAGE_SHARED;
+  //vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
 
   while (size > 0) {
     page = virt_to_phys((void *)pos);
     if (remap_pfn_range(vma, start, page >> PAGE_SHIFT, req_length,
-                        PAGE_SHARED)) {
+                        vma->vm_page_prot)) {
       kfree(shared_buf);
+      printk(KERN_ERR "ERROR remap_pfn_range!\n");
       return -EAGAIN;
     }
     start += req_length;
@@ -236,6 +240,9 @@ static int data_mmap(struct file *filp, struct vm_area_struct *vma)
     return rc;
   }
   pid_acct_node->subsys_ptr = pid_acct_node->subsys_stack;
+  *(pid_acct_node->subsys_ptr) = USERSPACE_LOCAL;
+  pid_acct_node->subsys_ptr++;
+
   if(rscfl_user_config.monitored_pid == RSCFL_PID_SELF) {
     pid_acct_node->pid = current->pid;
   }
@@ -279,7 +286,7 @@ static int ctrl_mmap(struct file *filp, struct vm_area_struct *vma)
   ctrl_layout = (rscfl_ctrl_layout_t *)shared_ctrl_buf;
   ctrl_layout->version = RSCFL_VERSION.data_layout;
   ctrl_layout->config = rscfl_user_config;
-  ctrl_layout->interest.token_id = NO_TOKEN;
+  ctrl_layout->interest.token_id = DEFAULT_TOKEN;
   ctrl_layout->interest.first_measurement = 1;
 
   // We need to store the address of the control page for the pid, so we
@@ -301,8 +308,13 @@ static int ctrl_mmap(struct file *filp, struct vm_area_struct *vma)
   }
   current_pid_acct->default_token = kzalloc(GFP_KERNEL,
                                             sizeof(struct rscfl_kernel_token));
-  current_pid_acct->default_token->id = NO_TOKEN;
+  current_pid_acct->default_token->id = DEFAULT_TOKEN;
   current_pid_acct->active_token = current_pid_acct->default_token;
+  /*
+   *current_pid_acct->null_token = kzalloc(GFP_KERNEL,
+   *                                       sizeof(struct rscfl_kernel_token));
+   *current_pid_acct->null_token->id = NULL_TOKEN;
+   */
 
   drv_data = (rscfl_vma_data*) vma->vm_private_data;
   drv_data->pid_acct_node = current_pid_acct;
@@ -339,6 +351,22 @@ static long rscfl_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
       return 0;
       break;
     }
+    case RSCFL_DEBUG_CMD: {
+      rscfl_debug dbg;
+      volatile syscall_interest_t *interest;
+      pid_acct *current_pid_acct;
+      copy_from_user(&dbg, (rscfl_debug *)arg, sizeof(rscfl_debug));
+
+      current_pid_acct = CPU_VAR(current_acct);
+      interest = &current_pid_acct->ctrl->interest;
+      if((interest->flags & __ACCT_ERR) == 0)
+        printk("IOCTL_CMD: %s, usp_token: %d, active_ktok:%d, ist_ktok:%d, syscall_id:%lu\n",
+            dbg.msg, dbg.new_token_id,
+            current_pid_acct->active_token->id, interest->token_id,
+            interest->syscall_id);
+      return 0;
+      break;
+    }
     case RSCFL_NEW_TOKENS_CMD : {
       int i, j, next, n, ngen;
       pid_acct *current_pid_acct;
@@ -348,7 +376,10 @@ static long rscfl_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
 
         next = current_pid_acct->next_ctrl_token;
         n = current_pid_acct->num_tokens;
-        if(n >= MAX_TOKENS) return -EINVAL;
+        if(n >= MAX_TOKENS) {
+          printk("rscfl: max number of tokens exceeded\n");
+          return -EINVAL;
+        }
 
         current_pid_acct->ctrl->num_avail_token_ids = n - next;
         if(n - next == 0) {
@@ -376,6 +407,7 @@ static long rscfl_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
         current_pid_acct->ctrl->num_avail_token_ids = n - next;
         current_pid_acct->next_ctrl_token = n;
       } else {
+        printk("rscfl: pid not registered for requesting tokens\n");
         return -EINVAL;
       }
 

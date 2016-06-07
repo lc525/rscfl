@@ -86,6 +86,5 @@ typedef struct rscfl_config rscfl_config;
 // Enabling this requires a kernel with CMA (Contiguous Memory Allocation)
 // support
 #define SHDW_ENABLED @SHDW_ENABLED@
-
 #endif
 

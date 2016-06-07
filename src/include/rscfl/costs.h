@@ -84,7 +84,7 @@ struct acct_Sched
   ru64 xen_schedules;
   struct timespec xen_sched_wct;
   ru64 xen_sched_cycles;
-  ru64 xen_sched_cycles2;
+  ru64 xen_sched_ns;
 
   ru64 xen_blocks;
   ru64 xen_yields;

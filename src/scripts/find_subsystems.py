@@ -322,6 +322,7 @@ def get_addresses_of_boundary_calls(linux, build_dir, vmlinux_path):
     global stage
     boundary_fns = {}
     boundary_fns["USERSPACE_XEN"] = []
+    boundary_fns["USERSPACE_LOCAL"] = []
     fn_addr_name_map = {}
     skip_callqs = 0
     stage = "kernel subsystem boundaries [callq]"

@@ -58,7 +58,7 @@ int rscfl_counters_update_subsys_vals(struct subsys_accounting *add_subsys,
   u64 cycles = rscfl_get_cycles();
   //struct timespec time = rscfl_get_timestamp();
   int subsys_err;
-  syscall_interest_t *interest;
+  volatile syscall_interest_t *interest;
 
   preempt_disable();
   current_pid_acct = CPU_VAR(current_acct);
@@ -84,24 +84,25 @@ int rscfl_counters_update_subsys_vals(struct subsys_accounting *add_subsys,
   if (*KPRIV(HYPERVISOR_shared_info) != KPRIV(xen_dummy_shared_info) && !disable_xen) {
     // We are running in a Xen VM.
     uint64_t hypervisor_timestamp;
+    uint64_t sched_out  = sched_info->sched_out;
+    uint64_t last_val2;
     int hd = sched_info->sched_hd;
+
     int tl = 0;
     sched_event_t *event;
     sched_event_t *event_page;
 
+    // second sched-out measure
     if (add_subsys == NULL) {
       subsys_err = get_subsys(USERSPACE_XEN, &add_subsys);
-      add_subsys->sched.xen_sched_cycles2 = current_pid_acct->active_token->val2 + sched_info->sched_out;
       if (subsys_err != 0) {
         return subsys_err;
       }
-    } else {
-      add_subsys->sched.xen_sched_cycles2 += sched_info->sched_out;
     }
 
-    if(minus_subsys != NULL) {
-      minus_subsys->sched.xen_sched_cycles2 -= sched_info->sched_out;
-    }
+    last_val2 = current_pid_acct->active_token->val2;
+    current_pid_acct->active_token->val2 = sched_out;
+    add_subsys->sched.xen_sched_ns += sched_out - last_val2;
 
     // Update tail if we have a token.
     tl = current_pid_acct->active_token->val;
@@ -110,6 +111,13 @@ int rscfl_counters_update_subsys_vals(struct subsys_accounting *add_subsys,
     for (; hd != tl; tl = (tl + 1) % CURRENT_XEN_NUM_EVENTS) {
       event_page = (sched_event_t *)rscfl_pages[tl / XEN_EVENTS_PER_PAGE];
       event = &event_page[tl % XEN_EVENTS_PER_PAGE];
+      /*
+       *printk(KERN_ERR "event->cycles: %llu\n", event->cycles);
+       */
+      if(event->guard != 114){
+        printk(KERN_ERR "rscfl xen shared_page guard value not found!");
+        continue;
+      }
       if (add_subsys != NULL) {
         // Get timespec from the scheduling event->
         hypervisor_timestamp = 0;

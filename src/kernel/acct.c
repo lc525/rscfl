@@ -127,7 +127,7 @@ int clear_acct_next(void)
 
   current_pid_acct = CPU_VAR(current_acct);
   interest = &current_pid_acct->ctrl->interest;
-  printk("exits: %d\n", current_pid_acct->shared_buf->subsys_exits);
+  //printk("exits: %d\n", current_pid_acct->shared_buf->subsys_exits);
 #ifdef RSCFL_BENCH
   // clear the acct/subsys memory if the IST_CLEAR_FLAG was set
   //

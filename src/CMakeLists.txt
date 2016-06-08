@@ -39,13 +39,15 @@ string(REPLACE "\n" "" GIT_REV ${GIT_REV})
 if(RSCFL_BENCH EQUAL 1)
   set(PROJECT_TAG_VERSION "bench")
 else()
-  set(PROJECT_TAG_VERSION ${GIT_REV})
+  if(NOT DEFINED PROJECT_TAG_VERSION)
+    set(PROJECT_TAG_VERSION ${GIT_REV})
+  endif()
 endif()
 
-if(${PROJECT_TAG_VERSION} STREQUAL "")
-  set(PVER ${PROJECT_MAJOR_VERSION}_${PROJECT_MINOR_VERSION}_${PROJECT_PATCH_VERSION})
+if(PROJECT_TAG_VERSION STREQUAL "rel")
+  set(PVER ${PROJECT_MAJOR_VERSION}.${PROJECT_MINOR_VERSION}.${PROJECT_PATCH_VERSION})
 else()
-  set(PVER ${PROJECT_MAJOR_VERSION}_${PROJECT_MINOR_VERSION}_${PROJECT_PATCH_VERSION}_${PROJECT_TAG_VERSION})
+  set(PVER ${PROJECT_MAJOR_VERSION}.${PROJECT_MINOR_VERSION}.${PROJECT_PATCH_VERSION}-${PROJECT_TAG_VERSION})
 endif()
 
 # what to do on API version mismatch (the .so is a different version from
@@ -250,7 +252,7 @@ set(UPDATE_MODULES_UNINSTALL_AFTER uninstall_files)
 include(update_modules)
 
 set (rscfl_OUT_DIR ${PROJECT_BINARY_DIR}/Kbuild)
-set (rscfl_MOD_NAME rscfl_${PVER})
+set (rscfl_MOD_NAME rscfl-${PVER})
 
 set (rscfl_KINCLUDES
   ${PROJECT_INCLUDE_DIR} # for cost.h and other headers

@@ -73,11 +73,15 @@ typedef struct rscfl_config rscfl_config;
 #define RSCFL_CTRL_MAJOR 92
 #define RSCFL_CTRL_MINOR 0
 
+// Build-time options
+#define ON 1
+#define OFF 0
+
 // Control whether we should disable all XEN-related code (getting shared
 // pages from the hypervisor and reading rscfl-related data from them).
 //
 // Enabling this requires you have a rscfl-enabled XEN hypervisor!
-#define XEN_ENABLED @XEN_ENABLED@
+#define XEN_ENABLED @WITH_XEN_ENABLED@
 
 // Control whether you want rscfl-based shadow kernels support.
 // Please see https://www.repository.cam.ac.uk/handle/1810/248815 for more
@@ -85,6 +89,6 @@ typedef struct rscfl_config rscfl_config;
 //
 // Enabling this requires a kernel with CMA (Contiguous Memory Allocation)
 // support
-#define SHDW_ENABLED @SHDW_ENABLED@
+#define SHDW_ENABLED @WITH_SHDW_ENABLED@
 #endif
 

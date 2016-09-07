@@ -1,13 +1,59 @@
-# global resourceful build file
-# author: Lucian Carata <lc525@cam.ac.uk>
+# ========================================
+# Global Resourceful build file
+# Author: Lucian Carata <lc525@cam.ac.uk>
+# ========================================
 #
 # Run cmake from a separate build directory (out of source build is required).
+# It's recommended you use the provided .build script within the build
+# directory:
 #
-# sample build command line:
+# [..build]$ ./.build
+#
+# If you want to run cmake manually, that is of course also possible
+# (but check for what variables need setting before the command - the .build
+# script provides the required hints);
+#
+# Sample build command line:
+# [..]$ cd build
 # [..build]$ cmake -DCMAKE_BUILD_TYPE=Release ..
 # [..build]$ make
 #
-# or run the provided .build script within the build directory
+#
+# To look at available optional compilation features, run (from the separate
+# build dir):
+#
+# [..build]$ cmake -LH ..
+#
+# Highlights from option list, add -D[OPTION_NAME]=ON to cmake cmd to enable:
+#   - WITH_DOCS          - build project documentation
+#        default:   ON
+#        requires:  python3
+#                   sphinx (sphinx-doc.org)
+#
+#   - WITH_TESTS         - build the unit tests for each project. run them
+#                          with "make check" after running make.
+#        default:   ON
+#        requires:  gtest (bundled with this project)
+#        provides:  make target named "check"
+#
+#   - WITH_XEN_ENABLED   - build with support for gathering xen hypervisor
+#                          scheduling data. the time the VM running rscfl
+#                          has been scheduled out is integrated into subsystem
+#                          measurements
+#        default:   ON  (to avoid code rot)
+#        requires:  (at runtime) - rscfl running on a Xen VM, with rscfl-enabled
+#                                  Xen (private repo)
+#
+#   - WITH_SHDW_ENABLED  - build with support for shadow kernels. this adds
+#                          functionality for creating/destroying shadow kernels
+#                          and only setting measurement probes in some of the
+#                          shadows.
+#        default:   ON (to avoid code rot)
+#        recommend: OFF (experimental feature)
+#        requires:  (at runtime) - rscfl running on a Xen VM
+#
+# sample command line:
+# [..build]$ cmake -DWITH_DOCS=ON ..
 #
 cmake_minimum_required(VERSION 2.8)
 
@@ -17,10 +63,13 @@ project(${PNAME} C CXX)
 # variable definitions for generating configuration headers
 # please use semantic versioning (semver.org)
 # - all releases with the same major version need to be compatible API-wise
-# - set PROJECT_TAG_VERSION to "" if you want no tags (the variable is needed)
+# - on publishing a given rscfl version, set PROJECT_TAG_VERSION to something
+#   like "beta", "dev", "rel" (or leave it empty); leave it commented out to
+#   use the current git revision hash (default)
 set(PROJECT_MAJOR_VERSION 1)
 set(PROJECT_MINOR_VERSION 1)
 set(PROJECT_PATCH_VERSION 0)
+#set(PROJECT_TAG_VERSION "rel")
 
 # data layout version. libraries and kernel modules with different data
 # layouts will not be able to communicate. this is not the same as MAJOR_VERSION
@@ -33,9 +82,6 @@ execute_process(
     OUTPUT_VARIABLE GIT_REV
 )
 string(REPLACE "\n" "" GIT_REV ${GIT_REV})
-# set tag version to something like "beta", "dev", "rel" (or leave it empty)
-# on publishing a given rscfl version
-#set(PROJECT_TAG_VERSION "rel")
 if(RSCFL_BENCH EQUAL 1)
   set(PROJECT_TAG_VERSION "bench")
 else()
@@ -61,6 +107,7 @@ else()
 endif()
 
 # set default project build options:
+set(DEFAULT_WITH_DOCS ON)
 set(DEFAULT_WITH_TESTS ON)
 
 
@@ -86,9 +133,13 @@ include(InternalMacros)
 ###
 
 # enable this if running on top of an rscfl-enabled XEN hypervisor
-set(XEN_ENABLED 1)
+option(WITH_XEN_ENABLED
+  "Enable to get hypervisor-level scheduling data into rscfl. Only possible when running on rscfl-enabled Xen" ON)
 # enable this if you want shadow kernels [experimental feature]
-set(SHDW_ENABLED 1)
+option(WITH_SHDW_ENABLED
+  "Enable shadow kernel support [experimental]" ON)
+option(WITH_DOCS
+  "Build ${PNAME} documentation" ${DEFAULT_WITH_DOCS})
 
 if(RSCFL_BENCH EQUAL 1)
   set(DEFINE_RSCFL_BENCH "\#define RSCFL_BENCH")
@@ -96,10 +147,10 @@ else()
   set(DEFINE_RSCFL_BENCH "//\#define RSCFL_BENCH")
 endif()
 
-if(XEN_ENABLED EQUAL 0)
+if(WITH_XEN_ENABLED EQUAL OFF)
   message("-- [OPTION] Building without XEN support")
 endif()
-if(SHDW_ENABLED EQUAL 0)
+if(WITH_SHDW_ENABLED EQUAL OFF)
   message("-- [OPTION] Building without shadow kernel support")
 endif()
 
@@ -135,6 +186,10 @@ option(USE_REPO_GTEST
 #  "Attempt using the system-wide Gtest installation" OFF)
 option(WITH_TESTS
   "Build ${PNAME} tests" ${DEFAULT_WITH_TESTS})
+
+if (WITH_DOCS)
+  add_subdirectory(doc)
+endif (WITH_DOCS)
 
 ###
 #

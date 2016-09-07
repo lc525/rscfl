@@ -161,7 +161,7 @@ typedef struct subsys_idx_set subsys_idx_set;
  * -- common functionality --
  */
 
-/*
+/**
  * \brief initialises the resourceful API. call once on every app thread.
  *
  * rscfl_init is a macro so that we can do automatic API version checking, with
@@ -173,24 +173,66 @@ typedef struct subsys_idx_set subsys_idx_set;
  */
 #define rscfl_init(...) CONCAT(rscfl_init_, VARGS_NR(__VA_ARGS__))(__VA_ARGS__)
 #define rscfl_init_0() rscfl_init_api(RSCFL_VERSION, NULL)
-#define rscfl_init_1(cfg) rscfl_init_api(RSCFL_VERSION, cfg)
 /*
- * \brief do not call directly. use the rscfl_init(...) macro instead.
+ * Do not call directly. use the rscfl_init(...) macro instead.
  *
  * \param api_ver the version of the API. automatically set by the rscfl_init
  *                macro to RSCFL_VERSION
  * \param cfg     rscfl configuration. use the same configuration for all
- *                threads in one application
  */
-rscfl_handle rscfl_init_api(rscfl_version_t api_ver, rscfl_config* config);
+#define rscfl_init_1(cfg) rscfl_init_api(RSCFL_VERSION, cfg)
+/**
+ * Initialises rscfl for the calling thread.
+ *
+ * Note:
+ *  Do not call directly. Use the rscfl_init(...) macro instead. The macro will
+ *  automatically call this function and it will pass the correct api_ver
+ *  parameter.
+ *
+ * Communication with the rscfl kernel module is established and kernel-side
+ * resources (buffers for holding resource accounting for the thread) are
+ * allocated.
+ *
+ * Parameters:
+ *   ver (rscfl_version_t): The rscfl version that matches the current headers
+ *    (res_api.h). This is checked against the version baked in the user-space
+ *    library (librscfl) that the application will be linked with, and the
+ *    version of the rscfl kernel module currently executing.
+ *    When users call the rscfl_init macro
+ *    instead of this function, the parameter is automatically set correctly
+ *    to RSCFL_VERSION (so that API and data compatibility checks can take
+ *    place)
+ *
+ *   cfg (rscfl_config*):  User-owned variable pointing to rscfl configuration
+ *    options. This configuration can no longer be changed after initialisation.
+ *
+ * Returns:
+ *   rscfl_handle : an opaque rscfl handle
+ *
+ * References:
+ *   rscfl_init
+ *
+ * See Also:
+ *  * RSCFL_ERR_VERSION_MISMATCH (in config.h).
+ *  * The ERR_ON_VERSION_MISMATCH cmake build option.
+ */
+rscfl_handle rscfl_init_api(rscfl_version_t ver, rscfl_config* config);
 
 #define rscfl_get_handle(...) CONCAT(rscfl_get_handle_, VARGS_NR(__VA_ARGS__))(__VA_ARGS__)
 #define rscfl_get_handle_0() rscfl_get_handle_api(NULL)
 #define rscfl_get_handle_1(cfg) rscfl_get_handle_api(cfg)
-/* \brief Returns the rscfl handle for the current thread. If rscfl was not
+
+/**
+ * Returns the rscfl handle for the current thread. If rscfl was not
  * initialised on the thread, it will perform the initialisation with config
- * cfg. If rscfl is already initialised, new configurations _WILL NOT_ be
+ * cfg. If rscfl is already initialised, new configurations **WILL NOT** be
  * applied.
+ *
+ * :param cfg:    rscfl configuration. use the same configuration as in the
+ *                first call to this function at al times (on the fly config
+ *                change not supported yet)
+ * :type cfg:     rscfl_config*
+ * :param token:  an inexistent token
  */
 rscfl_handle rscfl_get_handle_api(rscfl_config *cfg);
 

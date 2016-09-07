@@ -1,0 +1,11 @@
+If you build Resourceful with -DWITH_DOCS=ON then the documentation in html form
+will be compiled using Sphynx and placed in the build directory:
+
+$RSCFL_ROOT/build/doc/html
+
+Access index.html in that folder using a browser to navigate the documentation
+
+If you want to build/rebuild just the docs (after cmake has generated all the
+required makefiles), you just have to run
+
+[..build]$ make doc

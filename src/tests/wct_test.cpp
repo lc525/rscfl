@@ -1,3 +1,12 @@
+/**** Notice
+ * wct_test.cpp: rscfl source code
+ *
+ * Copyright 2015-2017 The rscfl owners <lucian.carata@cl.cam.ac.uk>
+ *
+ * This file is part of the rscfl open-source project: github.com/lc525/rscfl;
+ * Its licensing is governed by the LICENSE file at the root of the project.
+ **/
+
 #include <errno.h>
 #include <fcntl.h>
 #include "gtest/gtest.h"
@@ -63,4 +72,3 @@ TEST_F(WCTTest, WallClock_Kernel_LT_User)
     kernel_time.tv_sec << " s, " << kernel_time.tv_nsec <<" ns) vs (" <<
     val_post.tv_sec << " s, " << val_post.tv_nsec <<" ns)";
 }
-

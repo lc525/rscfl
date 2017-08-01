@@ -1,3 +1,12 @@
+/**** Notice
+ * simple_api.c: rscfl source code
+ *
+ * Copyright 2015-2017 The rscfl owners <lucian.carata@cl.cam.ac.uk>
+ *
+ * This file is part of the rscfl open-source project: github.com/lc525/rscfl;
+ * Its licensing is governed by the LICENSE file at the root of the project.
+ **/
+
 /*
  * This is a documented example of how to use the rscfl API.
  * It is focused on covering most of the features of the high-level API.

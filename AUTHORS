@@ -1,0 +1,31 @@
+# Until commit bf233d924ad01 (pre-public release):
+
+  * Copyright 2015-2017 Lucian Carata,
+  * Copyright 2015-2017 Oliver R.A. Chick,
+  * Copyright 2015-2017 James Snee,
+  * Copyright 2015-2017 Ripduman Sohan
+
+The above are referred to as "The rscfl owners" at the top of every code file.
+You should consider that phrase to be equivalent the joint copyright notices
+above.
+
+Owners hash: 91287e657ad9e9b905a1a73a2911d234dd9eb6fc19b648db464ce720ced26914
+
+
+
+# After commit bf233d924ad01 (after first public release):
+
+Copyright statements added by contributors to every file. "The rscfl owners"
+list is kept updated and checksummed at
+
+http://www.cl.cam.ac.uk/research/dtg/rscfl/contributors.html
+
+The owners have ultimate say in merging contributions, make sure every
+contributor signs required agreements, take decisions on expanding the list of
+owners and guard the community's adherence to codes of conduct.
+
+To determine the list of owners at a given commit, this file is updated on every
+change of the list, mapping the commit where the change took place to the
+new hash posted at the web address above:
+
+-- no owner hash changes

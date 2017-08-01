@@ -1,3 +1,12 @@
+/**** Notice
+ * kprobes.c: rscfl source code
+ *
+ * Copyright 2015-2017 The rscfl owners <lucian.carata@cl.cam.ac.uk>
+ *
+ * This file is part of the rscfl open-source project: github.com/lc525/rscfl;
+ * Its licensing is governed by the LICENSE file at the root of the project.
+ **/
+
 #include "rscfl/kernel/kprobes.h"
 #include <linux/kernel.h>
 #include <linux/slab.h>
@@ -96,4 +105,3 @@ error_no_mem:
   rscfl_unregister_kprobes();
   return -ENOMEM;
 }
-

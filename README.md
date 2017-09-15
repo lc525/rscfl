@@ -1,5 +1,15 @@
 # **rscfl**
 
+### Status
+
+Improvements are being made in making rscfl modular and simple to build on your system.
+This would also allow you to use the fast probing mechanism (kamprobes) discussed in
+our :login; article (https://www.usenix.org/publications/login/fall2017/carata)
+independently of rscfl. Those interested, may track https://github.com/lc525/kamprobes
+
+We expect those changes to be pushed publicly by the end of October 2017.
+
+
 ### 1. Building from source
 
 The build process for Resourceful involves generating a list of kernel probe

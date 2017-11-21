@@ -7,7 +7,7 @@ This would also allow you to use the fast probing mechanism (kamprobes) discusse
 our :login; article (https://www.usenix.org/publications/login/fall2017/carata)
 independently of rscfl. Those interested may track https://github.com/lc525/kamprobes
 
-We expect those changes to be pushed publicly by the end of October 2017.
+We expect those changes to be pushed publicly by the end of 2017.
 
 
 ### 1. Building from source

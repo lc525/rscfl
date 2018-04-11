@@ -107,7 +107,7 @@ else()
 endif()
 
 # set default project build options:
-set(DEFAULT_WITH_DOCS ON)
+set(DEFAULT_WITH_DOCS OFF)
 set(DEFAULT_WITH_TESTS ON)
 
 
@@ -134,10 +134,10 @@ include(InternalMacros)
 
 # enable this if running on top of an rscfl-enabled XEN hypervisor
 option(WITH_XEN_ENABLED
-  "Enable to get hypervisor-level scheduling data into rscfl. Only possible when running on rscfl-enabled Xen" ON)
+  "Enable to get hypervisor-level scheduling data into rscfl. Only possible when running on rscfl-enabled Xen" OFF)
 # enable this if you want shadow kernels [experimental feature]
 option(WITH_SHDW_ENABLED
-  "Enable shadow kernel support [experimental]" ON)
+  "Enable shadow kernel support [experimental]" OFF)
 option(WITH_DOCS
   "Build ${PNAME} documentation" ${DEFAULT_WITH_DOCS})
 
@@ -147,10 +147,10 @@ else()
   set(DEFINE_RSCFL_BENCH "//\#define RSCFL_BENCH")
 endif()
 
-if(WITH_XEN_ENABLED EQUAL OFF)
+if(WITH_XEN_ENABLED STREQUAL OFF)
   message("-- [OPTION] Building without XEN support")
 endif()
-if(WITH_SHDW_ENABLED EQUAL OFF)
+if(WITH_SHDW_ENABLED STREQUAL OFF)
   message("-- [OPTION] Building without shadow kernel support")
 endif()
 
@@ -307,7 +307,7 @@ set(UPDATE_MODULES_UNINSTALL_AFTER uninstall_files)
 include(update_modules)
 
 set (rscfl_OUT_DIR ${PROJECT_BINARY_DIR}/Kbuild)
-set (rscfl_MOD_NAME rscfl-${PVER})
+set (rscfl_MOD_NAME rscfl_${PROJECT_TAG_VERSION})
 
 set (rscfl_KINCLUDES
   ${PROJECT_INCLUDE_DIR} # for cost.h and other headers

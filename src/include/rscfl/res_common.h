@@ -43,9 +43,9 @@
  *    sizeof(struct subsys_accounting) = 72
  *
  */
-#define STRUCT_ACCT_NUM 20
+#define STRUCT_ACCT_NUM 50
 #define ACCT_SUBSYS_RATIO 7   // assume one syscall touches ~ ACCT_SUBSYS_RATIO subsystems
-#define MAX_TOKENS 32
+#define MAX_TOKENS 40
 #define NUM_READY_TOKENS 12   // Number of tokens that the kernel can prepare
                               // in advance.
 // special tokens
@@ -111,6 +111,11 @@ typedef enum {
   ACCT_DEFAULT      = EBIT(2),     // by default, you get ACCT_NEXT_FL behavior
   ACCT_START        = EBIT(0),     // start accounting
   ACCT_STOP         = EBIT(1),     // stop accounting (global, across tokens)
+
+  //TODO(lc525) rename below flags as follows:
+  //   ACCT_NEXT
+  //   ACCT_TK_STOP
+  //   ACCT_TK_RESET
   ACCT_NEXT_FL      = EBIT(2),     // one-shot; account for the next syscall
   TK_STOP_FL        = EBIT(3),     // stop accounting for given token
   TK_RESET_FL       = EBIT(4),     // Reset the accounting that corresponds
@@ -126,6 +131,11 @@ typedef enum {
 
 } interest_flags;
 
+typedef enum {
+  SW_TK_DEFAULT  = EBIT(0),
+  SW_TK_RESET    = EBIT(1),
+  SW_TK_NULL     = EBIT(2),
+} token_switch_flags;
 
 
 struct syscall_interest_t

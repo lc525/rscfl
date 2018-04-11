@@ -88,6 +88,11 @@ function(RSCFL_KBUILD MOD_NAME INCLUDES OUT_DIR SRC DEPS)
 
   add_custom_target ( ${MODULE_TARGET_NAME} ALL
                       DEPENDS ${MODULE_BIN_FILE})
+  add_custom_target ( load
+                      DEPENDS ${MODULE_TARGET_NAME}
+                      COMMENT "Loading the rscfl kernel module into the kernel"
+                      COMMAND lsmod | grep rscfl && echo "Failed: rscfl already loaded" || sudo insmod ${PROJECT_BINARY_DIR}/rscfl.ko
+                      VERBATIM)
   add_custom_command( TARGET ${MODULE_TARGET_NAME} POST_BUILD
                       COMMAND ln -sf ${MOD_NAME}.ko rscfl.ko)
 

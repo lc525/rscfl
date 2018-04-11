@@ -103,13 +103,13 @@ int _rscfl_dev_init(void)
   rscfl_init_default_config(&rscfl_user_config);
 
   // initialise devices
-  debugk("Init data driver\n");
+  debugk(RDBG_INFO, "Init data driver\n");
   rc = drv_init(RSCFL_DATA_MAJOR, RSCFL_DATA_MINOR, RSCFL_DATA_DRIVER, 0,
                 &data_fops, &rscfl_data_cdev, &data_class, &dev);
   if (rc) {
     return rc;
   }
-  debugk("Init ctrl driver\n");
+  debugk(RDBG_INFO, "Init ctrl driver\n");
   rc = drv_init(RSCFL_CTRL_MAJOR, RSCFL_CTRL_MINOR, RSCFL_CTRL_DRIVER, 1,
                 &ctrl_fops, &rscfl_ctrl_cdev, &ctrl_class, &rscfl_ctrl_device);
   if (rc) {
@@ -268,6 +268,7 @@ static int data_mmap(struct file *filp, struct vm_area_struct *vma)
   drv_data->pid_acct_node = pid_acct_node;
   preempt_disable();
   hash_add(CPU_TBL(pid_acct_tbl), &pid_acct_node->link, pid_acct_node->pid);
+  debugk(RDBG_FINE, KERN_WARNING "registering PID: %d\n", pid_acct_node->pid);
   CPU_VAR(current_acct) = pid_acct_node;
   preempt_enable();
   return 0;
@@ -386,7 +387,7 @@ static long rscfl_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
         next = current_pid_acct->next_ctrl_token;
         n = current_pid_acct->num_tokens;
         if(n >= MAX_TOKENS) {
-          printk("rscfl: max number of tokens exceeded\n");
+          printk(KERN_ERR "rscfl: max number of tokens exceeded\n");
           return -EINVAL;
         }
 
@@ -416,7 +417,7 @@ static long rscfl_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
         current_pid_acct->ctrl->num_avail_token_ids = n - next;
         current_pid_acct->next_ctrl_token = n;
       } else {
-        printk("rscfl: pid not registered for requesting tokens\n");
+        printk(KERN_ERR "rscfl: pid not registered for requesting tokens\n");
         return -EINVAL;
       }
 

@@ -124,7 +124,7 @@ int rscfl_counters_update_subsys_vals(struct subsys_accounting *add_subsys,
        *printk(KERN_ERR "event->cycles: %llu\n", event->cycles);
        */
       if(event->guard != 114){
-        printk(KERN_ERR "rscfl xen shared_page guard value not found!");
+        printk(KERN_ERR "rscfl xen: shared_page guard value not found!");
         continue;
       }
       if (add_subsys != NULL) {

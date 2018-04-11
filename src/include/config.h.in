@@ -12,10 +12,6 @@
   #include <sys/types.h>
 #endif
 
-#ifndef NDEBUG
-  @DEFINE_NDEBUG@
-#endif
-
 #define RSCFL_PROJECT_NAME "@CMAKE_PROJECT_NAME@"
 #define RSCFL_DESC "rscfl: application-centric kernel resource measurement"
 #define RSCFL_KVERSION "@VERSION@"
@@ -34,6 +30,25 @@ static const char RSCFL_VERSION_TAG[] = "@TAG_VERSION@";
 static const char RSCFL_VERSION_STR[] = "@VERSION@";
 
 @DEFINE_VERSION_MISMATCH_POLICY@
+
+/*
+ * Debug levels
+ * Mnemonic RDBG = Resourceful Debug
+ */
+typedef enum {
+  RDBG_NONE   = 0,
+  RDBG_ERROR  = 20,
+  RDBG_WARN   = 30,
+  RDBG_INFO   = 40,
+  RDBG_FINE   = 60,
+  RDBG_FINER  = 70,
+  RDBG_FINEST = 99
+} rscfl_debug_level;
+
+#ifndef NDEBUG
+  @DEFINE_NDEBUG@
+  @DEFINE_DEBUG_LEVEL@
+#endif
 
 // resourceful configuration data structure
 struct rscfl_config {

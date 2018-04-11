@@ -159,6 +159,7 @@ void on_task_exit(void *ignore, struct task_struct *p)
         if(it->probe_data) kfree(it->probe_data);
         kfree(it);
         break;
+        debugk(RDBG_FINE, KERN_WARNING "exit: [CPU %d] clearing handles for pid: %d\n", cpu_id, pid);
       }
     }
   }

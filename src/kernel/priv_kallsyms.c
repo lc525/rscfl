@@ -24,7 +24,7 @@
     printk(KERN_ERR XSTR(ksym_name) ": not found\n");               \
     symbols_not_found++;                                            \
   } else {                                                          \
-    debugk(KERN_NOTICE XSTR(ksym_name) ": %p\n", KPRIV(ksym_name)); \
+    debugk(RDBG_FINER, KERN_NOTICE XSTR(ksym_name) ": %p\n", KPRIV(ksym_name)); \
   }                                                                 \
 }                                                                   \
 

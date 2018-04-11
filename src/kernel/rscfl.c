@@ -42,7 +42,7 @@ static int __init rscfl_init(void)
     printk(KERN_ERR "rscfl: cannot initialize per-cpu hash tables\n");
     return rc;
   }
-  debugk("per-thread mmap alloc: Total: %lu, /acct: %d, /subsys: %lu\n",
+  debugk(RDBG_INFO, "per-thread mmap alloc: Total: %lu, /acct: %d, /subsys: %lu\n",
          MMAP_BUF_SIZE, STRUCT_ACCT_NUM, ACCT_SUBSYS_NUM);
 
   // Initialise the rscfl drivers.
@@ -107,7 +107,7 @@ void do_module_shutdown(void) {
     tracepoint_synchronize_unregister();
     rcc = _rscfl_cpus_cleanup();
     rcp = probes_unregister();
-    debugk("probe cleanup completed\n");
+    debugk(RDBG_INFO, "probe cleanup completed\n");
     rscfl_counters_stop();
 
     if (rcs) {

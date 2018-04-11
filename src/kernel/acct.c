@@ -30,7 +30,7 @@ static struct accounting *alloc_acct(pid_acct *current_pid_acct)
     if ((void *)(acct_buf + 1) >
         (void *)current_pid_acct->shared_buf->subsyses) {
       //acct_buf = current_pid_acct->shared_buf->acct;
-      printk(KERN_WARNING "_should_acct: wraparound!<<<<<<<\n");
+      debugk(RDBG_WARN, KERN_WARNING "_should_acct: wraparound!<<<<<<<\n");
       return NULL;
     }
   }
@@ -55,6 +55,9 @@ int update_acct(void)
 {
   volatile syscall_interest_t *interest;
   pid_acct *current_pid_acct;
+#if !defined(NDEBUG) // debug-only
+  int diff;
+#endif
 
   current_pid_acct = CPU_VAR(current_acct);
   interest = &current_pid_acct->ctrl->interest;
@@ -84,22 +87,27 @@ int update_acct(void)
 
   // existing struct accounting, aggregate into it
   if (current_pid_acct->probe_data->syscall_acct) {
+    debugk(RDBG_FINER, KERN_WARNING "aggregate into token %d\n", current_pid_acct->active_token->id);
     return 0;
   }
 
   // Find a struct accounting to store the accounting data in.
   if(current_pid_acct->active_token == current_pid_acct->default_token){
-    printk("alloc for default token, first:%d\n", interest->first_measurement);
+    debugk(RDBG_FINER, KERN_WARNING "alloc for default token, first:%d\n", interest->first_measurement);
   }
   current_pid_acct->probe_data->syscall_acct = alloc_acct(current_pid_acct);
   if(current_pid_acct->probe_data->syscall_acct == NULL) {
     interest->syscall_id = 0;
     interest->flags |= __ACCT_ERR;
+    debugk(RDBG_ERROR, KERN_ERR "error allocating token\n");
     return 1;
   }
 
-  // diff = current_pid_acct->probe_data->syscall_acct - current_pid_acct->shared_buf->acct
-  // printk(KERN_ERR "alloc_acct: %d for token %d\n", diff, current_pid_acct->active_token->id);
+#if !defined(NDEBUG) // debug-only
+  diff = current_pid_acct->probe_data->syscall_acct -
+         current_pid_acct->shared_buf->acct;
+  debugk(RDBG_FINE, KERN_WARNING "alloc_acct: %d for token %d\n", diff, current_pid_acct->active_token->id);
+#endif
   if(interest->first_measurement) {
     volatile rscfl_kernel_token *tk = current_pid_acct->active_token;
     interest->first_measurement = 0;
@@ -109,7 +117,7 @@ int update_acct(void)
     tk->account->token_id = tk->id;
     //xen_clear_current_sched_out();
   } else {
-    printk(KERN_ERR "Alloc but not first!");
+    debugk(RDBG_ERROR, KERN_ERR "Alloc subsys but not first measurement!\n");
   }
 
   return 0;
@@ -121,8 +129,7 @@ int clear_acct_next(void)
   volatile syscall_interest_t *interest;
 
   preempt_disable();
-  //printk("clear!\n");
-
+  debugk(RDBG_FINE, KERN_WARNING "clear!\n");
 
   current_pid_acct = CPU_VAR(current_acct);
   interest = &current_pid_acct->ctrl->interest;

@@ -64,9 +64,9 @@ int xen_scheduler_init(void)
     // Not running on Xen.
     return 0;
   }
-  printk(KERN_INFO "Xen domain measurements enabled\n");
-  debugk(KERN_ERR "sched_info size: %lu\n", sizeof(struct shared_info));
-  debugk(KERN_ERR "shared_sched_info size: %lu\n", sizeof(struct shared_sched_info));
+  printk(KERN_INFO "rscfl: Xen domain measurements enabled\n");
+  debugk(RDBG_FINE, KERN_ERR "sched_info size: %lu\n", sizeof(struct shared_info));
+  debugk(RDBG_FINE, KERN_ERR "shared_sched_info size: %lu\n", sizeof(struct shared_sched_info));
 
   for (i = 0; i < NUM_XEN_PAGES; i++) {
     unsigned long pfn;

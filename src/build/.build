@@ -7,6 +7,7 @@ INSTALL=""
 TARGETS=""
 SUBSYS_ARG=""
 RSCFL_BENCH=0
+LOG_LEVEL="RDBG_INFO"
 
 
 # Set LINUX_ROOT here or set a RSCFL_LINUX_ROOT environment variable pointing
@@ -130,6 +131,7 @@ cmake -DCMAKE_BUILD_TYPE=$TYPE        \
       -DLINUX_BUILD=$LINUX_BUILD      \
       -DSUBSYS_OPT_ARG=$SUBSYS_ARG    \
       -DRSCFL_BENCH=$RSCFL_BENCH      \
+      -DDEBUG_LEVEL=$LOG_LEVEL        \
       -DLINUX_VMLINUX=$LINUX_VMLINUX ..
 
 if [ $VBOSE -eq 1 ]

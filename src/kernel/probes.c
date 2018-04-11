@@ -66,7 +66,7 @@ int probes_init(void)
     }
   }
   local_irq_restore(flags);
-  debugk("Registered %d probes\n", probes - failures);
+  debugk(RDBG_INFO, "Registered %d probes\n", probes - failures);
   return failures;
 }
 

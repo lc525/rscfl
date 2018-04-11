@@ -160,11 +160,17 @@ if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
 endif(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
 message("!! Build type: ${CMAKE_BUILD_TYPE}")
 
+if(NOT DEFINED DEBUG_LEVEL)
+  set(DEBUG_LEVEL "RDBG_FINEST")
+endif()
+
 string( TOLOWER "${CMAKE_BUILD_TYPE}" bt_lower )
 if(bt_lower STREQUAL "debug")
-  set(DEFINE_NDEBUG)
+  set(DEFINE_NDEBUG "// \#define NDEBUG   // when this line is commented we're in debug mode")
+  set(DEFINE_DEBUG_LEVEL "\#define DEBUG_LEVEL ${DEBUG_LEVEL}")
 else(bt_lower STREQUAL "debug")
   set(DEFINE_NDEBUG "\#define NDEBUG")
+  set(DEFINE_DEBUG_LEVEL "\#define DEBUG_LEVEL RDBG_NONE")
 endif(bt_lower STREQUAL "debug")
 
 set(LINUX_ROOT $ENV{RSCFL_LINUX_ROOT}

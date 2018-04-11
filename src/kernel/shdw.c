@@ -93,7 +93,7 @@ int shdw_create(shdw_hdl *shdw_no)
   // Store the physical address of the shadow memory.
   phys_texts[*shdw_no] = __pa(shdw_mem);
 
-  debugk("Created shadow kernel\n");
+  debugk(RDBG_INFO, "Created shadow kernel\n");
 
   return 0;
 }

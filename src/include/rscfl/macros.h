@@ -10,10 +10,12 @@
 #ifndef _RSCFL_MACROS_H_
 #define _RSCFL_MACROS_H_
 
+#include "rscfl/config.h"
+
 #ifndef NDEBUG
-#define debugk(format, ...) printk(format, ##__VA_ARGS__)
+  #define debugk(level, format, ...) if(level <= DEBUG_LEVEL){ printk(format, ##__VA_ARGS__); }
 #else
-#define debugk(format, ...)
+  #define debugk(level, format, ...)
 #endif
 
 #ifdef UNUSED

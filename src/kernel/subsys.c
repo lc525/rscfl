@@ -30,7 +30,10 @@ int get_subsys(rscfl_subsys subsys_id,
   int subsys_offset;
 
   current_pid_acct = CPU_VAR(current_acct);
-  BUG_ON(current_pid_acct == NULL);
+  if(current_pid_acct == NULL) {
+    debugk(RDBG_ERROR, KERN_ERR "null current_acct while in subsys\n");
+    return -ENOMEM;
+  }
 
   acct = current_pid_acct->probe_data->syscall_acct;
   rscfl_mem = current_pid_acct->shared_buf;

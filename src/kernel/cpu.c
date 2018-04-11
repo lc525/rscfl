@@ -35,8 +35,8 @@ int _rscfl_cpus_cleanup(void)
 
   CPU_VAR(current_acct) = NULL;
   for_each_present_cpu(cpu_id) {
-    hash_for_each(per_cpu(pid_acct_tbl, cpu_id), bkt, it, link) {
-      hash_del(&it->link);
+    hash_for_each(per_cpu(pid_acct_tbl, cpu_id), bkt, it, link[cpu_id]) {
+      hash_del(&it->link[cpu_id]);
     }
   }
   return 0;

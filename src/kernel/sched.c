@@ -60,14 +60,21 @@ void on_ctx_switch(void *ignore,
                    struct task_struct *prev,
                    struct task_struct *next)
 {
-  pid_t next_tid = next->pid;
+  pid_t next_tid;
   pid_acct *curr_acct = CPU_VAR(current_acct);
+  int cpu_id = smp_processor_id();
+  if(next == NULL) {
+    CPU_VAR(current_acct) = NULL;
+    return;
+  }
+
+  next_tid = next->pid;
   if (curr_acct != NULL && curr_acct->ctrl->interest.token_id != NULL_TOKEN) {
     update_acct();
     record_ctx_switch(curr_acct, prev, 0);
   }
 
-  hash_for_each_possible(CPU_TBL(pid_acct_tbl), curr_acct, link, next_tid) {
+  hash_for_each_possible(CPU_TBL(pid_acct_tbl), curr_acct, link[cpu_id], next_tid) {
     if(curr_acct->pid == next_tid){
       CPU_VAR(current_acct) = curr_acct;
       if(curr_acct->ctrl->interest.token_id != NULL_TOKEN)
@@ -116,16 +123,16 @@ void on_cpu_switch(void *ignore,
    * table and return. on_ctx_switch will take care of the rest (updating
    * current_acct on the cpu)
    */
-  hash_for_each_possible(per_cpu(pid_acct_tbl, cpu_to), it, link, pid) {
+  hash_for_each_possible(per_cpu(pid_acct_tbl, cpu_to), it, link[cpu_to], pid) {
     if(it->pid == pid){
       return;
     }
   }
 
 
-  hash_for_each_possible(per_cpu(pid_acct_tbl, cpu_from), it, link, pid) {
+  hash_for_each_possible(per_cpu(pid_acct_tbl, cpu_from), it, link[cpu_from], pid) {
     if(it->pid == pid){
-      hash_add(per_cpu(pid_acct_tbl, cpu_to), &it->link, pid);
+      hash_add(per_cpu(pid_acct_tbl, cpu_to), &it->link[cpu_to], pid);
       return;
     }
   }
@@ -147,20 +154,21 @@ void on_task_exit(void *ignore, struct task_struct *p)
   pid_t pid = p->pid;
 
   for_each_present_cpu(cpu_id) {
-    hash_for_each_possible(per_cpu(pid_acct_tbl, cpu_id), it, link, pid) {
+    hash_for_each_possible(per_cpu(pid_acct_tbl, cpu_id), it, link[cpu_id], pid) {
       if(it->pid == pid) {
         CPU_VAR(current_acct) = NULL;
-        hash_del(&it->link);
-        // Freeing the probe_data prevents the rscfl_handle from being reused
-        // on other threads. We should _at least_ reset it or provide an option
-        // to clean it from the API.
-        // However, right now we don't have support for handle reuse, so we'll
-        // free it here (on thread exit)
-        if(it->probe_data) kfree(it->probe_data);
-        kfree(it);
-        break;
+        hash_del(&it->link[cpu_id]);
         debugk(RDBG_FINE, KERN_WARNING "exit: [CPU %d] clearing handles for pid: %d\n", cpu_id, pid);
       }
     }
+  }
+  // Freeing the probe_data prevents the rscfl_handle from being reused
+  // on other threads. We should _at least_ reset it or provide an option
+  // to clean it from the API.
+  // However, right now we don't have support for handle reuse, so we'll
+  // free it here (on thread exit)
+  if(it) {
+    if(it->probe_data) kfree(it->probe_data);
+    kfree(it);
   }
 }

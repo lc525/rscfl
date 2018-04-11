@@ -10,12 +10,15 @@
 #ifndef _RSCFL_PERCPU_H_
 #define _RSCFL_PERCPU_H_
 
+#include <linux/threads.h>
+
 #include "rscfl/config.h"
 #include "rscfl/costs.h"
 #include "rscfl/kernel/hasht.h"
 #include "rscfl/kernel/priv_kallsyms.h"
 #include "rscfl/res_common.h"
 #include "rscfl/subsys_list.h"
+
 
 #define SUBSYS_STACK_HEIGHT 20
 
@@ -40,12 +43,12 @@
  *
  *   pid_acct* pa = (pid_acct *)kmalloc(sizeof(pid_acct), GFP_ATOMIC);
  *   pa->pid = current->pid;
- *   hash_add(CPU_TBL(pid_acct_tbl), &pa->link, pa->pid);
+ *   hash_add(CPU_TBL(pid_acct_tbl), &pa->link[cpu_id], pa->pid);
  *
  * LOOKUP example (iterate through all elements in a hash bucket):
  *
  *    pid_acct *it;
- *    hash_for_each_possible(CPU_TBL(pid_acct_tbl), it, link, key)
+ *    hash_for_each_possible(CPU_TBL(pid_acct_tbl), it, link[cpu_id], key)
  *      if(it->pid == key)
  *        //do stuff with pid_acct *it
  */
@@ -60,7 +63,7 @@ struct probe_priv {
 typedef struct probe_priv probe_priv;
 
 struct pid_acct {
-  struct hlist_node link; // item in the per-bucket linked list
+  struct hlist_node link[NR_CPUS]; // item in the per-bucket linked list
   pid_t pid;
   struct rscfl_acct_layout_t *shared_buf;        // shared with user-space
   probe_priv *probe_data;     // private data used by each probe

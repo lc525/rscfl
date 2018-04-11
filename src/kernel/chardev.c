@@ -223,7 +223,7 @@ static int data_mmap(struct file *filp, struct vm_area_struct *vma)
   probe_priv *probe_data;
   char *shared_data_buf;
   struct rscfl_vma_data *drv_data;
-  int rc;
+  int cpu_id, rc;
 
   // new pid wants resource accounting data, so add (pid, shared_data_buf) into
   // per-cpu hash table.
@@ -267,7 +267,8 @@ static int data_mmap(struct file *filp, struct vm_area_struct *vma)
   drv_data = (rscfl_vma_data*) vma->vm_private_data;
   drv_data->pid_acct_node = pid_acct_node;
   preempt_disable();
-  hash_add(CPU_TBL(pid_acct_tbl), &pid_acct_node->link, pid_acct_node->pid);
+  cpu_id=smp_processor_id();
+  hash_add(CPU_TBL(pid_acct_tbl), &pid_acct_node->link[cpu_id], pid_acct_node->pid);
   debugk(RDBG_FINE, KERN_WARNING "registering PID: %d\n", pid_acct_node->pid);
   CPU_VAR(current_acct) = pid_acct_node;
   preempt_enable();

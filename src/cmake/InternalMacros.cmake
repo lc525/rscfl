@@ -35,14 +35,21 @@ function(lib_test test_NAME test_SOURCES)
     endif (${ARGC} LESS 3)
     #MESSAGE(${test_LINK})
 
+    find_package(libmongoc-1.0 1.7 REQUIRED)
+    find_package(CURL REQUIRED)
+
     include_directories(${GTEST_INCLUDE_DIRS})
 
     set(TEST_FLAGS "-std=c++0x")
     add_executable(${test_NAME} ${test_SOURCES})
     set_source_files_properties(${test_SOURCES}
                                 PROPERTIES COMPILE_FLAGS ${TEST_FLAGS})
-    target_link_libraries(${test_NAME} ${test_LINK})
+#   target_link_libraries(${test_NAME} ${test_LINK})
 
+    target_include_directories (${test_NAME} PRIVATE "${MONGOC_INCLUDE_DIRS};${CURL_INCLUDE_DIR}")
+    target_link_libraries (${test_NAME} PRIVATE "${MONGOC_LIBRARIES};${CURL_LIBRARIES};${test_LINK}")
+    target_compile_definitions (${test_NAME} PRIVATE "${MONGOC_DEFINITIONS}")
+    
     add_test(ctest_build_${test_NAME} "${CMAKE_COMMAND}" --build ${CMAKE_BINARY_DIR} --target ${test_NAME})
     add_test(run_${test_NAME} ${test_NAME} --gtest_color=yes --gtest_repeat=15 --gtest_output=xml:${test_NAME}_result.xml ${ARGV3})
 

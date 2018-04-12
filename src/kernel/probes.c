@@ -83,8 +83,8 @@ int probes_unregister(void)
 
 // scheduler interposition probes
 struct tracepoint *rscfl_sched_switch,
-                         *rscfl_migrate_task,
-                         *rscfl_process_exit;
+                  *rscfl_migrate_task,
+                  *rscfl_process_exit;
 short rscfl_tracepoint_status = HAS_TRACEPOINT_NONE;
 
 void get_tracepoints(struct tracepoint *tp, void *ignore)

@@ -28,18 +28,21 @@
 /*
  * Some extra, useful counters
  */
-/*
- *static struct timespec rscfl_get_timestamp(void)
- *{
- *  struct timespec ts;
- *  getrawmonotonic(&ts);
- *  return ts;
- *}
- */
+
+static struct timespec rscfl_get_timestamp(void)
+{
+  struct timespec ts;
+  getrawmonotonic(&ts);
+  return ts;
+}
 
 int rscfl_counters_init(void)
 {
+#if XEN_ENABLED != 0
   return xen_scheduler_init();
+#else
+  return 0;
+#endif
 }
 
 void rscfl_counters_stop(void)
@@ -49,7 +52,7 @@ void rscfl_counters_stop(void)
 int rscfl_counters_update_subsys_vals(struct subsys_accounting *add_subsys,
                                       struct subsys_accounting *minus_subsys)
 {
-#ifdef XEN_ENABLED
+#if XEN_ENABLED != 0
   struct shared_sched_info *sched_info = (void *)(
       // Start of the shared page
       (unsigned long)*KPRIV(HYPERVISOR_shared_info) +
@@ -65,8 +68,7 @@ int rscfl_counters_update_subsys_vals(struct subsys_accounting *add_subsys,
   pid_acct *current_pid_acct;
 
   u64 cycles = rscfl_get_cycles();
-  //struct timespec time = rscfl_get_timestamp();
-  int subsys_err;
+  struct timespec time = rscfl_get_timestamp();
   volatile syscall_interest_t *interest;
 
   preempt_disable();
@@ -79,17 +81,18 @@ int rscfl_counters_update_subsys_vals(struct subsys_accounting *add_subsys,
   if (add_subsys != NULL) {
     add_subsys->subsys_entries++;
     add_subsys->cpu.cycles += cycles;
-    //rscfl_timespec_add(&add_subsys->cpu.wall_clock_time, &time);
+    rscfl_timespec_add(&add_subsys->cpu.wall_clock_time, &time);
   }
 
   if (minus_subsys != NULL) {
     minus_subsys->subsys_exits++;
     minus_subsys->cpu.cycles -= cycles;
-    //rscfl_timespec_diff_comp(&minus_subsys->cpu.wall_clock_time, &time);
+    rscfl_timespec_diff_comp(&minus_subsys->cpu.wall_clock_time, &time);
   }
 
-#ifdef XEN_ENABLED
+#if XEN_ENABLED != 0
   // HYPERVISOR
+  int subsys_err;
   if (*KPRIV(HYPERVISOR_shared_info) != KPRIV(xen_dummy_shared_info) && !disable_xen) {
     // We are running in a Xen VM.
     uint64_t hypervisor_timestamp;

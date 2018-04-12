@@ -60,6 +60,9 @@ int update_acct(void)
 #endif
 
   current_pid_acct = CPU_VAR(current_acct);
+  if(current_pid_acct == NULL) {
+    return 1;
+  }
   interest = &current_pid_acct->ctrl->interest;
 
   // update the active token
@@ -74,9 +77,14 @@ int update_acct(void)
     }
   }
 
-  if(interest->first_measurement && current_pid_acct->active_token != current_pid_acct->default_token) {
+  if(interest->first_measurement) {
     volatile rscfl_kernel_token *tk = current_pid_acct->active_token;
-    if(tk->account != NULL && tk->account->token_id == tk->id ) {
+    if(tk != current_pid_acct->default_token &&
+       tk->account != NULL &&
+       tk->account->token_id == tk->id ) {
+      // We want to reset the accounting for any token other than the default
+      // one; If this is the first measurement, free the location storing
+      // measurement data.
       tk->account->in_use = 0;
     }
    tk->account = NULL;
@@ -132,16 +140,19 @@ int clear_acct_next(void)
   debugk(RDBG_FINE, KERN_WARNING "clear!\n");
 
   current_pid_acct = CPU_VAR(current_acct);
+  if (current_pid_acct == NULL) goto err;
   interest = &current_pid_acct->ctrl->interest;
   // If not a multi-syscall interest or if issued an explicit stop, reset the
   // interest so we stop accounting.
   if( ((interest->flags & ACCT_START) == 0) ||
       ((interest->flags & ACCT_STOP ) != 0) ) {
     interest->syscall_id = 0;
+    interest->token_id = NULL_TOKEN;
+    current_pid_acct->probe_data->syscall_acct = NULL;
   }
 
 /*
- *#ifdef XEN_ENABLED
+ *#if XEN_ENABLED != 0
  *  current_pid_acct->active_token->val2 = -1 * xen_current_sched_out();
  *#endif
  */
@@ -151,6 +162,7 @@ int clear_acct_next(void)
     current_pid_acct->probe_data->syscall_acct = NULL;
   }
 
+err:
   preempt_enable();
   return 0;
 }

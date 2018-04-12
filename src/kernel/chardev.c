@@ -369,12 +369,16 @@ static long rscfl_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
       copy_from_user(&dbg, (rscfl_debug *)arg, sizeof(rscfl_debug));
 
       current_pid_acct = CPU_VAR(current_acct);
+      if(current_pid_acct == NULL) return 0;
+
       interest = &current_pid_acct->ctrl->interest;
       if((interest->flags & __ACCT_ERR) == 0)
-        printk("IOCTL_CMD: %s, usp_token: %d, active_ktok:%d, ist_ktok:%d, syscall_id:%lu\n",
+        printk(KERN_WARNING "rscfl_DEBUG_CMD: %s, usp_token: %d, active_ktok:%d, ist_ktok:%d, syscall_id:%lu\n",
             dbg.msg, dbg.new_token_id,
             current_pid_acct->active_token->id, interest->token_id,
             interest->syscall_id);
+      else
+        printk(KERN_ERR "ACCT_ERR set\n");
       return 0;
       break;
     }

@@ -7,6 +7,17 @@
  * Its licensing is governed by the LICENSE file at the root of the project.
  **/
 
+/*
+ * TODO(lc525): There is a fragile dance of setting and reading properties
+ * from data structures that needs to happen for everything to work smoothly.
+ * Looking for an implementation which constraints the ways in which such
+ * changes are needed (i.e. I know that function A should have set B.x before
+ * function C runs) would be desirable. Otherwise, further changes should be
+ * made very carefully and by understanding the full implications (deleting one
+ * line in a function on account of "I don't think setting this here is
+ * necessary" could trigger unwanted effects in other parts of the code). This
+ * is a TODO for improving locality of such effects as much as possible.
+ */
 #include "rscfl/kernel/acct.h"
 
 #include <linux/compiler.h>
@@ -34,13 +45,15 @@ static struct accounting *alloc_acct(pid_acct *current_pid_acct)
       return NULL;
     }
   }
-  /*
-   *if(IS_USER_TOKEN(acct_buf->token_id)) {
-   *  current_pid_acct->token_ix[acct_buf->token_id]->account = NULL;
-   *} else if(acct_buf->token_id == DEFAULT_TOKEN) {
-   *  current_pid_acct->default_token->account = NULL;
-   *}
-   */
+
+  // Found a free accounting structure. If some index points to it
+  // clear that link before handing it as a new structure. This should be
+  // safe to do as it has been marked by user-space to no longer be needed
+  if(IS_USER_TOKEN(acct_buf->token_id)) {
+    current_pid_acct->token_ix[acct_buf->token_id]->account = NULL;
+  } else if(acct_buf->token_id == DEFAULT_TOKEN) {
+    current_pid_acct->default_token->account = NULL;
+  }
   acct_buf->in_use = 1;
   acct_buf->nr_subsystems = 0;
   acct_buf->syscall_id = current_pid_acct->ctrl->interest.syscall_id;

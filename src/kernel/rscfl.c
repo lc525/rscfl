@@ -94,6 +94,7 @@ static void __exit rscfl_cleanup(void)
   if (rcd) {
     printk(KERN_ERR "rscfl: cannot cleanup rscfl drivers\n");
   }
+  printk(KERN_ERR "rscfl: module unloaded\n");
 
 }
 
@@ -126,8 +127,8 @@ module_init(rscfl_init);
 module_exit(rscfl_cleanup);
 
 MODULE_LICENSE("Dual BSD/GPL");
-MODULE_AUTHOR("Lucian Carata <lucian.carata@cl.cam.ac.uk>");
-MODULE_AUTHOR("Oliver R. A. Chick <oliver.chick@cl.cam.ac.uk>");
 MODULE_AUTHOR("James Snee <james.snee@cl.cam.ac.uk>");
+MODULE_AUTHOR("Oliver R. A. Chick <oliver.chick@cl.cam.ac.uk>");
+MODULE_AUTHOR("Lucian Carata <lucian.carata@cl.cam.ac.uk>");
 MODULE_VERSION(RSCFL_KVERSION);
 MODULE_DESCRIPTION(RSCFL_DESC);

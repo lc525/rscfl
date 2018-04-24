@@ -169,8 +169,9 @@ if(bt_lower STREQUAL "debug")
   set(DEFINE_NDEBUG "// \#define NDEBUG   // when this line is commented we're in debug mode")
   set(DEFINE_DEBUG_LEVEL "\#define DEBUG_LEVEL ${DEBUG_LEVEL}")
 else(bt_lower STREQUAL "debug")
+  set(DEBUG_LEVEL "RDBG_NONE")
   set(DEFINE_NDEBUG "\#define NDEBUG")
-  set(DEFINE_DEBUG_LEVEL "\#define DEBUG_LEVEL RDBG_NONE")
+  set(DEFINE_DEBUG_LEVEL "\#define DEBUG_LEVEL ${DEBUG_LEVEL} // for release builds only RDBG_NONE is available")
 endif(bt_lower STREQUAL "debug")
 
 set(LINUX_ROOT $ENV{RSCFL_LINUX_ROOT}

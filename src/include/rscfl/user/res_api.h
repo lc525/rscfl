@@ -56,26 +56,13 @@
 #ifndef _RES_API_H_
 #define _RES_API_H_
 
-#include <mongoc.h>     /* mongoDB API */
-#include <curl/curl.h>  /* libcurl library to connect to InfluxDB */
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include <pthread.h>
 #include "rscfl/costs.h"
 #include "rscfl/res_common.h"
 #include "rscfl/subsys_list.h"
-
-#define COUNT  "COUNT"
-#define MEAN   "MEAN"
-#define MEDIAN "MEDIAN"
-#define SPREAD "SPREAD"
-#define STDDEV "STDDEV"
-#define SUM    "SUM"
-#define MAX    "MAX"
-#define MIN    "MIN"
 
 #define MAX_PAYLOAD 1024 /* maximum payload size*/
 #define SUBSYS_AS_STR_ARRAY(a, b, c) [a] = c,
@@ -109,38 +96,6 @@ struct rscfl_token_list {
 };
 typedef struct rscfl_token_list rscfl_token_list;
 
-typedef struct mongo_handle {
-  mongoc_client_t *client;
-  mongoc_database_t *database;
-  mongoc_collection_t *collection;
-  bool connected;
-  int fd;
-  pthread_t sender_thread;
-  volatile bool thread_alive;
-  int pipe_read;
-  int pipe_write;
-} mongo_handle_t;
-
-typedef struct influx_handle {
-  CURL *curl;
-  int fd;
-  pthread_t sender_thread;
-  volatile bool thread_alive;
-  int pipe_read;
-  int pipe_write;
-} influx_handle_t;
-
-typedef struct query_result {
-  unsigned long long timestamp;
-  char *subsystem_name;
-  double value;
-} query_result_t;
-
-typedef struct timestamp_array {
-  unsigned long long *ptr;
-  int length;
-} timestamp_array_t;
-
 /*
  * rscfl_handle_t* (typedef-ed to rscfl_handle) represents the user-space
  * descriptor for interacting with the kernel module. This is obtained
@@ -157,15 +112,10 @@ struct rscfl_handle_t {
    * This pool is replenished whenever there is a system call that finds a
    * reduction in the number of free tokens.
    */
-  //rscfl_token *fresh_tokens[NUM_READY_TOKENS];
   rscfl_token_list *free_token_list;
   rscfl_token *current_token;
-  //int ready_token_sp;
   int fd_ctrl;
 
-  influx_handle_t influx;
-  mongo_handle_t mongo;
-  char app_name[32];  // app name - to be used for tagging data
 };
 typedef struct rscfl_handle_t *rscfl_handle;
 
@@ -221,7 +171,7 @@ typedef struct subsys_idx_set subsys_idx_set;
  * In each case, the actual function being called is rscfl_init_api(...).
  */
 #define rscfl_init(...) CONCAT(rscfl_init_, VARGS_NR(__VA_ARGS__))(__VA_ARGS__)
-#define rscfl_init_0() rscfl_init_api(RSCFL_VERSION, NULL, NULL, 0)
+#define rscfl_init_0() rscfl_init_api(RSCFL_VERSION, NULL)
 /*
  * Do not call directly. use the rscfl_init(...) macro instead.
  *
@@ -229,9 +179,7 @@ typedef struct subsys_idx_set subsys_idx_set;
  *                macro to RSCFL_VERSION
  * \param cfg     rscfl configuration. use the same configuration for all
  */
-#define rscfl_init_1(cfg) rscfl_init_api(RSCFL_VERSION, cfg, NULL, 0)
-#define rscfl_init_2(app_name, need_extra_data) rscfl_init_api(RSCFL_VERSION, NULL, app_name, need_extra_data)
-#define rscfl_init_3(cfg, app_name, need_extra_data) rscfl_init_api(RSCFL_VERSION, cfg, app_name, need_extra_data)
+#define rscfl_init_1(cfg) rscfl_init_api(RSCFL_VERSION, cfg)
 /**
  * Initialises rscfl for the calling thread.
  *
@@ -267,20 +215,11 @@ typedef struct subsys_idx_set subsys_idx_set;
  *  * RSCFL_ERR_VERSION_MISMATCH (in config.h).
  *  * The ERR_ON_VERSION_MISMATCH cmake build option.
  */
-rscfl_handle rscfl_init_api(rscfl_version_t ver, rscfl_config* config, char *app_name, bool need_extra_data);
-
-/*
- * Call at the end of your program to free up all resources associated with
- * persistent storage. Not necessary if rscfl_init was called without the
- * app_name argument.
- */
-void rscfl_persistent_storage_cleanup(rscfl_handle rhdl);
+rscfl_handle rscfl_init_api(rscfl_version_t ver, rscfl_config* config);
 
 #define rscfl_get_handle(...) CONCAT(rscfl_get_handle_, VARGS_NR(__VA_ARGS__))(__VA_ARGS__)
-#define rscfl_get_handle_0() rscfl_get_handle_api(NULL, NULL, 0)
-#define rscfl_get_handle_1(cfg) rscfl_get_handle_api(cfg, NULL, 0)
-#define rscfl_get_handle_2(app_name, need_extra_data) rscfl_get_handle_api(NULL, app_name, need_extra_data)
-#define rscfl_get_handle_3(cfg, app_name, need_extra_data) rscfl_get_handle_api(cfg, app_name, need_extra_data)
+#define rscfl_get_handle_0() rscfl_get_handle_api(NULL)
+#define rscfl_get_handle_1(cfg) rscfl_get_handle_api(cfg)
 
 /**
  * Returns the rscfl handle for the current thread. If rscfl was not
@@ -294,7 +233,7 @@ void rscfl_persistent_storage_cleanup(rscfl_handle rhdl);
  * :type cfg:     rscfl_config*
  * :param token:  an inexistent token
  */
-rscfl_handle rscfl_get_handle_api(rscfl_config *cfg, char *app_name, bool need_extra_data);
+rscfl_handle rscfl_get_handle_api(rscfl_config *cfg);
 
 /*
  * If successful returns 0, and sets the value of *token to be a new token.
@@ -331,176 +270,6 @@ int rscfl_acct_api(rscfl_handle, rscfl_token *token, interest_flags fl);
 #define rscfl_read_acct_3(handle, acct, token) rscfl_read_acct_api(handle, acct, token)
 int rscfl_read_acct_api(rscfl_handle handle, struct accounting *acct, rscfl_token *token);
 
-/*
- * Used to generate an ID for a measurement when calling rscfl_store_data(), or
- * to generate a timestamp that can later be used as an upper or lower bound
- * for the time when making a query
- */
-unsigned long long get_timestamp(void);
-
-/*
- * the subsys_idx_set * then belongs to the function and may be freed at any
- * time. Do not try to use it after calling this function. If you need it, copy
- * it somewhere beforehand.
- */
-#define rscfl_store_data(...) \
-  CONCAT(rscfl_store_data_, VARGS_NR(__VA_ARGS__))(__VA_ARGS__)
-#define rscfl_store_data_2(handle, data) \
-  rscfl_store_data_api(handle, data, 0, NULL, NULL)
-#define rscfl_store_data_3(handle, data, timestamp) \
-  rscfl_store_data_api(handle, data, timestamp, NULL, NULL)
-#define rscfl_store_data_4(handle, data, fn, params) \
-  rscfl_store_data_api(handle, data, 0, fn, params)
-#define rscfl_store_data_5(handle, data, timestamp, fn, params) \
-  rscfl_store_data_api(handle, data, timestamp, fn, params)
-int rscfl_store_data_api(rscfl_handle rhdl, subsys_idx_set *data,
-                         unsigned long long timestamp,
-                         void (*user_fn)(rscfl_handle, void *),
-                         void *user_params);
-
-/*
- * Supply NULL into any unused parameter when calling with more than 1 argument
- */
-#define rscfl_read_and_store_data(...) \
-  CONCAT(rscfl_read_and_store_data_, VARGS_NR(__VA_ARGS__))(__VA_ARGS__)
-#define rscfl_read_and_store_data_1(handle) \
-  rscfl_read_and_store_data_api(handle, NULL)
-#define rscfl_read_and_store_data_5(handle, extra_data, token, fn, params) \
-  rscfl_read_and_store_data_api(handle, extra_data, token, fn, params)
-int rscfl_read_and_store_data_api(rscfl_handle rhdl, char *info_json,
-                                  rscfl_token *token,
-                                  void (*user_fn)(rscfl_handle, void *),
-                                  void *user_params);
-
-#define rscfl_store_data_with_extra_info(...) \
-  CONCAT(rscfl_store_data_with_extra_info_, VARGS_NR(__VA_ARGS__))(__VA_ARGS__)
-#define rscfl_store_data_with_extra_info_3(handle, data, extra_info) \
-  rscfl_store_data_with_extra_info_api(handle, data, extra_info, 0, NULL, NULL)
-#define rscfl_store_data_with_extra_info_4(handle, data, extra_info,        \
-                                           timestamp)                       \
-  rscfl_store_data_with_extra_info_api(handle, data, extra_info, timestamp, \
-                                       NULL, NULL)
-#define rscfl_store_data_with_extra_info_5(handle, data, extra_info, fn, \
-                                           params)                       \
-  rscfl_store_data_with_extra_info_api(handle, data, extra_info, 0, fn, params)
-#define rscfl_store_data_with_extra_info_6(handle, data, extra_info,        \
-                                           timestamp, fn, params)           \
-  rscfl_store_data_with_extra_info_api(handle, data, extra_info, timestamp, \
-                                       fn, params)
-int rscfl_store_data_with_extra_info_api(rscfl_handle rhdl,
-                                         subsys_idx_set *data, char *info_json,
-                                         unsigned long long timestamp,
-                                         void (*user_fn)(rscfl_handle, void *),
-                                         void *user_params);
-
-/*
- * the char * returned by this function then belongs to the calling
- * function and needs to be freed using free()
- */
-char *rscfl_query_measurements(rscfl_handle rhdl, char *query);
-
-/*
- * the mongoc_cursor_t * returned by this function then belongs to
- * the calling function and needs to be freed using mongoc_cursor_destroy()
- */
-mongoc_cursor_t *rscfl_query_extra_data(rscfl_handle rhdl, char *query, char *options);
-
-/*
- * the string parameter gets allocated memory, and needs to be freed with
- * rscfl_free_json() when the program is done using it. The correct way to use
- * this function is in a loop as follows:
- * char *string;
- * while (rscfl_get_next_json(cursor, &string)){
- *    // do something with the string (transform into json and parse, or strcpy
- *       somewhere else)
- *    ...
- *    rscfl_free_json(string);
- *  }
- *
- * The return value is true if 'string' contains a new string and false in the
- * case of an error or when there are no more documents to be returned.
- */
-bool rscfl_get_next_json(mongoc_cursor_t *cursor, char **string);
-
-/*
- * the query_result_t * returned by this function then belongs to
- * the calling function and needs to be freed using rscfl_free_query_result()
- */
-#define rscfl_advanced_query_with_function(...)                      \
-  CONCAT(rscfl_advanced_query_with_function_, VARGS_NR(__VA_ARGS__)) \
-  (__VA_ARGS__)
-#define rscfl_advanced_query_with_function_6(                                  \
-    handle, measurement_name, function, subsystem_name, extra_data, latest_n)  \
-  rscfl_advanced_query_with_function_api(handle, measurement_name, function,   \
-                                         subsystem_name, extra_data, latest_n, \
-                                         0, 0)
-#define rscfl_advanced_query_with_function_7(handle, measurement_name,         \
-                                             function, subsystem_name,         \
-                                             extra_data, latest_n, timestamp)  \
-  rscfl_advanced_query_with_function_api(handle, measurement_name, function,   \
-                                         subsystem_name, extra_data, latest_n, \
-                                         timestamp, timestamp)
-#define rscfl_advanced_query_with_function_8(                                  \
-    handle, measurement_name, function, subsystem_name, extra_data, latest_n,  \
-    time_since, time_until)                                                    \
-  rscfl_advanced_query_with_function_api(handle, measurement_name, function,   \
-                                         subsystem_name, extra_data, latest_n, \
-                                         time_since, time_until)
-query_result_t *rscfl_advanced_query_with_function_api(
-    rscfl_handle rhdl, char *measurement_name, char *function,
-    char *subsystem_name, char *extra_data, int latest_n,
-    unsigned long long time_since_us, unsigned long long time_until_us);
-
-/*
- * the char * returned by this function then belongs to
- * the calling function and needs to be freed using free()
- */
-#define rscfl_advanced_query(...) \
-  CONCAT(rscfl_advanced_query_, VARGS_NR(__VA_ARGS__))(__VA_ARGS__)
-#define rscfl_advanced_query_5(handle, measurement_name, subsystem_name, \
-                               extra_data, latest_n)                     \
-  rscfl_advanced_query_api(handle, measurement_name, subsystem_name,     \
-                           extra_data, latest_n, 0, 0)
-#define rscfl_advanced_query_6(handle, measurement_name, subsystem_name, \
-                               extra_data, latest_n, timestamp)          \
-  rscfl_advanced_query_api(handle, measurement_name, subsystem_name,     \
-                           extra_data, latest_n, timestamp, timestamp)
-#define rscfl_advanced_query_7(handle, measurement_name, subsystem_name,     \
-                               extra_data, latest_n, time_since, time_until) \
-  rscfl_advanced_query_api(handle, measurement_name, subsystem_name,         \
-                           extra_data, latest_n, time_since, time_until)
-char *rscfl_advanced_query_api(rscfl_handle rhdl, char *measurement_name,
-                               char *subsystem_name, char *extra_data,
-                               int latest_n, unsigned long long time_since_us,
-                               unsigned long long time_until_us);
-
-/*
- * used to free the query_result_t * returned by rscfl_advanced_query()
- */
-void rscfl_free_query_result(query_result_t *result);
-
-/*
- * the char * returned by this function then belongs to the calling
- * function and needs to be freed using rscfl_free_json()
- */
-char *rscfl_get_extra_data(rscfl_handle rhdl, unsigned long long timestamp);
-
-/*
- * used to free the char * returned by rscfl_get_extra_data()
- */
-#define rscfl_free_json(string) bson_free(string)
-
-/*
- * returns an array of timestamps that contain the data specified in
- * 'extra_data'. the caller is responsible for freeing this array using
- * rscfl_free_timestamp_array()
- */
-timestamp_array_t rscfl_get_timestamps(rscfl_handle rhdl, char *extra_data);
-
-/*
- * used to free the timestamp_array_t returned by rscfl_get_timestamps()
- */
-#define rscfl_free_timestamp_array(array) free(array.ptr)
 
 /*
  * -- high level API functions --
